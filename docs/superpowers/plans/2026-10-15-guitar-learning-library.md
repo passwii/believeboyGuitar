@@ -148,11 +148,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
 ```
+
+注意：**刻意删掉了脚手架默认的 `"start": "next start"`**。本项目是 `output: "export"` 的静态站点，`next start` 在导出模式下会直接报错退出（`Error: "next start" does not work with "output: export" configuration`），留着就是一条必然失败的命令。需要本地预览 `out/` 时用 `npx serve@latest out`。
 
 - [ ] **Step 7: 安装依赖并验证构建**
 
