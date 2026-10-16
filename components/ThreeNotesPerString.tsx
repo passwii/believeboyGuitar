@@ -109,7 +109,7 @@ export function ThreeNotesPerString() {
               title={`${pattern.mode} · ${pattern.character}`}
               onClick={() => togglePattern(pattern.degree)}
             >
-              <span className="text-ink-300">
+              <span className={activeDegree === pattern.degree ? "text-ink-300" : "text-ink-500"}>
                 {DEGREE_MARKS[pattern.degree - 1]}
               </span>
               <span className="font-semibold">{pattern.notes[0][0].name}</span>
@@ -265,7 +265,7 @@ function PatternTable({
                       onClick={() => onSelect(pattern.degree)}
                       className="inline-flex items-baseline gap-1.5 rounded-md px-1.5 py-1 whitespace-nowrap transition-colors hover:bg-ink-100"
                     >
-                      <span className="text-xs text-ink-300">
+                      <span className="text-xs text-ink-500">
                         {DEGREE_MARKS[pattern.degree - 1]}
                       </span>
                       <span className="font-semibold text-ink-950">
