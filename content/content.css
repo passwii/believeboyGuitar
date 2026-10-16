@@ -1,0 +1,81 @@
+/* 内容区排版：只作用于 .lesson 内部，正文 HTML 不携带任何样式 */
+.lesson {
+  --lesson-measure: 68ch;
+  max-width: var(--lesson-measure);
+  line-height: 1.8;
+}
+
+.lesson h2 {
+  margin-top: 2.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.lesson h3 {
+  margin-top: 1.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.lesson p,
+.lesson ul,
+.lesson ol,
+.lesson table,
+.lesson blockquote {
+  margin-top: 1rem;
+}
+
+.lesson ul,
+.lesson ol {
+  padding-left: 1.5rem;
+}
+
+.lesson ul {
+  list-style: disc;
+}
+
+.lesson ol {
+  list-style: decimal;
+}
+
+.lesson li + li {
+  margin-top: 0.375rem;
+}
+
+.lesson strong {
+  font-weight: 600;
+}
+
+.lesson code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background-color: var(--color-ink-100);
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}
+
+.lesson table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.lesson th,
+.lesson td {
+  border: 1px solid var(--color-ink-200);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.lesson th {
+  background-color: var(--color-ink-100);
+  font-weight: 600;
+}
+
+.lesson blockquote {
+  border-left: 3px solid var(--color-accent-600);
+  padding-left: 1rem;
+  color: var(--color-ink-700);
+}

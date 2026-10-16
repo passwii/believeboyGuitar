@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
+import "@/content/content.css";
 
 export const metadata: Metadata = {
   title: "电吉他学习资料库",
