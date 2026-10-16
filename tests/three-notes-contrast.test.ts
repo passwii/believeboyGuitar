@@ -17,6 +17,7 @@ vi.mock("react", async (importOriginal) => {
 });
 
 import { ThreeNotesPerString } from "@/components/ThreeNotesPerString";
+import { PATTERNS } from "@/lib/guitar";
 
 const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
 
@@ -50,6 +51,15 @@ function markColor(button: string): string {
   return token;
 }
 
+function modeColor(button: string, modeZh: string): string {
+  const span = [...button.matchAll(/<span class="([^"]+)">([^<]+)<\/span>/g)]
+    .find(([, , text]) => text === modeZh);
+  if (!span) throw new Error(`Mode label not rendered: ${modeZh}`);
+  const token = span[1].match(/\btext-(ink-\d+|white)\b/)?.[1];
+  if (!token) throw new Error(`Mode label has no text color: ${span[1]}`);
+  return token;
+}
+
 function patternButtons(html: string): string[] {
   return [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)]
     .map(([button]) => button)
@@ -66,6 +76,29 @@ function rendered(selectedDegree: number | null): string {
 }
 
 describe("three notes degree mark contrast", () => {
+  it("keeps unselected pattern chip mode labels readable on white", () => {
+    const chips = patternButtons(rendered(null).split("七把位速查")[0]);
+    expect(chips).toHaveLength(PATTERNS.length);
+    chips.forEach((button, index) => {
+      expect(button).toContain('aria-pressed="false"');
+      expect(button).toContain("bg-white");
+      expect(contrast(modeColor(button, PATTERNS[index].modeZh), "white"))
+        .toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
+  it("keeps selected pattern chip mode labels readable on ink-950", () => {
+    for (const pattern of PATTERNS) {
+      const chips = patternButtons(rendered(pattern.degree).split("七把位速查")[0]);
+      expect(chips).toHaveLength(PATTERNS.length);
+      const button = chips[pattern.degree - 1];
+      expect(button).toContain('aria-pressed="true"');
+      expect(button).toContain("bg-ink-950");
+      expect(contrast(modeColor(button, pattern.modeZh), "ink-950"))
+        .toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("keeps all unselected pattern chip marks readable on white", () => {
     const chips = patternButtons(rendered(null).split("七把位速查")[0]);
     expect(chips).toHaveLength(7);

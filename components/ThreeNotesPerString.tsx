@@ -113,7 +113,9 @@ export function ThreeNotesPerString() {
                 {DEGREE_MARKS[pattern.degree - 1]}
               </span>
               <span className="font-semibold">{pattern.notes[0][0].name}</span>
-              <span className="text-ink-500">{pattern.modeZh}</span>
+              <span className={activeDegree === pattern.degree ? "text-white" : "text-ink-500"}>
+                {pattern.modeZh}
+              </span>
             </PatternChip>
           ))}
         </div>
