@@ -8,9 +8,11 @@ export const metadata: Metadata = {
 
 export default function LibraryPage() {
   return (
-    <main className="mx-auto max-w-3xl px-5 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">资料库</h1>
-      <p className="mt-2 text-sm text-ink-700">
+    <main className="mx-auto w-full max-w-[1120px] px-5 py-10 sm:py-14">
+      <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+        资料库
+      </h1>
+      <p className="mt-4 text-base leading-[1.8] text-ink-muted">
         全部整理后的资料，可按主题、阶段、难度筛选。
       </p>
       <LibraryBrowser lessons={lessons} />
