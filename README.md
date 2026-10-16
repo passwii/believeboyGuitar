@@ -1,34 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 电吉他学习资料库
 
-## Getting Started
+把收集到的电吉他学习资料整理、改写成可以直接阅读的 HTML 内容，并长期积累。
 
-First, run the development server:
+## 为什么是「改写」
+
+收集来的资料本身不是学习成果。PDF、截图、零散笔记往往结构混乱、重点不明，
+每次复习都要重新翻一遍。这个项目承担的是一次性整理工作：把原始资料提炼、
+重组、改写成结构清晰的内容，之后只读整理后的页面。
+
+## 快速开始
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run test     # 校验清单与正文一致性，以及查询逻辑
+npm run build    # 静态导出到 out/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 目录结构
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 路径 | 说明 |
+| --- | --- |
+| `content/manifest.ts` | 唯一事实来源：全部资料的元数据与主页目标 |
+| `content/lessons/*.html` | 每篇正文，只写语义标签，不带样式 |
+| `content/content.css` | 内容区排版样式 |
+| `content/widgets.ts` | 正文可嵌入的交互组件名清单 |
+| `app/` | 页面外壳：主页、资料库、内容页 |
+| `components/` | 导航、卡片、筛选、空状态、指板图等组件 |
+| `lib/` | 纯函数：音位推导、查询筛选、一致性校验 |
+| `inbox/` | 原始资料投放处（不纳入版本库） |
+| `archive/` | 整理完成后的原始资料归档（不纳入版本库） |
 
-## Learn More
+## 新增一篇资料
 
-To learn more about Next.js, take a look at the following resources:
+1. 把原始资料放进 `inbox/`
+2. 先确认内容结构：怎么分节、哪些不确定、哪些结论需要核对
+3. 生成 `content/lessons/<slug>.html`，并在 `content/manifest.ts` 登记一条记录
+4. 浏览器打开实际页面，确认排版正常、内容没走样
+5. 原始资料移到 `archive/`
+6. 运行 `npm test` 与 `npm run build`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 内容约定
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+正文文件只写语义标签（`article`、`h2`、`h3`、`p`、`ul`、`ol`、`li`、`strong`、
+`code`、`table`、`blockquote`），以 `<article>` 为根元素：
 
-## Deploy on Vercel
+- 不写 `<script>`、`<style>`、`<link>`
+- 不写行内 `style=` 属性
+- 不写自带导航
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+样式全部由 `content/content.css` 统一提供。这些约定由 `npm test` 强制检查——
+清单与文件脱节、正文违反约定都会让测试失败；渲染前 `lib/sanitize-content.ts`
+还会再清一遍，不把安全性只押在「作者会守规矩」上。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 指板图这类交互内容
+
+音阶图、和弦图这类光靠文字说不清的内容，正文里只写一个占位标记：
+
+```html
+<lesson-widget name="c-major-three-notes-per-string"></lesson-widget>
+```
+
+标记放在哪，组件就渲染在哪。加一个新组件的步骤：
+
+1. 在 `content/widgets.ts` 的 `WIDGET_NAMES` 里登记名字
+2. 在 `components/LessonWidget.tsx` 的 `WIDGETS` 表里接上实现
+3. 在正文里写上标记
+
+名字写错会在 `npm test` 和构建时报错。正文依然只有语义标签，不带样式也不带脚本。
+
+## 人工核对
+
+改写是结构重组与语言重写，不是逐字翻译。涉及**指法、音阶图、和弦图**这类
+错一个音就会练错的内容，必须逐条核对原始资料后再采用。
+
+## 第一版不做什么
+
+练习打卡、进度统计、复习提醒、账号与云同步、PDF 在线阅读器、曲谱播放、
+暗色模式。等实际用一段时间、确认真实需要了再加。
