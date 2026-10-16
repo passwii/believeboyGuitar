@@ -147,9 +147,9 @@ export function Fretboard({
           y={yForString(stringIndex) + 4}
           textAnchor="end"
           fontSize={11}
-          className="fill-ink-300"
+          className="fill-ink-700"
         >
-          <tspan className="fill-ink-300">{string.number}</tspan>
+          <tspan className="fill-ink-700">{string.number}</tspan>
           <tspan dx={5} className="fill-ink-700" fontWeight={600}>
             {string.openName}
           </tspan>
@@ -164,7 +164,7 @@ export function Fretboard({
           y={boardBottom + 20}
           textAnchor="middle"
           fontSize={11}
-          className={INLAY_FRETS.has(fret) ? "fill-ink-700" : "fill-ink-300"}
+          className="fill-ink-700"
         >
           {fret}
         </text>

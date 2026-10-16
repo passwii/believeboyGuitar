@@ -61,7 +61,7 @@ export function ThreeNotesPerString() {
 
   return (
     <>
-      <section className="rounded-2xl border border-ink-200 bg-white p-4 shadow-sm sm:p-6">
+      <section className="border border-rule bg-surface p-4 sm:p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3">
           <h2 className="text-base font-semibold tracking-tight text-ink-950">
             七个把位指板图
@@ -70,7 +70,7 @@ export function ThreeNotesPerString() {
           <div
             role="group"
             aria-label="音位标注方式"
-            className="flex rounded-lg border border-ink-200 p-0.5 text-xs"
+            className="flex rounded-sm border border-control-edge p-0.5 text-xs"
           >
             {(
               [
@@ -83,10 +83,10 @@ export function ThreeNotesPerString() {
                 type="button"
                 aria-pressed={labelMode === mode}
                 onClick={() => setLabelMode(mode)}
-                className={`rounded-md px-3 py-1.5 font-medium transition-colors ${
+                className={`rounded-sm px-3 py-1.5 font-medium transition-colors ${
                   labelMode === mode
-                    ? "bg-ink-950 text-white"
-                    : "text-ink-500 hover:text-ink-950"
+                    ? "bg-accent-700 text-white"
+                    : "text-ink-700 hover:text-ink-950"
                 }`}
               >
                 {text}
@@ -109,11 +109,11 @@ export function ThreeNotesPerString() {
               title={`${pattern.mode} · ${pattern.character}`}
               onClick={() => togglePattern(pattern.degree)}
             >
-              <span className={activeDegree === pattern.degree ? "text-ink-300" : "text-ink-500"}>
+              <span className={activeDegree === pattern.degree ? "text-white" : "text-ink-700"}>
                 {DEGREE_MARKS[pattern.degree - 1]}
               </span>
               <span className="font-semibold">{pattern.notes[0][0].name}</span>
-              <span className={activeDegree === pattern.degree ? "text-white" : "text-ink-500"}>
+              <span className={activeDegree === pattern.degree ? "text-white" : "text-ink-700"}>
                 {pattern.modeZh}
               </span>
             </PatternChip>
@@ -132,14 +132,14 @@ export function ThreeNotesPerString() {
           ← 左右滑动查看第 1–{FRET_COUNT} 品 →
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-ink-100 pt-4 text-xs text-ink-500">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule pt-4 text-xs text-ink-700">
           <span className="inline-flex items-center gap-1.5">
             <span className="size-3 rounded-full bg-accent-600" aria-hidden />
             根音（1 级 C）
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span
-              className="size-3 rounded-full bg-ink-100 ring-1 ring-ink-200"
+              className="size-3 rounded-full bg-ink-100 ring-1 ring-rule"
               aria-hidden
             />
             其他音级
@@ -173,10 +173,10 @@ function PatternChip({
       title={title}
       aria-pressed={active}
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+      className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs transition-colors ${
         active
-          ? "border-ink-950 bg-ink-950 text-white"
-          : "border-ink-200 bg-white text-ink-700 hover:border-ink-300 hover:bg-ink-50"
+          ? "border-accent-700 bg-accent-700 text-white"
+          : "border-control-edge bg-surface text-ink-700 hover:bg-accent-50 hover:text-ink-950"
       }`}
     >
       {children}
@@ -187,7 +187,7 @@ function PatternChip({
 function PatternDetail({ pattern }: { pattern: Pattern | null }) {
   if (!pattern) {
     return (
-      <p className="mt-4 border-t border-ink-100 pt-4 text-xs leading-relaxed text-ink-500">
+      <p className="mt-4 border-t border-rule pt-4 text-xs leading-relaxed text-ink-500">
         图上显示的是整条指板里的 C 大调音位。点选上方任一把位，只会留下那一个把位的
         六个音组，形状和位置会看得更清楚。
       </p>
@@ -204,7 +204,7 @@ function PatternDetail({ pattern }: { pattern: Pattern | null }) {
   ] as const;
 
   return (
-    <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-ink-100 pt-4 sm:grid-cols-3 lg:grid-cols-5">
+    <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-rule pt-4 sm:grid-cols-3 lg:grid-cols-5">
       {items.map(([label, value]) => (
         <div key={label}>
           <dt className="text-[11px] text-ink-500">{label}</dt>
@@ -231,10 +231,10 @@ function PatternTable({
         每格是该弦上的三个音：数字是品位，字母是音名。
       </p>
 
-      <div className="mt-3 overflow-x-auto rounded-2xl border border-ink-200 bg-white">
+      <div className="mt-3 overflow-x-auto border border-control-edge bg-surface">
         <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-ink-200 text-[11px] text-ink-500">
+            <tr className="border-b border-rule text-[11px] text-ink-500">
               <th scope="col" className="w-[120px] px-3 py-2.5 text-left font-medium">
                 把位
               </th>
@@ -256,7 +256,7 @@ function PatternTable({
               return (
                 <tr
                   key={pattern.degree}
-                  className={`border-b border-ink-100 last:border-0 ${
+                  className={`border-b border-rule last:border-0 ${
                     active ? "bg-accent-50" : ""
                   }`}
                 >
@@ -265,7 +265,7 @@ function PatternTable({
                       type="button"
                       aria-pressed={active}
                       onClick={() => onSelect(pattern.degree)}
-                      className="inline-flex items-baseline gap-1.5 rounded-md px-1.5 py-1 whitespace-nowrap transition-colors hover:bg-ink-100"
+                      className="inline-flex items-baseline gap-1.5 rounded-sm border border-control-edge px-1.5 py-1 whitespace-nowrap transition-colors hover:bg-accent-50"
                     >
                       <span className="text-xs text-ink-500">
                         {DEGREE_MARKS[pattern.degree - 1]}

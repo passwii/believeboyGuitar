@@ -43,6 +43,18 @@ function contrast(foreground: string, background: string): number {
   return (Math.max(...values) + 0.05) / (Math.min(...values) + 0.05);
 }
 
+function backgroundColor(className: string): string {
+  const token = className.match(/(?:^|\s)bg-(white|surface|accent-700|accent-50)(?:\s|$)/)?.[1];
+  if (!token) throw new Error(`No solid background color: ${className}`);
+  return token;
+}
+
+function buttonBackground(button: string): string {
+  const className = button.match(/<button\b[^>]*class="([^"]+)"/)?.[1];
+  if (!className) throw new Error(`Button class not rendered: ${button}`);
+  return backgroundColor(className);
+}
+
 function markColor(button: string): string {
   const className = button.match(/<span class="([^"]+)">[①②③④⑤⑥⑦]<\/span>/)?.[1];
   if (!className) throw new Error("Degree mark not rendered");
@@ -76,57 +88,62 @@ function rendered(selectedDegree: number | null): string {
 }
 
 describe("three notes degree mark contrast", () => {
-  it("keeps unselected pattern chip mode labels readable on white", () => {
+  it("keeps unselected pattern chip mode labels readable on their background", () => {
     const chips = patternButtons(rendered(null).split("七把位速查")[0]);
     expect(chips).toHaveLength(PATTERNS.length);
     chips.forEach((button, index) => {
       expect(button).toContain('aria-pressed="false"');
-      expect(button).toContain("bg-white");
-      expect(contrast(modeColor(button, PATTERNS[index].modeZh), "white"))
+      expect(contrast(modeColor(button, PATTERNS[index].modeZh), buttonBackground(button)))
         .toBeGreaterThanOrEqual(4.5);
     });
   });
 
-  it("keeps selected pattern chip mode labels readable on ink-950", () => {
+  it("keeps selected pattern chip mode labels readable on rust orange", () => {
     for (const pattern of PATTERNS) {
       const chips = patternButtons(rendered(pattern.degree).split("七把位速查")[0]);
       expect(chips).toHaveLength(PATTERNS.length);
       const button = chips[pattern.degree - 1];
       expect(button).toContain('aria-pressed="true"');
-      expect(button).toContain("bg-ink-950");
-      expect(contrast(modeColor(button, pattern.modeZh), "ink-950"))
+      expect(buttonBackground(button)).toBe("accent-700");
+      expect(contrast(modeColor(button, pattern.modeZh), buttonBackground(button)))
         .toBeGreaterThanOrEqual(4.5);
     }
   });
 
-  it("keeps all unselected pattern chip marks readable on white", () => {
+  it("keeps all unselected pattern chip marks readable on their background", () => {
     const chips = patternButtons(rendered(null).split("七把位速查")[0]);
     expect(chips).toHaveLength(7);
     for (const button of chips) {
       expect(button).toContain('aria-pressed="false"');
-      expect(button).toContain("bg-white");
-      expect(contrast(markColor(button), "white")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(markColor(button), buttonBackground(button)))
+        .toBeGreaterThanOrEqual(4.5);
     }
   });
 
-  it("keeps the selected pattern chip mark readable on ink-950", () => {
+  it("keeps the selected pattern chip mark readable on rust orange", () => {
     const button = patternButtons(rendered(1).split("七把位速查")[0])[0];
     expect(button).toContain('aria-pressed="true"');
-    expect(button).toContain("bg-ink-950");
-    expect(contrast(markColor(button), "ink-950")).toBeGreaterThanOrEqual(4.5);
+    expect(buttonBackground(button)).toBe("accent-700");
+    expect(contrast(markColor(button), buttonBackground(button)))
+      .toBeGreaterThanOrEqual(4.5);
   });
 
-  it("keeps quick-reference marks readable on white and accent-50 rows", () => {
+  it("keeps quick-reference marks readable on their row or table background", () => {
     for (const selectedDegree of [null, 1]) {
       const html = rendered(selectedDegree);
       const table = html.slice(html.indexOf("七把位速查"));
+      const tableBackground = backgroundColor(
+        table.match(/<div class="([^"]+)">\s*<table/)?.[1] ?? "",
+      );
       const rows = [...table.matchAll(/<tr class="([^"]+)">([\s\S]*?)<\/tr>/g)]
         .filter(([, , content]) => patternButtons(content).length > 0);
       expect(rows).toHaveLength(7);
       expect(rows[0][1].includes("bg-accent-50")).toBe(selectedDegree === 1);
       for (const [, rowClass, content] of rows) {
         const button = patternButtons(content)[0];
-        const background = rowClass.includes("bg-accent-50") ? "accent-50" : "white";
+        const background = /(?:^|\s)bg-/.test(rowClass)
+          ? backgroundColor(rowClass)
+          : tableBackground;
         expect(button).toContain(`aria-pressed="${background === "accent-50"}"`);
         expect(contrast(markColor(button), background)).toBeGreaterThanOrEqual(4.5);
       }
