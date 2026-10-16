@@ -43,3 +43,6 @@ next-env.d.ts
 # 原始资料：体积大且涉及版权，不纳入版本库
 /inbox/
 /archive/
+
+# vitest
+/.vitest/
