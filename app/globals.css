@@ -14,6 +14,10 @@
   --color-accent-100: oklch(0.93 0.04 55);
   --color-accent-50: oklch(0.97 0.02 60);
 
+  /* 指板图专用：深色木料底 + 浅色记号 */
+  --color-board-800: oklch(0.32 0.018 58);
+  --color-board-900: oklch(0.24 0.016 58);
+
   --font-sans: ui-sans-serif, system-ui, -apple-system, "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
