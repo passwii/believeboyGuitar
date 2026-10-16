@@ -12,11 +12,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="min-h-screen">
+      <body className="flex min-h-screen flex-col">
         <SiteNav />
         {children}
-        <footer className="mx-auto max-w-3xl px-5 py-10 text-xs text-ink-500">
-          个人学习资料库 · 内容为原始资料的整理改写
+        <footer className="mx-auto mt-auto w-full max-w-[1120px] px-5 pb-10 pt-8 text-sm text-ink-500">
+          <div className="border-t border-ink-200 pt-6">
+            个人学习资料库 · 内容为原始资料的整理改写
+          </div>
         </footer>
       </body>
     </html>
