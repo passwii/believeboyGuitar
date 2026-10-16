@@ -1,21 +1,62 @@
 /* 内容区排版：只作用于 .lesson 内部，正文 HTML 不携带任何样式 */
 .lesson {
-  --lesson-measure: 68ch;
+  --lesson-measure: 42em;
+  min-width: 0;
   max-width: var(--lesson-measure);
   line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 
 .lesson h2 {
-  margin-top: 2.5rem;
-  font-size: 1.25rem;
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-rule);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .lesson h3 {
-  margin-top: 1.75rem;
-  font-size: 1.05rem;
+  margin-top: 2rem;
+  font-size: 1.125rem;
   font-weight: 600;
+}
+
+.lesson h2,
+.lesson h3 {
+  scroll-margin-top: 2rem;
+}
+
+.lesson > h2:first-child {
+  margin-top: 0;
+}
+
+.lesson a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.lesson a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.lesson figure {
+  margin-top: 1.5rem;
+}
+
+.lesson img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.lesson figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-ink-muted);
 }
 
 .lesson p,
@@ -50,32 +91,50 @@
 .lesson code {
   font-family: var(--font-mono);
   font-size: 0.9em;
-  background-color: var(--color-ink-100);
+  background-color: var(--color-surface-muted);
   padding: 0.1em 0.35em;
   border-radius: 0.25rem;
 }
 
 .lesson table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   font-size: 0.9375rem;
+  overflow-wrap: normal;
+}
+
+.lesson blockquote {
+  border-left: 3px solid var(--color-accent);
+  background-color: var(--color-surface);
+  padding: 0.75rem 1rem;
+  color: var(--color-ink-muted);
+}
+
+.lesson blockquote > :first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .lesson table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
 }
 
 .lesson th,
 .lesson td {
-  border: 1px solid var(--color-ink-200);
+  border: 1px solid var(--color-rule);
   padding: 0.5rem 0.75rem;
   text-align: left;
   vertical-align: top;
 }
 
 .lesson th {
-  background-color: var(--color-ink-100);
+  background-color: var(--color-surface-muted);
   font-weight: 600;
-}
-
-.lesson blockquote {
-  border-left: 3px solid var(--color-accent-600);
-  padding-left: 1rem;
-  color: var(--color-ink-700);
 }
