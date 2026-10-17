@@ -231,7 +231,7 @@ function PatternTable({
         每格是该弦上的三个音：数字是品位，字母是音名。
       </p>
 
-      <div className="mt-3 overflow-x-auto border border-control-edge bg-surface">
+      <div className="mt-3 overflow-x-auto border border-rule bg-surface">
         <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-rule text-[11px] text-ink-500">

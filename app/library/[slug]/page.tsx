@@ -56,8 +56,11 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           <div className="flex gap-1">
             <dt className="text-ink-muted">难度</dt>
             <dd className="text-ink">
-              {"★".repeat(lesson.difficulty)}
-              {"☆".repeat(5 - lesson.difficulty)}
+              {lesson.difficulty} / 5
+              <span className="ml-2" aria-hidden="true">
+                {"★".repeat(lesson.difficulty)}
+                {"☆".repeat(5 - lesson.difficulty)}
+              </span>
             </dd>
           </div>
           <div className="flex gap-1">
