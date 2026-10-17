@@ -4,7 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { lessons } from "@/content/manifest";
 import { LessonWidget } from "@/components/LessonWidget";
+import { LessonTableOfContents } from "@/components/LessonTableOfContents";
 import { splitContentSections } from "@/lib/content-sections";
+import { addLessonHeadingIds, shouldShowLessonToc } from "@/lib/content-toc";
 import { sanitizeContentHtml } from "@/lib/sanitize-content";
 
 export const dynamicParams = false;
@@ -29,58 +31,72 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
     "utf8",
   );
   // 正文来自仓库里的 content/lessons/*.html，不是用户输入；渲染前仍按内容约定清一遍。
-  const sections = splitContentSections(sanitizeContentHtml(html));
+  const content = addLessonHeadingIds(sanitizeContentHtml(html));
+  const sections = splitContentSections(content.html);
+  const showToc = shouldShowLessonToc(content.headings);
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-10">
-      <Link href="/library" className="text-sm text-ink-500 hover:text-accent-700">
+    <main className="mx-auto w-full max-w-[1120px] px-5 py-10 sm:py-14">
+      <Link href="/library" className="text-sm text-ink-muted hover:text-accent">
         ← 资料库
       </Link>
 
-      <header className="mt-4 border-b border-ink-200 pb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{lesson.title}</h1>
-        <p className="mt-2 text-sm text-ink-700">{lesson.summary}</p>
-        <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs">
+      <header className="mt-6 border-b border-rule pb-8">
+        <h1 className="max-w-[28em] font-display text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
+          {lesson.title}
+        </h1>
+        <p className="mt-4 max-w-[42em] text-base leading-[1.8] text-ink-muted">
+          {lesson.summary}
+        </p>
+        <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-xs">
           <div className="flex gap-1">
-            <dt className="text-ink-500">阶段</dt>
-            <dd className="text-ink-700">{lesson.stage}</dd>
+            <dt className="text-ink-muted">阶段</dt>
+            <dd className="text-ink">{lesson.stage}</dd>
           </div>
           <div className="flex gap-1">
-            <dt className="text-ink-500">难度</dt>
-            <dd className="text-ink-700">
-              {"★".repeat(lesson.difficulty)}
-              {"☆".repeat(5 - lesson.difficulty)}
+            <dt className="text-ink-muted">难度</dt>
+            <dd className="text-ink">
+              {lesson.difficulty} / 5
+              <span className="ml-2" aria-hidden="true">
+                {"★".repeat(lesson.difficulty)}
+                {"☆".repeat(5 - lesson.difficulty)}
+              </span>
             </dd>
           </div>
           <div className="flex gap-1">
-            <dt className="text-ink-500">主题</dt>
-            <dd className="text-ink-700">{lesson.topics.join(" / ")}</dd>
+            <dt className="text-ink-muted">主题</dt>
+            <dd className="text-ink">{lesson.topics.join(" / ")}</dd>
           </div>
           <div className="flex gap-1">
-            <dt className="text-ink-500">整理于</dt>
-            <dd className="text-ink-700">{lesson.updatedAt}</dd>
+            <dt className="text-ink-muted">整理于</dt>
+            <dd className="text-ink">{lesson.updatedAt}</dd>
           </div>
         </dl>
       </header>
 
-      <div className="mt-8 space-y-8">
-        {sections.map((section, index) =>
-          section.kind === "prose" ? (
-            <div
-              key={`prose-${index}`}
-              className="lesson"
-              dangerouslySetInnerHTML={{ __html: section.html }}
-            />
-          ) : (
-            <LessonWidget key={`widget-${index}`} name={section.name} />
-          ),
-        )}
-      </div>
+      <div className={`mt-8 grid gap-8 md:gap-12 ${showToc ? "md:grid-cols-[13rem_minmax(0,1fr)]" : "grid-cols-1"}`}>
+        {showToc && <LessonTableOfContents headings={content.headings} />}
+        <div className="min-w-0 max-w-[42em]">
+          <div className="space-y-8">
+            {sections.map((section, index) =>
+              section.kind === "prose" ? (
+                <div
+                  key={`prose-${index}`}
+                  className="lesson"
+                  dangerouslySetInnerHTML={{ __html: section.html }}
+                />
+              ) : (
+                <LessonWidget key={`widget-${index}`} name={section.name} />
+              ),
+            )}
+          </div>
 
-      <footer className="mt-12 border-t border-ink-200 pt-6 text-xs text-ink-500">
-        <p>来源：{lesson.source}</p>
-        {lesson.tags.length > 0 && <p className="mt-1">标签：{lesson.tags.join(" · ")}</p>}
-      </footer>
+          <footer className="mt-12 border-t border-rule pt-6 text-xs text-ink-muted">
+            <p>来源：{lesson.source}</p>
+            {lesson.tags.length > 0 && <p className="mt-1">标签：{lesson.tags.join(" · ")}</p>}
+          </footer>
+        </div>
+      </div>
     </main>
   );
 }

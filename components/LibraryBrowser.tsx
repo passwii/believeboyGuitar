@@ -31,12 +31,20 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={
+      className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md border border-control-edge px-3 py-2 text-sm ${
         active
-          ? "rounded-full border border-accent-600 bg-accent-600 px-3 py-1 text-xs text-white"
-          : "rounded-full border border-ink-200 bg-white px-3 py-1 text-xs text-ink-700 hover:border-accent-600"
-      }
+          ? "bg-accent-soft text-ink ring-1 ring-inset ring-control-edge"
+          : "bg-surface text-ink-muted hover:bg-surface-muted"
+      }`}
     >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 16 16"
+        fill="none"
+        className={`size-3 shrink-0 ${active ? "visible" : "invisible"}`}
+      >
+        <path d="m3 8 3 3 7-7" stroke="currentColor" strokeWidth="2" />
+      </svg>
       {children}
     </button>
   );
@@ -44,10 +52,13 @@ function FilterChip({
 
 function FilterRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="w-9 shrink-0 text-xs text-ink-500">{label}</span>
-      {children}
-    </div>
+    <fieldset className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-3">
+      <legend className="sr-only">{label}</legend>
+      <span aria-hidden="true" className="flex min-h-11 items-center text-sm text-ink-muted">
+        {label}
+      </span>
+      <div className="flex min-w-0 flex-wrap gap-2">{children}</div>
+    </fieldset>
   );
 }
 
@@ -73,17 +84,20 @@ export function LibraryBrowser({ lessons }: { lessons: Lesson[] }) {
   }
 
   return (
-    <section className="mt-6">
+    <section className="mt-8">
+      <label htmlFor="library-search" className="mb-2 block text-sm font-medium">
+        搜索资料
+      </label>
       <input
+        id="library-search"
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="搜索标题、简介、主题、标签"
-        aria-label="搜索资料"
-        className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm outline-none focus:border-accent-600"
+        className="min-h-11 w-full rounded-md border border-control-edge bg-surface px-3 py-2 text-base placeholder:text-ink-muted"
       />
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-5 space-y-3">
         <FilterRow label="主题">
           {TOPICS.map((topic) => (
             <FilterChip
@@ -119,23 +133,36 @@ export function LibraryBrowser({ lessons }: { lessons: Lesson[] }) {
         </FilterRow>
       </div>
 
-      <p className="mt-6 text-xs text-ink-500">
-        {hasFilter ? `筛选出 ${visible.length} / ${lessons.length} 篇` : `共 ${lessons.length} 篇`}
+      <div className="mt-6 flex min-h-11 flex-wrap items-center gap-x-4 border-t border-rule pt-4 text-sm text-ink-muted">
+        <p role="status">
+          {hasFilter ? `筛选出 ${visible.length} / ${lessons.length} 篇` : `共 ${lessons.length} 篇`}
+        </p>
         {hasFilter && (
-          <button type="button" onClick={reset} className="ml-2 underline hover:text-accent-700">
+          <button
+            type="button"
+            onClick={reset}
+            className="min-h-11 text-accent underline underline-offset-4"
+          >
             清除筛选
           </button>
         )}
-      </p>
+      </div>
 
       {lessons.length === 0 ? (
         <EmptyLibrary />
       ) : visible.length === 0 ? (
-        <p className="mt-4 rounded-md border border-dashed border-ink-200 bg-white p-6 text-sm text-ink-500">
-          没有符合当前筛选条件的资料。
-        </p>
+        <div className="mt-4 text-base leading-[1.8] text-ink-muted">
+          <p>没有符合当前筛选条件的资料。</p>
+          <button
+            type="button"
+            onClick={reset}
+            className="mt-2 min-h-11 text-accent underline underline-offset-4"
+          >
+            清除筛选，查看全部资料
+          </button>
+        </div>
       ) : (
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        <ul className="mt-2 divide-y divide-rule">
           {visible.map((lesson) => (
             <li key={lesson.slug}>
               <LessonCard lesson={lesson} />

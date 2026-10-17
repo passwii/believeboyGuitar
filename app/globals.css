@@ -1,31 +1,71 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink-950: oklch(0.22 0.015 265);
-  --color-ink-700: oklch(0.38 0.015 265);
-  --color-ink-500: oklch(0.55 0.012 265);
-  --color-ink-300: oklch(0.78 0.008 265);
-  --color-ink-200: oklch(0.9 0.006 265);
-  --color-ink-100: oklch(0.94 0.005 265);
-  --color-ink-50: oklch(0.98 0.003 265);
+  --color-canvas: #f4f1e9;
+  --color-surface: #fbfaf6;
+  --color-surface-muted: #efece4;
+  --color-ink: #262820;
+  --color-ink-muted: #68675f;
+  --color-rule: #d8d3c8;
+  --color-control-edge: #6c6a62;
+  --color-accent: #ad462e;
+  --color-accent-soft: #f1e1d9;
+  --color-on-accent: #ffffff;
 
-  --color-accent-700: oklch(0.48 0.14 45);
-  --color-accent-600: oklch(0.58 0.16 45);
-  --color-accent-100: oklch(0.93 0.04 55);
-  --color-accent-50: oklch(0.97 0.02 60);
+  --color-ink-950: #262820;
+  --color-ink-700: #68675f;
+  --color-ink-500: #68675f;
+  --color-ink-400: #6c6a62;
+  --color-ink-300: #b5b1a7;
+  --color-ink-200: #d8d3c8;
+  --color-ink-100: #efece4;
+  --color-ink-50: #f4f1e9;
 
-  /* 指板图专用：深色木料底 + 浅色记号 */
+  --color-accent-700: #ad462e;
+  --color-accent-600: #ad462e;
+  --color-accent-100: #f1e1d9;
+  --color-accent-50: #f7eee9;
+
   --color-board-800: oklch(0.32 0.018 58);
   --color-board-900: oklch(0.24 0.016 58);
+  --color-board-label: #d4cfc5;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-display: Georgia, "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  --font-sans: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui,
+    sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
 }
 
 body {
-  background-color: var(--color-ink-50);
+  background-color: var(--color-canvas);
   color: var(--color-ink-950);
   font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.8;
   -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+a,
+button,
+input,
+select,
+textarea,
+summary {
+  transition: color 150ms ease, background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
