@@ -477,6 +477,10 @@ export function Metronome() {
       </section>
 
       <section className="flex flex-col items-center gap-1">
+        {/* 过渡类只受 reducedMotion 控制、缩放类才受 active 控制。若两者绑在一起
+            （旧写法：`active && !reducedMotion ? "scale-125 transition-transform"`），
+            失去高亮的同一帧会把 transition-property 一起摘掉，退场就从 1.25 硬跳回 1，
+            只剩「涨」没有「退」。 */}
         <div className="flex min-h-6 items-center justify-center gap-3" aria-hidden="true">
           {Array.from({ length: beats }, (_, index) => {
             const active = index === activeBeat;
@@ -485,7 +489,9 @@ export function Metronome() {
                 key={index}
                 className={`size-3 rounded-full ${
                   active ? "bg-accent-600" : "bg-ink-100 ring-1 ring-rule"
-                } ${active && !reducedMotion ? "scale-125 transition-transform" : ""}`}
+                } ${reducedMotion ? "" : "transition-transform"} ${
+                  active && !reducedMotion ? "scale-125" : ""
+                }`}
               />
             );
           })}
