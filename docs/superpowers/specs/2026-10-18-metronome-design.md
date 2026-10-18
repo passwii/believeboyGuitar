@@ -6,6 +6,8 @@
 
 本文只做方案，不改代码。实现拆成三个阶段（见 §12），每阶段单独提 PR。
 
+> **修订（2026-10-18，Stage 1 合并后）**：初稿把 `.segment` / `--container-measure` / `text-display` / `--radius-card` / `tests/design-system.test.ts` 当作 `origin/main` 上已有的原语，实际都不存在。§9 已改为只用现有 Tailwind utility；同时补上了已排程点击的撤销（§4 / §8）与页面恢复后的状态定义（§4）。
+
 ## 1. 需求盘点
 
 把原始需求逐条翻译成可执行条目，并标出落点阶段。
@@ -44,7 +46,7 @@
 │ 拍号                         │  4/4  3/4  2/4  6/8  5/4  7/8
 │ [4/4][3/4][2/4][6/8][5/4][7/8]│  ← 分段控件，44pt
 │                             │
-│            96               │  ← 大号读数（新令牌 --text-numeral）
+│            96               │  ← 大号读数（text-6xl + tabular-nums）
 │         Andante             │  ← 速度术语
 │  −   ●━━━━━━━━━━━━━   +     │  ← 滑杆 + ±1，30–240
 │                             │
@@ -59,8 +61,8 @@
 └─────────────────────────────┘
 ```
 
-- 桌面端同样单列，最大宽度约 `--container-measure`（40em），不为了填满宽屏而拉散。
-- 页面不复用首页的 `text-display` 标题块：顶部直接进拍号，减少一次滚动。
+- 桌面端同样单列，最大宽度约 40em（`max-w-[40rem]`），不为了填满宽屏而拉散。
+- 页面不复用首页的大标题块：顶部直接进拍号，减少一次滚动。
 
 ## 4. 交互与状态机
 
@@ -79,7 +81,9 @@
 
 **键盘：** `Space` 切换开始/暂停，`Esc` 结束。`Space` 在滑杆或按钮获得焦点时不劫持（避免和原生行为打架）。
 
-**页面隐藏 / 组件卸载：** 停止调度并挂起 AudioContext，避免切到后台还在响。
+**已在排程的拍子必须可撤销。** 120ms 的向前看意味着改拍号 / 改 BPM / 切音色 / 暂停 / 结束时，音频时钟里可能已经排进了 1–2 个还没发声的点击。只改 React 状态而不撤销这些已排程节点，会听到旧参数漏出来的点击，与上表「立即生效」不符。因此音频封装必须提供 `cancelFrom(time)`：把 `time` 之后已排程的 source 全部 `stop()` 并清空队列，再按新参数重建。这一条是 Stage 2 的实现前提，不是可选项。
+
+**页面隐藏 / 恢复：** `visibilitychange` 到 hidden 时停止调度并 `suspend()`，同时把状态从 `running` **显式改为 `paused`**（按钮回到「开始」）。只清 interval 而不改状态，会让界面停在 `running` 却不再出声，用户点一下只是把它「暂停」掉。回到 visible 时**不自动恢复**：等用户再点一次主按钮，从暂停的那一拍继续——这同时满足 iOS 切后台后需要新手势才能解锁音频的要求。
 
 **音频解锁：** AudioContext 在第一次用户点击（开始按钮）时创建并 `resume()`，满足 iOS Safari 的手势要求。不使用自动播放。
 
@@ -141,31 +145,41 @@
 - **调度**：lookahead scheduler —— 25ms 的 `setInterval` 只负责「往音频时钟里排拍子」，每次向前看 120ms，用 `AudioContext.currentTime + offset` 精确排程。不用 `setInterval` 直接发声（手机浏览器会漂移）。
 - **纯逻辑抽到 `lib/metronome.ts`**（可单测、不碰 DOM）：`METERS`、`accentIndexes`、`bpmToIntervalMs`、`clampBpm`、`tempoName`、`nextBeat`。
 - **音频封装在 `lib/metronome-audio.ts`**：只在客户端组件里引用，导出 `createMetronomeAudio()`，内部管 AudioContext、音色参数、`schedule(beatIndex, time, meter)`。便于将来换实现。
+  - **Stage 1 已落地现状（`origin/main`）**：`createMetronomeAudio()` 提供 `timbre` / `setTimbre` / `state` / `currentTime` / `resume` / `schedule` / `suspend` / `dispose`；另有 `TIMBRES`、`DEFAULT_TIMBRE`、`isAccentBeat`、`clickParams`。**尚无 `cancelFrom`**。
+  - **Stage 2 必须补 `cancelFrom(time: number): void`**（见 §4）：记录每次排程的 `AudioScheduledSourceNode`，`cancelFrom` 把 `start` 在 `time` 之后的 source 逐个 `stop(0)` 并从队列移除，然后才允许按新参数重排。同时补对应用例到 `tests/metronome.test.ts`。这是 Stage 2 的范围，不是重做 Stage 1。
 - **组件 `components/Metronome.tsx`**（`"use client"`）：状态机 + 调度器 + 控件；调度器与 AudioContext 放 `useRef`，不用全局状态、不加依赖。
 - **页面 `app/metronome/page.tsx`**：`metadata.title = "节拍器"`，只做壳，渲染 `<Metronome />`。
-- **导航**：`components/SiteNav.tsx` 增加「节拍器」入口；`DESIGN.md` §5 同步。
+- **导航**：`components/SiteNav.tsx` 增加「节拍器」入口。`DESIGN.md` §4「全站导航」当前写的是「只突出……首页、资料库等主要入口」，加第三项与它不矛盾，但需在 Stage 2 顺手把该句补成「首页 / 资料库 / 节拍器」。（注意：导航在 `DESIGN.md` 的 **§4**，不是 §5；§5 是「组件与内容表达」。）
 - **静态导出兼容**：无动态路由、无服务端读取、无 `window` 顶层访问。
-- **清理**：`useEffect` 卸载与 `visibilitychange` 时 `clearInterval` + `audioContext.suspend()`。
+- **清理**：`useEffect` 卸载时 `clearInterval` + `dispose()`；`visibilitychange` 到 hidden 时 `clearInterval` + `suspend()` **并把状态改为 `paused`**（见 §4）。
 
-## 9. 设计系统增补（唯一新增）
+## 9. 设计系统边界（重要：本方案不假定不存在的原语）
 
-**新增一档字号 `--text-numeral`**：`clamp(4rem, 3.1rem + 4vw, 6rem)` / 行高 1 / 字重 600 / `font-variant-numeric: tabular-nums`。
+`origin/main` 上的 `app/globals.css` 只有 71 行，**只有颜色与字体族令牌**：没有任何字号档位（`--text-*`）、没有 `--container-measure` / `--radius-card`、没有 `.segment` / `.segment-track` 组件层类，`tests/design-system.test.ts` 也不存在。`DESIGN.md` §3 只有散文描述（「应形成明确的字号阶梯」），没有字号表。
 
-理由：BPM 读数是这个页面的主角，现有六档里最大的 `text-display`（28→34px）撑不起来；用 `text-[64px]` 这类任意值会被 `tests/design-system.test.ts` 拒绝（这是它存在的意义）。所以按设计系统的做法**新增一档并同步三处**：
+这是本方案在 Stage 0 的一个真实错误：初稿把这些当成「现有令牌与类」并计划在 Stage 3 同步「六档改七档」，等于让 Stage 2 复用不存在的样式、让 Stage 3 修改不存在的测试。已按下面两选一修正，**本阶段不替全站拍板设计系统**。
 
-1. `app/globals.css` 的 `@theme`
-2. `DESIGN.md` §3 排版表
-3. `tests/design-system.test.ts` 的 `SCALE` 常量
+### 9.1 推荐方案（Stage 2 直接可行）：只用现有 Tailwind utility
 
-其余复用现有令牌与类：拍号与音色选择用 `.segment` / `.segment-track`，拍点用 `accent-600` / `ink-100`，主按钮 `accent-700` + 白字（对比度已由守护测试覆盖）。
+不新增任何令牌、不改 `DESIGN.md`、不动 `tests/design-system.test.ts`（它不存在，也不由本任务创建）：
 
-新增的少量组件层类（写在 `app/globals.css` 的 `@layer components`）：
+| 需求 | 实现 | 说明 |
+| --- | --- | --- |
+| BPM 大号读数 | `text-6xl font-semibold tabular-nums leading-none` | 60px；`tabular-nums` 防抖动。现有最大 `text-4xl`（首页 h1）不够大，但 `text-6xl` 是 Tailwind 内置档位，不算任意值 |
+| 拍号 / 音色分段控件 | 照抄 `components/ThreeNotesPerString.tsx:71-94` 的现有写法 | `role="group"` + `aria-pressed` + `rounded-sm border border-control-edge p-0.5`；选中态 `bg-accent-700 text-white`。这是仓库内**已验证存在**的模式，不依赖 `.segment` |
+| 主按钮 64px | `h-16 w-full rounded-md bg-accent-700 text-white text-lg font-medium` | 组件层类不新增，全部内联 utility |
+| 结束按钮 44px 命中 | `min-h-11` + `text-sm text-ink-700` | `min-h-11` 是仓库现用写法（`LibraryBrowser.tsx:34`） |
+| 拍点圆点 | `size-3 rounded-full bg-accent-600` / `bg-ink-100 ring-1 ring-rule` | 同 `ThreeNotesPerString.tsx:137-144` |
+| 容器宽度 | `mx-auto w-full max-w-[40rem] px-5` | 直接用长度，不引用不存在的 `--container-measure` |
+| 圆角 | `rounded-md`（现有 utility） | 不引用不存在的 `--radius-card` |
 
-| 类 | 作用 |
-| --- | --- |
-| `.transport-primary` | 主按钮：64px 高、`accent-700` 底、白字、`--radius-card` |
-| `.transport-secondary` | 结束按钮：44px 命中、透明底、`ink-700` |
-| `.beat-dot` / `.beat-dot[data-active="true"]` | 拍点：8px 圆点，激活态 `accent-600`，其余 `ink-100` |
+优点：不产生跨页面的设计系统改动，Stage 2 可立即开工，不阻塞在全站令牌重构上。代价：`text-6xl` 是个具体档位，如果将来全站建字号阶梯，需要回来把它收敛成语义令牌。
+
+### 9.2 备选方案（需先做前置任务）：先建设计系统，再做节拍器
+
+如果希望节拍器就用语义令牌（`text-numeral`、`--container-measure`、`.segment`），必须**先**有一个独立的前置 issue 完成：`@theme` 建字号阶梯、`DESIGN.md` §3 加字号表、新建 `tests/design-system.test.ts` 守护阶梯。那是全站改动，**不属于 BLF-1364 的范围**，且会让 Stage 2 被它阻塞。
+
+**决定：走 9.1。** Stage 2 的验收按 9.1 的写法检查；Stage 3 不再包含「`--text-numeral` 与 `DESIGN.md` 同步」这项（它已被移除，见 §12），只做动效、可访问性与真机验收。
 
 ## 10. 可访问性
 
@@ -180,9 +194,9 @@
 
 **自动化：**
 
-- `tests/metronome.test.ts`：拍号模型与重音索引、BPM 边界夹紧与取整、BPM → 间隔毫秒、速度术语边界、节拍推进（含 6/8 与 7/8）。
-- `tests/design-system.test.ts`：字号阶梯从 6 档改为 7 档；新令牌必须有引用。
+- `tests/metronome.test.ts`：拍号模型与重音索引、BPM 边界夹紧与取整、BPM → 间隔毫秒、速度术语边界、节拍推进（含 6/8 与 7/8）。已在 Stage 1 落地（36 个用例）。
 - `npm run typecheck && npm test && npm run build`（静态导出必须成功）。
+- **不新增** `tests/design-system.test.ts`：它在本仓库不存在，也不由本任务创建（见 §9）。
 
 **人工（每阶段结束）：**
 
@@ -199,14 +213,16 @@
 | **Stage 0** | 本方案（需求盘点、交互、拍号模型、音效调研、拆分） | 本文档 | 用户确认 |
 | **Stage 1** | 拍号/BPM 逻辑与音频引擎：`lib/metronome.ts`、`lib/metronome-audio.ts`、`tests/metronome.test.ts` | 纯逻辑 + 单测，无 UI | 单测通过，typecheck 通过 |
 | **Stage 2** | 页面与交互：`app/metronome/page.tsx`、`components/Metronome.tsx`、导航入口、移动端布局 | 可用的节拍器页面 | 两个宽度截图 + 构建通过 |
-| **Stage 3** | 打磨与验收：`--text-numeral` 与 DESIGN.md 同步、拍点动效、减弱动态效果、读屏、真机音频解锁、（可选）CC0 素材音色 | 设计系统收口 | 全量测试 + 人工清单逐条勾选 |
+| **Stage 3** | 打磨与验收：拍点动效、减弱动态效果、读屏、真机音频解锁、（可选）CC0 素材音色 | 打磨与验收 | 全量测试 + 人工清单逐条勾选 |
 
-Stage 1 与 Stage 2 有依赖关系（2 用 1 的 API），Stage 3 在 2 之后。三个阶段的子 issue 默认 `backlog`，由本 issue 确认后逐个提到 `todo`。
+Stage 1 与 Stage 2 有依赖关系（2 用 1 的 API），Stage 3 在 2 之后。
+
+**注：** Stage 3 原计划包含「`--text-numeral` 与 `DESIGN.md` 同步」，因该设计系统原语在 `origin/main` 不存在，已改走 §9.1（纯 Tailwind utility），这一项从 Stage 3 移除。
 
 ## 13. 风险与待确认
 
 1. **导航第三项在 390px 是否拥挤。** 「电吉他学习资料库」+ 三个入口在窄屏可能换行或挤压。Stage 2 用截图核对；必要时窄屏把站点名收成「资料库」同级的短名或允许品牌名截断。这是全站改动，需要确认。
-2. **新增第 7 档字号** 是对 `DESIGN.md` 的修改，需要用户点头。备选方案：BPM 读数复用 `text-display`（会明显偏小，不推荐）。
+2. **字号方案已定（§9.1）**：BPM 读数用 `text-6xl`，不新增 `--text-numeral`，不改 `DESIGN.md`。如果以后要做全站字号阶梯，那是独立的前置 issue，不阻塞本任务。
 3. **音效是否必须是真实录音。** 本方案默认合成（体积 0、授权 0、精度最高）。若坚持真实录音，走 P2 的 CC0 裁切流程，多一道素材工序。
 4. **P2 项**（Tap tempo、屏幕常亮、记住上次设置）默认不做；其中「记住上次设置」在手机上是真需求，建议 Stage 3 后单独评估。
 5. **拍号集合** 默认 6 种；9/8、12/8 这类需要时再加，不影响模型（`beatsPerBar` + `accents` 已能表达）。
