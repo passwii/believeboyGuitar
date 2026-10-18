@@ -89,12 +89,17 @@ export function tempoName(bpm: number): string {
   return "Presto";
 }
 
-/** 小节内推进一拍，越过最后一拍回到 0；非法输入回到第 1 拍 */
+/**
+ * 小节内推进一拍，越过最后一拍回到 0；非法输入回到第 1 拍。
+ *
+ * 越界索引（如 6/8 的索引 4 遇到 4/4）说明调用方的小节位置与新拍号不同步，
+ * 此时回到第 1 拍而不是取模落到任意一拍。
+ */
 export function nextBeat(current: number, meter: Meter): number {
   const beats = meter.beatsPerBar;
   if (!Number.isInteger(beats) || beats <= 0) return 0;
   if (!Number.isFinite(current)) return 0;
   const index = Math.trunc(current);
-  if (index < 0) return 0;
+  if (index < 0 || index >= beats) return 0;
   return (index + 1) % beats;
 }

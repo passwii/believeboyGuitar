@@ -204,6 +204,16 @@ describe("nextBeat", () => {
     expect(nextBeat(1.7, meter)).toBe(2);
     expect(nextBeat(0, { ...meter, beatsPerBar: 0 })).toBe(0);
   });
+
+  it("索引超出当前小节时回到第 1 拍，而不是取模落到任意一拍", () => {
+    const four = METERS.find((item) => item.label === "4/4") as Meter;
+    const six = METERS.find((item) => item.label === "6/8") as Meter;
+    // 6/8 停在第 5、6 拍时切到 4/4：索引 4 / 5 对新小节越界
+    expect(nextBeat(4, four)).toBe(0);
+    expect(nextBeat(5, four)).toBe(0);
+    expect(nextBeat(6, six)).toBe(0);
+    expect(nextBeat(7, six)).toBe(0);
+  });
 });
 
 /** 记录调用序列的最小 AudioContext 替身，只实现被测代码用到的成员 */
@@ -242,12 +252,22 @@ function createFakeContext(state: AudioContextState = "suspended") {
       stop: vi.fn(),
     }),
     createGain: () => ({ ...node("gain"), gain: param("gain.gain") }),
-    createBiquadFilter: () => ({
-      ...node("filter"),
-      type: "lowpass",
-      frequency: param("filter.frequency"),
-      Q: param("filter.Q"),
-    }),
+    createBiquadFilter: () => {
+      const filter = {
+        ...node("filter"),
+        frequency: param("filter.frequency"),
+        Q: param("filter.Q"),
+      };
+      let type: BiquadFilterType = "lowpass";
+      Object.defineProperty(filter, "type", {
+        get: () => type,
+        set: (next: BiquadFilterType) => {
+          type = next;
+          record("filter.type", next);
+        },
+      });
+      return filter;
+    },
     createBufferSource: () => ({
       ...node("source"),
       buffer: null,
@@ -333,6 +353,22 @@ describe("createMetronomeAudio", () => {
     expect(attack?.args[1]).toBeCloseTo(1.5 + 0.001, 6);
     // 木质音色带噪声瞬态
     expect(calls.some((call) => call.name === "filter.frequency.setValueAtTime")).toBe(true);
+  });
+
+  it("噪声滤波器类型按音色区分：木质带通、机械高通", async () => {
+    const { context, calls } = createFakeContext();
+    const audio = createMetronomeAudio({
+      contextFactory: () => context as unknown as AudioContext,
+    });
+    await audio.resume();
+
+    audio.schedule(0, 1, DEFAULT_METER);
+    expect(calls.find((call) => call.name === "filter.type")?.args).toEqual(["bandpass"]);
+
+    calls.length = 0;
+    audio.setTimbre("mechanical");
+    audio.schedule(0, 2, DEFAULT_METER);
+    expect(calls.find((call) => call.name === "filter.type")?.args).toEqual(["highpass"]);
   });
 
   it("弱拍降频到 0.72 倍并 −6dB", () => {

@@ -36,11 +36,13 @@ export const WEAK_PITCH_RATIO = 0.72;
 export const WEAK_GAIN_RATIO = 10 ** (-6 / 20);
 
 type NoiseSpec = {
-  /** 滤波器中心频率 */
+  /** 滤波类型：木质用带通取窄，机械用高通保留金属高频 */
+  type: BiquadFilterType;
+  /** 滤波器中心频率（highpass 时为截止频率） */
   center: number;
   /** 噪声瞬态时长（秒） */
   duration: number;
-  /** 带通 Q 值 */
+  /** 滤波器 Q 值 */
   q: number;
 };
 
@@ -70,7 +72,7 @@ const TIMBRE_SPECS: Record<Timbre, TimbreSpec> = {
     decay: 0.045,
     peak: 0.9,
     harmonics: [],
-    noise: { center: 2400, duration: 0.008, q: 1.2 },
+    noise: { type: "bandpass", center: 2400, duration: 0.008, q: 1.2 },
   },
   electronic: {
     frequency: 2000,
@@ -89,7 +91,7 @@ const TIMBRE_SPECS: Record<Timbre, TimbreSpec> = {
     peak: 0.8,
     // 800Hz 基频 + 1.6kHz 谐波
     harmonics: [2],
-    noise: { center: 3000, duration: 0.005, q: 0.7 },
+    noise: { type: "highpass", center: 3000, duration: 0.005, q: 0.7 },
   },
 };
 
@@ -222,7 +224,7 @@ export function createMetronomeAudio(
     source.buffer = ensureNoiseBuffer(ctx);
 
     const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
+    filter.type = spec.type;
     filter.frequency.setValueAtTime(spec.center, start);
     filter.Q.setValueAtTime(spec.q, start);
 
