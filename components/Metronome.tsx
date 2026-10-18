@@ -10,9 +10,9 @@ import {
   bpmToIntervalMs,
   clampBpm,
   meterChanged,
-  mayStartRunning,
   nextBeat,
   pickResumeClick,
+  resumeContinuation,
   tempoName,
   type Meter,
   type ScheduledClick,
@@ -84,6 +84,11 @@ export function Metronome() {
   const nextBeatIndexRef = useRef(0);
   const nextBeatTimeRef = useRef(0);
   const pendingRef = useRef<ScheduledClick[]>([]);
+  /**
+   * 启动请求代次：`start()` 每次进来 +1，卸载清理也 +1。
+   * `await audio.resume()` 的续段拿它比对，作废了就一拍不排、一次 setState 也不发。
+   */
+  const startGenerationRef = useRef(0);
 
   const stopTicking = useCallback(() => {
     if (intervalRef.current !== null) {
@@ -194,18 +199,37 @@ export function Metronome() {
 
   const start = useCallback(async () => {
     const audio = ensureAudio();
+    // 这次启动的请求代次：卸载与新一轮启动都会让它前进，await 续段据此判断是否已作废
+    startGenerationRef.current += 1;
+    const generation = startGenerationRef.current;
+
+    let unlocked = true;
     try {
       await audio.resume();
     } catch {
+      unlocked = false;
+    }
+
+    // 手势解锁音频是异步的，这个 await 窗口里可能发生了两件事：
+    // 1. 页面被切到后台 —— visibilitychange 处理器读到的 phaseRef 还不是 running，
+    //    已经 no-op 过，所以这里必须自己复核一次（方案 §4）：命中就走暂停语义，
+    //    不在隐藏的标签页里开跑，也一拍拍都不排程。
+    // 2. 用户导航走、组件已卸载 —— 卸载清理已经 dispose 音频、清掉 interval，
+    //    续段必须直接收手：再往下走到 startTicking() 会重建一个没人再清的 25ms
+    //    interval（反复「点开始 → 立刻切走」会累积后台定时器），也没有可更新的组件。
+    const continuation = resumeContinuation(
+      generation,
+      startGenerationRef.current,
+      document.visibilityState,
+    );
+    if (continuation === "discard") return;
+
+    if (!unlocked) {
       setStatus("当前浏览器无法播放声音");
       return;
     }
 
-    // 手势解锁音频是异步的，这个 await 窗口里页面可能被切到后台。走那条路时
-    // visibilitychange 处理器读到的 phaseRef 还不是 running，已经 no-op 过，
-    // 所以必须在 await 之后自己复核一次（方案 §4）：命中就落到 paused，
-    // 不在隐藏的标签页里开跑，也一拍拍都不排程。
-    if (!mayStartRunning(document.visibilityState)) {
+    if (continuation === "pause") {
       pendingRef.current = [];
       phaseRef.current = "paused";
       setPhase("paused");
@@ -334,6 +358,8 @@ export function Metronome() {
   /** 卸载时 dispose，不是只 suspend（方案 §8） */
   useEffect(() => {
     return () => {
+      // 先让还在 await 音频解锁的 start() 续段作废，它会看到代次对不上直接返回
+      startGenerationRef.current += 1;
       stopTicking();
       const audio = audioRef.current;
       audioRef.current = null;

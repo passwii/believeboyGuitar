@@ -13,6 +13,7 @@ import {
   meterChanged,
   nextBeat,
   pickResumeClick,
+  resumeContinuation,
   tempoName,
   type Meter,
 } from "@/lib/metronome";
@@ -680,7 +681,7 @@ describe("start() 里 await resume 之后复核页面可见性（方案 §4）",
   it("复核位置在 await audio.resume() 之后、置 running 之前", () => {
     const body = startBody();
     const resumed = body.indexOf("await audio.resume()");
-    const guard = body.indexOf("mayStartRunning(document.visibilityState)");
+    const guard = body.indexOf("resumeContinuation(");
     const running = body.indexOf('phaseRef.current = "running"');
 
     expect(resumed).toBeGreaterThan(-1);
@@ -690,14 +691,69 @@ describe("start() 里 await resume 之后复核页面可见性（方案 §4）",
 
   it("命中复核时走暂停分支：先落 paused 再 suspend，之后才轮到 running", () => {
     const body = startBody();
-    const guard = body.indexOf("mayStartRunning(document.visibilityState)");
+    const guard = body.indexOf("resumeContinuation(");
+    const pauseBranch = body.indexOf('if (continuation === "pause")', guard);
     const running = body.indexOf('phaseRef.current = "running"');
-    const paused = body.indexOf('phaseRef.current = "paused"', guard);
+    const paused = body.indexOf('phaseRef.current = "paused"', pauseBranch);
 
-    expect(paused).toBeGreaterThan(guard);
+    expect(pauseBranch).toBeGreaterThan(guard);
+    expect(paused).toBeGreaterThan(pauseBranch);
     expect(paused).toBeLessThan(running);
-    expect(body.indexOf("await audio.suspend()", guard)).toBeGreaterThan(guard);
+    expect(body.indexOf("await audio.suspend()", pauseBranch)).toBeGreaterThan(paused);
     // 走暂停分支时不能启动调度器：startTicking() 只出现在 running 之后
-    expect(body.indexOf("startTicking()", guard)).toBeGreaterThan(running);
+    expect(body.indexOf("startTicking();", guard)).toBeGreaterThan(running);
+  });
+});
+
+describe("resumeContinuation：音频解锁 resolve 时该不该继续", () => {
+  it("代次一致且可见：正常开跑", () => {
+    expect(resumeContinuation(3, 3, "visible")).toBe("run");
+    expect(resumeContinuation(0, 0, "visible")).toBe("run");
+  });
+
+  it("代次一致但页面隐藏：走暂停语义", () => {
+    expect(resumeContinuation(3, 3, "hidden")).toBe("pause");
+  });
+
+  it("代次已前进（卸载或新一轮启动）:丢弃，隐藏与可见都不许继续", () => {
+    // 卸载后重建 interval 就是在泄露后台定时器；组件没了 setState 也没意义
+    expect(resumeContinuation(3, 4, "visible")).toBe("discard");
+    expect(resumeContinuation(3, 4, "hidden")).toBe("discard");
+    expect(resumeContinuation(0, 1, "visible")).toBe("discard");
+  });
+});
+
+describe("start() 的 await 续段不会在卸载后重建调度器（定时器泄露）", () => {
+  it("请求代次在 await 之前就推进，作废判定才有基准", () => {
+    const body = startBody();
+    const bump = body.indexOf("startGenerationRef.current += 1");
+    const resumed = body.indexOf("await audio.resume()");
+
+    expect(bump).toBeGreaterThan(-1);
+    expect(bump).toBeLessThan(resumed);
+  });
+
+  it("丢弃分支排在 startTicking() 之前，且是真返回", () => {
+    const body = startBody();
+    const discard = body.indexOf('if (continuation === "discard") return;');
+    const running = body.indexOf('phaseRef.current = "running"');
+    // 用带分号的调用形式，避免命中注释里提到的 startTicking()
+    const ticking = body.indexOf("startTicking();");
+
+    expect(discard).toBeGreaterThan(-1);
+    expect(discard).toBeLessThan(running);
+    expect(ticking).toBeGreaterThan(discard);
+  });
+
+  it("卸载清理推进代次，让挂着的 await 续段看到自己已作废", () => {
+    const from = metronomeSource.indexOf("卸载时 dispose");
+    expect(from).toBeGreaterThan(-1);
+    const cleanup = metronomeSource.slice(from);
+    const bump = cleanup.indexOf("startGenerationRef.current += 1");
+    const stop = cleanup.indexOf("stopTicking();");
+
+    // 先作废再清调度器：续段即便抢在这中间跑，也不会再往后走
+    expect(bump).toBeGreaterThan(-1);
+    expect(bump).toBeLessThan(stop);
   });
 });
