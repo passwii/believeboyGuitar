@@ -103,3 +103,53 @@ export function nextBeat(current: number, meter: Meter): number {
   if (index < 0 || index >= beats) return 0;
   return (index + 1) % beats;
 }
+
+/** 已排进音频时钟的一次点击：小节内索引与它的音频时钟时间（秒） */
+export type ScheduledClick = { beat: number; time: number };
+
+/**
+ * 暂停时决定从哪里继续。
+ *
+ * `pending` 里可能还留着刚响过的那一拍——调度器只在自己那次 tick 里清理
+ * （每 25ms 一次），用户在这段窗口里点暂停就会看到它。直接取第一项会导致
+ * 恢复时重播这一拍，所以必须取第一个 `time > now` 的项。
+ *
+ * 没有任何未响的点击时沿用 `nextBeatIndex`：调度器排程时已经把它推进到
+ * 下一拍，这里再往回退才是错的。
+ */
+export function pickResumeClick(
+  pending: readonly ScheduledClick[],
+  now: number,
+  nextBeatIndex: number,
+): ScheduledClick {
+  const upcoming = pending.find((entry) => entry.time > now);
+  if (upcoming) return { beat: upcoming.beat, time: upcoming.time };
+  return { beat: nextBeatIndex, time: now };
+}
+
+/**
+ * 改拍号是否真的换了拍号。
+ *
+ * 点已选中的拍号必须是无操作：否则会撤掉已排程的点击、把新小节第 1 拍
+ * 排到当前时刻之后，正在跑的节拍就断了一下。
+ */
+export function meterChanged(current: Meter, next: Meter): boolean {
+  return next.label !== current.label;
+}
+
+/** 页面可见性，取值同 `document.visibilityState`（不含已废弃的 prerender） */
+export type VisibilityState = "visible" | "hidden";
+
+/**
+ * 手势解锁音频之后，是否可以进入 running。
+ *
+ * `start()` 必须先 `await audio.resume()` 才能出声，这一步是异步的（浏览器要求
+ * 音频由用户手势解锁）；这个窗口期内用户可能把页面切到后台。此时
+ * `visibilitychange` 处理器读到的 `phaseRef.current` 还不是 running，会直接
+ * no-op，于是 await 一 resolve 就在隐藏的标签页里开跑——与方案 §4「页面隐藏 →
+ * 状态显式转 paused」冲突。所以 await 之后必须拿那一刻的可见性再判一次，
+ * 隐藏就走暂停分支，一拍都不排程。
+ */
+export function mayStartRunning(visibilityState: VisibilityState): boolean {
+  return visibilityState !== "hidden";
+}
