@@ -3,6 +3,7 @@ import Link from "next/link";
 const NAV_ITEMS = [
   { href: "/", label: "首页" },
   { href: "/library", label: "资料库" },
+  { href: "/metronome", label: "节拍器" },
 ];
 
 export function SiteNav() {

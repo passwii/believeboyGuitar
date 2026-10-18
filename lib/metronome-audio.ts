@@ -95,6 +95,16 @@ const TIMBRE_SPECS: Record<Timbre, TimbreSpec> = {
   },
 };
 
+/**
+ * 一次已排程的点击：记录源节点与它的起播 / 结束时间（AudioContext 时钟，秒）。
+ * `cancelFrom` 靠 `start` 判断哪些还没发声，`end` 用来清理已经放完的记录。
+ */
+type ScheduledClick = {
+  source: AudioScheduledSourceNode;
+  start: number;
+  end: number;
+};
+
 export type MetronomeAudioOptions = {
   /** 初始音色，默认木质 */
   timbre?: Timbre;
@@ -115,6 +125,14 @@ export type MetronomeAudio = {
   resume(): Promise<void>;
   /** 按音色与重音参数在 time（AudioContext 时钟）排程一次点击 */
   schedule(beatIndex: number, time: number, meter: Meter): void;
+  /**
+   * 撤销 start 在 time 之后、尚未发声的点击（方案 §4 / §8）。
+   *
+   * 向前看 120ms 意味着音频时钟里总有几个还没响的点击；改拍号 / 改 BPM /
+   * 切音色 / 暂停 / 结束时必须先撤掉它们，再按新参数重排，否则会听到旧参数。
+   * 已经开始的点击不受影响（不能凭空抹掉正在发声的声音）。
+   */
+  cancelFrom(time: number): void;
   /** 挂起音频时钟（切后台 / 暂停时调用） */
   suspend(): Promise<void>;
   /** 释放 AudioContext；之后再调用 resume 会重新创建 */
@@ -162,6 +180,15 @@ export function createMetronomeAudio(
   let timbre: Timbre = options.timbre ?? DEFAULT_TIMBRE;
   let context: AudioContext | null = null;
   let noiseBuffer: AudioBuffer | null = null;
+  /** 已排程但尚未结束的点击，供 cancelFrom 撤销 */
+  const scheduled: ScheduledClick[] = [];
+
+  /** 丢掉已经自然放完的记录，避免队列随播放时长无限增长 */
+  function pruneScheduled(now: number): void {
+    for (let index = scheduled.length - 1; index >= 0; index -= 1) {
+      if (scheduled[index].end < now) scheduled.splice(index, 1);
+    }
+  }
 
   function ensureContext(): AudioContext {
     if (context) return context;
@@ -209,8 +236,10 @@ export function createMetronomeAudio(
 
     oscillator.connect(gain);
     gain.connect(destination);
+    const end = start + params.attack + params.decay + 0.01;
     oscillator.start(start);
-    oscillator.stop(start + params.attack + params.decay + 0.01);
+    oscillator.stop(end);
+    scheduled.push({ source: oscillator, start, end });
   }
 
   function scheduleNoise(
@@ -235,8 +264,10 @@ export function createMetronomeAudio(
     source.connect(filter);
     filter.connect(gain);
     gain.connect(destination);
+    const end = start + spec.duration + 0.005;
     source.start(start);
-    source.stop(start + spec.duration + 0.005);
+    source.stop(end);
+    scheduled.push({ source, start, end });
   }
 
   return {
@@ -265,6 +296,7 @@ export function createMetronomeAudio(
       const params = clickParams(timbre, isAccentBeat(beatIndex, meter));
       // AudioContext 时钟只接受非负、有限的时间点
       const start = Number.isFinite(time) && time > 0 ? time : ctx.currentTime;
+      pruneScheduled(ctx.currentTime);
 
       scheduleOscillator(ctx, ctx.destination, params.frequency, start, {
         peak: params.peak,
@@ -284,6 +316,27 @@ export function createMetronomeAudio(
         scheduleNoise(ctx, ctx.destination, spec.noise, start, params.peak * 0.6);
       }
     },
+    cancelFrom(time: number) {
+      let boundary = time;
+      if (!Number.isFinite(boundary)) {
+        boundary = context ? context.currentTime : 0;
+      }
+      const keep: ScheduledClick[] = [];
+      for (const entry of scheduled) {
+        if (entry.start > boundary) {
+          try {
+            // stop(0) 表示「立刻停」，start 已调用过，这里合法
+            entry.source.stop(0);
+          } catch {
+            // 已经自然结束的节点忽略即可
+          }
+        } else {
+          keep.push(entry);
+        }
+      }
+      scheduled.length = 0;
+      scheduled.push(...keep);
+    },
     async suspend() {
       if (context && context.state === "running") await context.suspend();
     },
@@ -291,6 +344,7 @@ export function createMetronomeAudio(
       const ctx = context;
       context = null;
       noiseBuffer = null;
+      scheduled.length = 0;
       if (ctx) await ctx.close();
     },
   };

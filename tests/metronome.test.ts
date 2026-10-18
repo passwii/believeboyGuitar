@@ -221,6 +221,12 @@ type FakeCall = { name: string; args: unknown[] };
 
 function createFakeContext(state: AudioContextState = "suspended") {
   const calls: FakeCall[] = [];
+  /** 按创建顺序记录的可排程源节点，供 cancelFrom 用例检查 stop 调用 */
+  const sources: Array<{
+    label: string;
+    start: ReturnType<typeof vi.fn>;
+    stop: ReturnType<typeof vi.fn>;
+  }> = [];
   const record = (name: string, ...args: unknown[]) => {
     calls.push({ name, args });
   };
@@ -244,13 +250,17 @@ function createFakeContext(state: AudioContextState = "suspended") {
     currentTime: 0,
     sampleRate: 44100,
     destination: { label: "destination" },
-    createOscillator: () => ({
-      ...node("oscillator"),
-      type: "sine",
-      frequency: param("oscillator.frequency"),
-      start: vi.fn(),
-      stop: vi.fn(),
-    }),
+    createOscillator: () => {
+      const oscillator = {
+        ...node("oscillator"),
+        type: "sine",
+        frequency: param("oscillator.frequency"),
+        start: vi.fn(),
+        stop: vi.fn(),
+      };
+      sources.push(oscillator);
+      return oscillator;
+    },
     createGain: () => ({ ...node("gain"), gain: param("gain.gain") }),
     createBiquadFilter: () => {
       const filter = {
@@ -268,12 +278,16 @@ function createFakeContext(state: AudioContextState = "suspended") {
       });
       return filter;
     },
-    createBufferSource: () => ({
-      ...node("source"),
-      buffer: null,
-      start: vi.fn(),
-      stop: vi.fn(),
-    }),
+    createBufferSource: () => {
+      const source = {
+        ...node("source"),
+        buffer: null,
+        start: vi.fn(),
+        stop: vi.fn(),
+      };
+      sources.push(source);
+      return source;
+    },
     createBuffer: (channels: number, frames: number) => {
       const data = new Float32Array(frames);
       return {
@@ -293,7 +307,7 @@ function createFakeContext(state: AudioContextState = "suspended") {
     }),
   };
 
-  return { context, calls };
+  return { context, calls, sources };
 }
 
 describe("createMetronomeAudio", () => {
@@ -468,5 +482,118 @@ describe("createMetronomeAudio", () => {
     audio.schedule(0, Number.NaN, DEFAULT_METER);
     const frequency = calls.find((call) => call.name === "oscillator.frequency.setValueAtTime");
     expect(frequency?.args[1]).toBe(4);
+  });
+});
+
+describe("cancelFrom 撤销已排程的点击", () => {
+  /** 每次点击会创建 1 个振荡器 + 噪声瞬态（木质、机械） */
+  async function setup() {
+    const fake = createFakeContext();
+    const audio = createMetronomeAudio({
+      contextFactory: () => fake.context as unknown as AudioContext,
+    });
+    await audio.resume();
+    return { ...fake, audio };
+  }
+
+  it("停掉 start 在边界之后的 source，并保留已发声的", async () => {
+    const { audio, sources } = await setup();
+
+    audio.schedule(0, 1, DEFAULT_METER); // 已发声（边界之前）
+    audio.schedule(1, 5, DEFAULT_METER); // 尚未发声（边界之后）
+
+    const past = sources.slice(0, sources.length / 2);
+    const future = sources.slice(sources.length / 2);
+    // 排程时已经 stop 过一次（自然结束时间）
+    for (const source of [...past, ...future]) {
+      expect(source.stop).toHaveBeenCalledTimes(1);
+    }
+
+    audio.cancelFrom(2);
+
+    for (const source of future) {
+      expect(source.stop).toHaveBeenCalledTimes(2);
+      expect(source.stop).toHaveBeenLastCalledWith(0);
+    }
+    for (const source of past) {
+      // 已发声的不被抹掉
+      expect(source.stop).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("边界恰好等于 start 时不撤销（已经开始的不动）", async () => {
+    const { audio, sources } = await setup();
+    audio.schedule(0, 3, DEFAULT_METER);
+    audio.cancelFrom(3);
+    for (const source of sources) {
+      expect(source.stop).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("撤销后队列清空：再次 cancelFrom 不会重复 stop", async () => {
+    const { audio, sources } = await setup();
+    audio.schedule(0, 5, DEFAULT_METER);
+    audio.cancelFrom(1);
+    for (const source of sources) {
+      expect(source.stop).toHaveBeenCalledTimes(2);
+    }
+
+    audio.cancelFrom(1);
+    for (const source of sources) {
+      expect(source.stop).toHaveBeenCalledTimes(2);
+    }
+  });
+
+  it("清空后可以按新参数重排，且新点击正常排程", async () => {
+    const { audio, calls, sources } = await setup();
+    audio.schedule(0, 5, DEFAULT_METER);
+    const before = sources.length;
+    audio.cancelFrom(1);
+
+    calls.length = 0;
+    audio.setTimbre("electronic");
+    audio.schedule(0, 6, DEFAULT_METER);
+
+    const added = sources.slice(before);
+    expect(added.length).toBeGreaterThan(0);
+    // 电子音色无噪声瞬态，只有振荡器
+    expect(added.every((source) => source.label === "oscillator")).toBe(true);
+    for (const source of added) {
+      expect(source.stop).toHaveBeenCalledTimes(1);
+    }
+    const frequency = calls.find(
+      (call) => call.name === "oscillator.frequency.setValueAtTime",
+    );
+    expect(frequency?.args).toEqual([clickParams("electronic", true).frequency, 6]);
+  });
+
+  it("未创建 AudioContext 时安全无操作", () => {
+    const audio = createMetronomeAudio({
+      contextFactory: () => createFakeContext().context as unknown as AudioContext,
+    });
+    expect(() => audio.cancelFrom(1)).not.toThrow();
+  });
+
+  it("非有限边界回落到当前时钟时间", async () => {
+    const { audio, context, sources } = await setup();
+    context.currentTime = 2;
+    audio.schedule(0, 1, DEFAULT_METER); // 已发声
+    audio.schedule(1, 4, DEFAULT_METER); // 未发声
+    const past = sources.slice(0, sources.length / 2);
+    const future = sources.slice(sources.length / 2);
+
+    audio.cancelFrom(Number.NaN);
+
+    for (const source of past) expect(source.stop).toHaveBeenCalledTimes(1);
+    for (const source of future) expect(source.stop).toHaveBeenCalledTimes(2);
+  });
+
+  it("dispose 清空队列，重排后 cancelFrom 不影响旧节点", async () => {
+    const { audio, sources } = await setup();
+    audio.schedule(0, 5, DEFAULT_METER);
+    const old = [...sources];
+    await audio.dispose();
+    audio.cancelFrom(1);
+    for (const source of old) expect(source.stop).toHaveBeenCalledTimes(1);
   });
 });
