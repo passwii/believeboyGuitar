@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   BPM_DEFAULT,
@@ -8,6 +9,7 @@ import {
   accentIndexes,
   bpmToIntervalMs,
   clampBpm,
+  mayStartRunning,
   meterChanged,
   nextBeat,
   pickResumeClick,
@@ -650,5 +652,52 @@ describe("cancelFrom 撤销已排程的点击", () => {
     await audio.dispose();
     audio.cancelFrom(1);
     for (const source of old) expect(source.stop).toHaveBeenCalledTimes(1);
+  });
+});
+
+const metronomeSource = readFileSync(
+  new URL("../components/Metronome.tsx", import.meta.url),
+  "utf8",
+);
+
+/** 只取 `start()` 回调体，避免断言命中同文件里其它地方的同名调用 */
+function startBody(): string {
+  const from = metronomeSource.indexOf("const start = useCallback(");
+  const to = metronomeSource.indexOf("const pause = useCallback(");
+  expect(from).toBeGreaterThan(-1);
+  expect(to).toBeGreaterThan(from);
+  return metronomeSource.slice(from, to);
+}
+
+describe("start() 里 await resume 之后复核页面可见性（方案 §4）", () => {
+  it("resume 未 resolve 期间被隐藏：复核为隐藏，不许进入 running", () => {
+    // 手势解锁音频是异步的，这个窗口里 phaseRef 还没到 running，
+    // visibilitychange 处理器会直接 no-op —— 只能靠 await 之后的复核兜住。
+    expect(mayStartRunning("hidden")).toBe(false);
+    expect(mayStartRunning("visible")).toBe(true);
+  });
+
+  it("复核位置在 await audio.resume() 之后、置 running 之前", () => {
+    const body = startBody();
+    const resumed = body.indexOf("await audio.resume()");
+    const guard = body.indexOf("mayStartRunning(document.visibilityState)");
+    const running = body.indexOf('phaseRef.current = "running"');
+
+    expect(resumed).toBeGreaterThan(-1);
+    expect(guard).toBeGreaterThan(resumed);
+    expect(running).toBeGreaterThan(guard);
+  });
+
+  it("命中复核时走暂停分支：先落 paused 再 suspend，之后才轮到 running", () => {
+    const body = startBody();
+    const guard = body.indexOf("mayStartRunning(document.visibilityState)");
+    const running = body.indexOf('phaseRef.current = "running"');
+    const paused = body.indexOf('phaseRef.current = "paused"', guard);
+
+    expect(paused).toBeGreaterThan(guard);
+    expect(paused).toBeLessThan(running);
+    expect(body.indexOf("await audio.suspend()", guard)).toBeGreaterThan(guard);
+    // 走暂停分支时不能启动调度器：startTicking() 只出现在 running 之后
+    expect(body.indexOf("startTicking()", guard)).toBeGreaterThan(running);
   });
 });

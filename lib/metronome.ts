@@ -136,3 +136,20 @@ export function pickResumeClick(
 export function meterChanged(current: Meter, next: Meter): boolean {
   return next.label !== current.label;
 }
+
+/** 页面可见性，取值同 `document.visibilityState`（不含已废弃的 prerender） */
+export type VisibilityState = "visible" | "hidden";
+
+/**
+ * 手势解锁音频之后，是否可以进入 running。
+ *
+ * `start()` 必须先 `await audio.resume()` 才能出声，这一步是异步的（浏览器要求
+ * 音频由用户手势解锁）；这个窗口期内用户可能把页面切到后台。此时
+ * `visibilitychange` 处理器读到的 `phaseRef.current` 还不是 running，会直接
+ * no-op，于是 await 一 resolve 就在隐藏的标签页里开跑——与方案 §4「页面隐藏 →
+ * 状态显式转 paused」冲突。所以 await 之后必须拿那一刻的可见性再判一次，
+ * 隐藏就走暂停分支，一拍都不排程。
+ */
+export function mayStartRunning(visibilityState: VisibilityState): boolean {
+  return visibilityState !== "hidden";
+}

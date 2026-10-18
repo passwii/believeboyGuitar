@@ -10,6 +10,7 @@ import {
   bpmToIntervalMs,
   clampBpm,
   meterChanged,
+  mayStartRunning,
   nextBeat,
   pickResumeClick,
   tempoName,
@@ -197,6 +198,19 @@ export function Metronome() {
       await audio.resume();
     } catch {
       setStatus("当前浏览器无法播放声音");
+      return;
+    }
+
+    // 手势解锁音频是异步的，这个 await 窗口里页面可能被切到后台。走那条路时
+    // visibilitychange 处理器读到的 phaseRef 还不是 running，已经 no-op 过，
+    // 所以必须在 await 之后自己复核一次（方案 §4）：命中就落到 paused，
+    // 不在隐藏的标签页里开跑，也一拍拍都不排程。
+    if (!mayStartRunning(document.visibilityState)) {
+      pendingRef.current = [];
+      phaseRef.current = "paused";
+      setPhase("paused");
+      setStatus("已暂停");
+      await audio.suspend();
       return;
     }
 
