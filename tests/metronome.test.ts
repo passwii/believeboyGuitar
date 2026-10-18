@@ -8,7 +8,9 @@ import {
   accentIndexes,
   bpmToIntervalMs,
   clampBpm,
+  meterChanged,
   nextBeat,
+  pickResumeClick,
   tempoName,
   type Meter,
 } from "@/lib/metronome";
@@ -213,6 +215,59 @@ describe("nextBeat", () => {
     expect(nextBeat(5, four)).toBe(0);
     expect(nextBeat(6, six)).toBe(0);
     expect(nextBeat(7, six)).toBe(0);
+  });
+});
+
+describe("pickResumeClick：暂停停在哪一拍", () => {
+  it("跳过已经响过的点击，停在下一个未发声的拍", () => {
+    // 240 BPM：第 2 拍在 0.31 刚响完，tick 还没轮到清理它
+    const pending = [
+      { beat: 1, time: 0.06 },
+      { beat: 2, time: 0.31 },
+      { beat: 3, time: 0.56 },
+    ];
+    expect(pickResumeClick(pending, 0.317, 3)).toEqual({ beat: 3, time: 0.56 });
+  });
+
+  it("边界相等算已响过：不重播当前这一拍", () => {
+    expect(pickResumeClick([{ beat: 2, time: 0.31 }], 0.31, 3)).toEqual({
+      beat: 3,
+      time: 0.31,
+    });
+  });
+
+  it("没有任何未响的点击时沿用调度器已推进的下一拍", () => {
+    // tick 排程时已把 nextBeatIndex 推到下一拍，这里不能回退
+    expect(pickResumeClick([{ beat: 3, time: 1.0 }], 1.007, 0)).toEqual({
+      beat: 0,
+      time: 1.007,
+    });
+    expect(pickResumeClick([], 2, 1)).toEqual({ beat: 1, time: 2 });
+  });
+
+  it("不改动传入的队列", () => {
+    const pending = [{ beat: 1, time: 0.06 }];
+    pickResumeClick(pending, 0.07, 2);
+    expect(pending).toEqual([{ beat: 1, time: 0.06 }]);
+  });
+});
+
+describe("meterChanged：重复点当前拍号不打断节拍", () => {
+  const byLabel = (label: string): Meter => {
+    const meter = METERS.find((item) => item.label === label);
+    if (!meter) throw new Error(`缺少拍号 ${label}`);
+    return meter;
+  };
+
+  it("同一个拍号返回 false，调用方因此不重置小节、不重排", () => {
+    expect(meterChanged(DEFAULT_METER, DEFAULT_METER)).toBe(false);
+    expect(meterChanged(byLabel("6/8"), byLabel("6/8"))).toBe(false);
+  });
+
+  it("不同拍号返回 true，包括拍数相同的情况", () => {
+    expect(meterChanged(byLabel("4/4"), byLabel("3/4"))).toBe(true);
+    expect(meterChanged(byLabel("2/4"), byLabel("4/4"))).toBe(true);
+    expect(meterChanged(byLabel("6/8"), byLabel("5/4"))).toBe(true);
   });
 });
 

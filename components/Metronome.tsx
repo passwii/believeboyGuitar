@@ -9,9 +9,12 @@ import {
   METERS,
   bpmToIntervalMs,
   clampBpm,
+  meterChanged,
   nextBeat,
+  pickResumeClick,
   tempoName,
   type Meter,
+  type ScheduledClick,
 } from "@/lib/metronome";
 import {
   DEFAULT_TIMBRE,
@@ -35,9 +38,6 @@ const RESUME_LEAD_S = 0.02;
 const BPM_ANNOUNCE_MS = 400;
 
 type Phase = "idle" | "running" | "paused";
-
-/** 已排进音频时钟、尚未发声的一次点击 */
-type PendingClick = { beat: number; time: number };
 
 const PHASE_LABEL: Record<Phase, string> = {
   idle: "开始",
@@ -82,7 +82,7 @@ export function Metronome() {
   /** 下一次要排程的拍（小节内索引）与它的音频时钟时间 */
   const nextBeatIndexRef = useRef(0);
   const nextBeatTimeRef = useRef(0);
-  const pendingRef = useRef<PendingClick[]>([]);
+  const pendingRef = useRef<ScheduledClick[]>([]);
 
   const stopTicking = useCallback(() => {
     if (intervalRef.current !== null) {
@@ -222,14 +222,11 @@ export function Metronome() {
       const now = audio.currentTime;
       audio.cancelFrom(now);
 
-      // 停在下一次该响的拍子上：回退到被撤销队列的第一拍
-      const next = pendingRef.current[0];
-      if (next) {
-        nextBeatIndexRef.current = next.beat;
-        nextBeatTimeRef.current = next.time;
-      } else {
-        nextBeatTimeRef.current = now;
-      }
+      // 停在下一次该响的拍子上。pending 里可能还留着刚响过的那一拍
+      // （tick 每 25ms 才清一次），所以取第一个尚未发声的项，不能直接取首项。
+      const next = pickResumeClick(pendingRef.current, now, nextBeatIndexRef.current);
+      nextBeatIndexRef.current = next.beat;
+      nextBeatTimeRef.current = next.time;
       pendingRef.current = [];
       setActiveBeat(nextBeatIndexRef.current);
       await audio.suspend();
@@ -268,6 +265,9 @@ export function Metronome() {
   }, [pause, start]);
 
   const changeMeter = useCallback((next: Meter) => {
+    // 重复点当前拍号是无操作：不能重置小节、不能打断正在跑的节拍
+    if (!meterChanged(meterRef.current, next)) return;
+
     meterRef.current = next;
     setMeter(next);
 
