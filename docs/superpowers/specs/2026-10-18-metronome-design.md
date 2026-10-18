@@ -7,6 +7,8 @@
 本文只做方案，不改代码。实现拆成三个阶段（见 §12），每阶段单独提 PR。
 
 > **修订（2026-10-18，Stage 1 合并后）**：初稿把 `.segment` / `--container-measure` / `text-display` / `--radius-card` / `tests/design-system.test.ts` 当作 `origin/main` 上已有的原语，实际都不存在。§9 已改为只用现有 Tailwind utility；同时补上了已排程点击的撤销（§4 / §8）与页面恢复后的状态定义（§4）。
+>
+> **修订二（2026-10-18，PR #2 review 后）**：§9.1 分段控件那行补上了 `min-h-11 min-w-11`——单照抄 `ThreeNotesPerString.tsx:71-94` 实测只有 27×43px，达不到本方案自己定的 44pt 触摸目标；§11 用例数由 36 校正为 38；§2 「设计系统的一档字号」这句旧结论已改掉。§13 第 1 项（导航拥挤）已由实测结论回答。
 
 ## 1. 需求盘点
 
@@ -33,7 +35,7 @@
 - CI（仓库明确不做）
 - **P2 候选（默认不做，需要时再提）**：Tap tempo 测速、屏幕常亮（Wake Lock）、记住上次的拍号/BPM/音色、自定义拍号（9/8、12/8）
 
-`content/manifest.ts` 不变：节拍器不是「资料」，不登记进清单。改动只涉及新路由、新组件、新纯函数模块和设计系统的一档字号。
+`content/manifest.ts` 不变：节拍器不是「资料」，不登记进清单。改动只涉及新路由、新组件、新纯函数模块**和 `SiteNav.tsx` 的一个入口**；**不改全站设计系统**——不加字号档位、不加语义令牌、不改 `DESIGN.md` §3（见 §9）。
 
 ## 3. 页面结构
 
@@ -166,7 +168,7 @@
 | 需求 | 实现 | 说明 |
 | --- | --- | --- |
 | BPM 大号读数 | `text-6xl font-semibold tabular-nums leading-none` | 60px；`tabular-nums` 防抖动。现有最大 `text-4xl`（首页 h1）不够大，但 `text-6xl` 是 Tailwind 内置档位，不算任意值 |
-| 拍号 / 音色分段控件 | 照抄 `components/ThreeNotesPerString.tsx:71-94` 的现有写法 | `role="group"` + `aria-pressed` + `rounded-sm border border-control-edge p-0.5`；选中态 `bg-accent-700 text-white`。这是仓库内**已验证存在**的模式，不依赖 `.segment` |
+| 拍号 / 音色分段控件 | 照抄 `components/ThreeNotesPerString.tsx:71-94` 的 `aria-pressed` 模式，**并补 `min-h-11 min-w-11`** | `role="group"` + `aria-pressed` + `rounded-sm border border-control-edge p-0.5`；按钮 `min-h-11 min-w-11 flex-1 rounded-sm px-1 text-sm font-medium`；选中态 `bg-accent-700 text-white`。这是仓库内**已验证存在**的模式，不依赖 `.segment`。**`min-h-11 min-w-11` 不能省**：单照抄 `71-94` 的 `px-3 py-1.5` 实测只有 27×43px，不到 §1 / §10 定的 44pt 触摸目标（`min-w-11` 取 `LibraryBrowser.tsx:34` 现成写法）。补上后按钮 44×44px、六项横排 270px，390px 一行放得下、无横向溢出 |
 | 主按钮 64px | `h-16 w-full rounded-md bg-accent-700 text-white text-lg font-medium` | 组件层类不新增，全部内联 utility |
 | 结束按钮 44px 命中 | `min-h-11` + `text-sm text-ink-700` | `min-h-11` 是仓库现用写法（`LibraryBrowser.tsx:34`） |
 | 拍点圆点 | `size-3 rounded-full bg-accent-600` / `bg-ink-100 ring-1 ring-rule` | 同 `ThreeNotesPerString.tsx:137-144` |
@@ -194,7 +196,7 @@
 
 **自动化：**
 
-- `tests/metronome.test.ts`：拍号模型与重音索引、BPM 边界夹紧与取整、BPM → 间隔毫秒、速度术语边界、节拍推进（含 6/8 与 7/8）。已在 Stage 1 落地（36 个用例）。
+- `tests/metronome.test.ts`：拍号模型与重音索引、BPM 边界夹紧与取整、BPM → 间隔毫秒、速度术语边界、节拍推进（含 6/8 与 7/8）。已在 Stage 1 落地（38 个用例，均为 `it()`，无 `it.each`）。
 - `npm run typecheck && npm test && npm run build`（静态导出必须成功）。
 - **不新增** `tests/design-system.test.ts`：它在本仓库不存在，也不由本任务创建（见 §9）。
 
@@ -221,7 +223,7 @@ Stage 1 与 Stage 2 有依赖关系（2 用 1 的 API），Stage 3 在 2 之后�
 
 ## 13. 风险与待确认
 
-1. **导航第三项在 390px 是否拥挤。** 「电吉他学习资料库」+ 三个入口在窄屏可能换行或挤压。Stage 2 用截图核对；必要时窄屏把站点名收成「资料库」同级的短名或允许品牌名截断。这是全站改动，需要确认。
+1. **导航第三项在 390px 是否拥挤。** 实测结论：430 / 390 / 375 / 360px 全部单行，header 54px 高，不挤；只有窄于 350px（含 320px）才换两行（header 82px），这是 `SiteNav` 已有的 `flex-wrap` 优雅降级。**结论：不为节拍器改站点名，不动全站。**
 2. **字号方案已定（§9.1）**：BPM 读数用 `text-6xl`，不新增 `--text-numeral`，不改 `DESIGN.md`。如果以后要做全站字号阶梯，那是独立的前置 issue，不阻塞本任务。
 3. **音效是否必须是真实录音。** 本方案默认合成（体积 0、授权 0、精度最高）。若坚持真实录音，走 P2 的 CC0 裁切流程，多一道素材工序。
 4. **P2 项**（Tap tempo、屏幕常亮、记住上次设置）默认不做；其中「记住上次设置」在手机上是真需求，建议 Stage 3 后单独评估。
