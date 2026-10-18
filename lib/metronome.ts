@@ -153,3 +153,27 @@ export type VisibilityState = "visible" | "hidden";
 export function mayStartRunning(visibilityState: VisibilityState): boolean {
   return visibilityState !== "hidden";
 }
+
+/** `await audio.resume()` 之后，`start()` 的续段该怎么走 */
+export type ResumeContinuation = "run" | "pause" | "discard";
+
+/**
+ * 音频解锁 resolve 时，这次启动请求还算不算数。
+ *
+ * `await audio.resume()` 是异步的（浏览器要求音频由用户手势解锁），这个窗口期
+ * 内组件可能已经被卸载（客户端路由切走）：卸载清理已经 `clearInterval` 掉调度器
+ * 并 `dispose()` 了音频，但 `start()` 的续段还挂着等 resolve。续段再往下走就会
+ * `startTicking()` 重建一个没人再清的 25ms interval——反复「点开始 → 立刻切走」
+ * 会一步步累积后台定时器。所以 `start()` 在 await 之前记下请求代次，卸载（以及
+ * 新的一次启动）都让代次前进，续段比对代次即可知道自己是否已经作废。
+ *
+ * 代次仍有效时才按那一刻的可见性分岔：隐藏走暂停语义（方案 §4），可见才开跑。
+ */
+export function resumeContinuation(
+  requestGeneration: number,
+  currentGeneration: number,
+  visibilityState: VisibilityState,
+): ResumeContinuation {
+  if (requestGeneration !== currentGeneration) return "discard";
+  return mayStartRunning(visibilityState) ? "run" : "pause";
+}
