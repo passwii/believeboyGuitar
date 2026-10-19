@@ -118,10 +118,35 @@ describe("读屏播报（方案 §10）", () => {
     expect(effect).toContain("}, [bpm]);");
   });
 
-  it("滑杆有可访问名、范围与 aria-valuetext", () => {
+  it("圆环速度控件有可访问名、范围与 aria-valuetext", () => {
+    expect(html).toContain('role="slider"');
     expect(html).toContain('aria-label="速度"');
+    expect(html).toContain(`aria-valuenow="${BPM_DEFAULT}"`);
+    expect(html).toContain('aria-valuemin="30"');
+    expect(html).toContain('aria-valuemax="240"');
     expect(html).toContain(`aria-valuetext="每分钟 ${BPM_DEFAULT} 拍"`);
-    expect(html).toContain('type="range"');
+    // 原生 range 换成了自定义圆环：键盘可达性必须自己补，不能靠 input 的默认行为
+    expect(html).toContain('tabindex="0"');
+  });
+
+  it("圆环的键盘操作覆盖方向键、PageUp/Down 与 Home/End", () => {
+    const dial = readFileSync(new URL("../components/BpmDial.tsx", import.meta.url), "utf8");
+    for (const key of [
+      "ArrowUp",
+      "ArrowRight",
+      "ArrowDown",
+      "ArrowLeft",
+      "PageUp",
+      "PageDown",
+      "Home",
+      "End",
+    ]) {
+      expect(dial).toContain(`case "${key}":`);
+    }
+    // 方向键必须 preventDefault，否则方向键会滚动页面
+    expect(dial).toContain("event.preventDefault();");
+    // Shift 走 10 拍，与 PageUp/PageDown 一致
+    expect(dial).toContain("event.shiftKey ? 10 : 1");
   });
 
   it("分段控件用 aria-pressed 表达选中，并各自挂了可见标签", () => {
@@ -185,8 +210,12 @@ describe("触摸目标与颜色来源（方案 §1 / §9.1）", () => {
       expect(className).toMatch(/\b(h-16|min-h-11|size-11)\b/);
     }
     expect(html).toContain("h-16 w-full");
-    // 滑杆的命中区也是 44px（原生 range 默认只有 ~16px 高）
-    expect(html).toMatch(/<input[^>]*class="h-11[^"]*"/);
+    // 圆环本身是整块命中区（size-60 = 240px），远大于 44px；
+    // 原生 range 已换成自定义控件，不能再指望 input 自带 44px
+    expect(html).toMatch(/class="relative size-60[^"]*sm:size-64"/);
+    // 命中区只做在环体一圈（pointer-events="stroke"），圆心留给页面滚动
+    expect(html).toContain('pointer-events="stroke"');
+    expect(source).not.toMatch(/<input/);
   });
 
   it("不写颜色字面量，只用现有令牌类（对比度门禁继续覆盖）", () => {

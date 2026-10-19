@@ -5,10 +5,16 @@ import {
   BPM_MAX,
   BPM_MIN,
   DEFAULT_METER,
+  DIAL_START_DEG,
+  DIAL_SWEEP_DEG,
   METERS,
   accentIndexes,
+  bpmToDialAngle,
   bpmToIntervalMs,
   clampBpm,
+  dialAngleFromPoint,
+  dialAngleToBpm,
+  dialPointToBpm,
   mayStartRunning,
   meterChanged,
   nextBeat,
@@ -149,6 +155,60 @@ describe("bpmToIntervalMs", () => {
   it("越界 BPM 先夹紧再换算", () => {
     expect(bpmToIntervalMs(1000)).toBe(250);
     expect(bpmToIntervalMs(1)).toBe(2000);
+  });
+});
+
+describe("圆环速度控件几何", () => {
+  it("BPM 端点映射到 270° 扇形的两端", () => {
+    expect(bpmToDialAngle(BPM_MIN)).toBe(DIAL_START_DEG);
+    expect(bpmToDialAngle(BPM_MAX)).toBe(DIAL_START_DEG + DIAL_SWEEP_DEG);
+    // -135° 指向左下、+135° 指向右下，底部留 90° 缺口
+    expect(DIAL_START_DEG).toBe(-135);
+    expect(DIAL_SWEEP_DEG).toBe(270);
+  });
+
+  it("角度与 BPM 互为逆运算（抽样校验）", () => {
+    for (const bpm of [30, 45, 90, 120, 167, 200, 240]) {
+      expect(dialAngleToBpm(bpmToDialAngle(bpm))).toBe(bpm);
+    }
+  });
+
+  it("居中速度落在 0°（正上方）", () => {
+    // (30 + 240) / 2 = 135，正好是扇形中点，与 12 点钟对齐
+    expect(bpmToDialAngle(135)).toBe(0);
+  });
+
+  it("指针位置：正上是中位、正右约 5/6 处、正下吸附到端点", () => {
+    // 扇形从 -135° 到 +135°，所以正上（0°）是区间中点
+    expect(dialPointToBpm(0, -100)).toBe(clampBpm(BPM_MIN + 0.5 * (BPM_MAX - BPM_MIN)));
+    // 正右是 90°，相对起点 225°，即扇形的 5/6
+    expect(dialPointToBpm(100, 0)).toBe(clampBpm(BPM_MIN + (5 / 6) * (BPM_MAX - BPM_MIN)));
+    // 正下落在 90° 缺口里，吸附到端点而不是给出中间值
+    expect([BPM_MIN, BPM_MAX]).toContain(dialPointToBpm(0, 100));
+    // 圆心没有方向
+    expect(dialAngleFromPoint(0, 0)).toBe(0);
+  });
+
+  it("底部缺口里的角度吸附到更近的端点，不跳变", () => {
+    // 缺口从 +135° 到 +225°：前半段算最大，后半段算最小
+    expect(dialAngleToBpm(140)).toBe(BPM_MAX);
+    expect(dialAngleToBpm(220)).toBe(BPM_MIN);
+    // 12 点钟方向不是缺口，它就是扇形中点
+    expect(dialAngleToBpm(0)).toBe(clampBpm(BPM_MIN + 0.5 * (BPM_MAX - BPM_MIN)));
+  });
+
+  it("负角度与超过 360° 的角度先归一到 [0, 360)", () => {
+    // -135° == 225°（缺口后半段）→ 最小值
+    expect(dialAngleToBpm(-135)).toBe(BPM_MIN);
+    expect(dialAngleToBpm(500)).toBe(dialAngleToBpm(140));
+    expect(dialAngleFromPoint(0, 100)).toBe(180);
+    expect(dialAngleFromPoint(-100, 0)).toBe(270);
+  });
+
+  it("非有限输入不把 BPM 弄成 NaN", () => {
+    expect(dialAngleToBpm(Number.NaN)).toBe(BPM_DEFAULT);
+    expect(Number.isFinite(dialPointToBpm(Number.POSITIVE_INFINITY, 0))).toBe(true);
+    expect(Number.isFinite(dialPointToBpm(0, Number.NaN))).toBe(true);
   });
 });
 

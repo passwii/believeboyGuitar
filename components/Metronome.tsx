@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { BpmDial } from "@/components/BpmDial";
 import {
   BPM_DEFAULT,
   BPM_MAX,
@@ -13,7 +14,6 @@ import {
   nextBeat,
   pickResumeClick,
   resumeContinuation,
-  tempoName,
   type Meter,
   type ScheduledClick,
 } from "@/lib/metronome";
@@ -437,13 +437,10 @@ export function Metronome() {
         <p className="mt-1.5 text-xs text-ink-500">{meter.description}</p>
       </section>
 
-      <section>
-        <div className="text-center">
-          <p className="text-6xl font-semibold tabular-nums leading-none">{bpm}</p>
-          <p className="mt-2 text-sm text-ink-700">{tempoName(bpm)}</p>
-        </div>
+      <section className="flex flex-col items-center">
+        <BpmDial value={bpm} onChange={changeBpm} />
 
-        <div className="mt-5 flex items-center gap-3">
+        <div className="mt-4 flex items-center gap-3">
           <button
             type="button"
             aria-label="减速 1 BPM"
@@ -453,17 +450,6 @@ export function Metronome() {
           >
             −
           </button>
-          <input
-            type="range"
-            min={BPM_MIN}
-            max={BPM_MAX}
-            step={1}
-            value={bpm}
-            aria-label="速度"
-            aria-valuetext={`每分钟 ${bpm} 拍`}
-            onChange={(event) => changeBpm(Number(event.currentTarget.value))}
-            className="h-11 min-w-0 flex-1 accent-accent-700"
-          />
           <button
             type="button"
             aria-label="加速 1 BPM"
