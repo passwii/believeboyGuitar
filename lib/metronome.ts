@@ -76,6 +76,60 @@ export function bpmToIntervalMs(bpm: number): number {
 }
 
 /**
+ * 圆环速度控件的几何常量。
+ *
+ * 扫角 270°，以 12 点钟方向为 0°、顺时针为正：起点 -135°（左下），
+ * 终点 +135°（右下），底部留 90° 缺口。缺口既给旋钮一个可辨认的起点，
+ * 也让「拖到底」和「拖到顶」在手指下是两处不同的位置。
+ */
+export const DIAL_SWEEP_DEG = 270;
+export const DIAL_START_DEG = -135;
+
+/** BPM 在圆环上的占比（0 = 最小速度，1 = 最大速度） */
+export function bpmToDialRatio(bpm: number): number {
+  return (clampBpm(bpm) - BPM_MIN) / (BPM_MAX - BPM_MIN);
+}
+
+/** BPM → 相对 12 点钟方向、顺时针的圆环角度（度） */
+export function bpmToDialAngle(bpm: number): number {
+  return DIAL_START_DEG + bpmToDialRatio(bpm) * DIAL_SWEEP_DEG;
+}
+
+/**
+ * 指针相对圆心的偏移 → 相对 12 点钟方向、顺时针的角度（度，取值 [0, 360)）。
+ * 圆心处没有方向，返回 0（调用方按「中心区不接管拖拽」处理）。
+ */
+export function dialAngleFromPoint(dx: number, dy: number): number {
+  if (!Number.isFinite(dx) || !Number.isFinite(dy) || (dx === 0 && dy === 0)) return 0;
+  const degrees = (Math.atan2(dx, -dy) * 180) / Math.PI;
+  return (degrees + 360) % 360;
+}
+
+/**
+ * 圆环角度 → BPM。
+ *
+ * 落在底部缺口里的角度没有对应值，吸附到更近的一端：缺口前半段算最大值，
+ * 后半段算最小值。这样手指滑过缺口时读数只会停在端点上，不会跳变。
+ */
+export function dialAngleToBpm(angleDeg: number): number {
+  if (!Number.isFinite(angleDeg)) return BPM_DEFAULT;
+  const relative = (((angleDeg - DIAL_START_DEG) % 360) + 360) % 360;
+  const gap = 360 - DIAL_SWEEP_DEG;
+  const ratio =
+    relative <= DIAL_SWEEP_DEG
+      ? relative / DIAL_SWEEP_DEG
+      : relative - DIAL_SWEEP_DEG > gap / 2
+        ? 0
+        : 1;
+  return clampBpm(BPM_MIN + ratio * (BPM_MAX - BPM_MIN));
+}
+
+/** 指针位置（相对圆心）直接映射到 BPM */
+export function dialPointToBpm(dx: number, dy: number): number {
+  return dialAngleToBpm(dialAngleFromPoint(dx, dy));
+}
+
+/**
  * 速度术语（只作提示，不参与计算）：
  * Largo <60、Adagio 60–75、Andante 76–107、Moderato 108–119、Allegro 120–167、Presto ≥168。
  */
