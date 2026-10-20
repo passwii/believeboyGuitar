@@ -5,14 +5,21 @@ import {
   BPM_MAX,
   BPM_MIN,
   DEFAULT_METER,
+  DIAL_START_DEG,
+  DIAL_SWEEP_DEG,
   METERS,
   accentIndexes,
+  bpmToDialAngle,
   bpmToIntervalMs,
   clampBpm,
+  dialAngleFromPoint,
+  dialAngleToBpm,
+  dialPointToBpm,
   mayStartRunning,
   meterChanged,
   nextBeat,
   pickResumeClick,
+  resumeContinuation,
   tempoName,
   type Meter,
 } from "@/lib/metronome";
@@ -148,6 +155,60 @@ describe("bpmToIntervalMs", () => {
   it("越界 BPM 先夹紧再换算", () => {
     expect(bpmToIntervalMs(1000)).toBe(250);
     expect(bpmToIntervalMs(1)).toBe(2000);
+  });
+});
+
+describe("圆环速度控件几何", () => {
+  it("BPM 端点映射到 270° 扇形的两端", () => {
+    expect(bpmToDialAngle(BPM_MIN)).toBe(DIAL_START_DEG);
+    expect(bpmToDialAngle(BPM_MAX)).toBe(DIAL_START_DEG + DIAL_SWEEP_DEG);
+    // -135° 指向左下、+135° 指向右下，底部留 90° 缺口
+    expect(DIAL_START_DEG).toBe(-135);
+    expect(DIAL_SWEEP_DEG).toBe(270);
+  });
+
+  it("角度与 BPM 互为逆运算（抽样校验）", () => {
+    for (const bpm of [30, 45, 90, 120, 167, 200, 240]) {
+      expect(dialAngleToBpm(bpmToDialAngle(bpm))).toBe(bpm);
+    }
+  });
+
+  it("居中速度落在 0°（正上方）", () => {
+    // (30 + 240) / 2 = 135，正好是扇形中点，与 12 点钟对齐
+    expect(bpmToDialAngle(135)).toBe(0);
+  });
+
+  it("指针位置：正上是中位、正右约 5/6 处、正下吸附到端点", () => {
+    // 扇形从 -135° 到 +135°，所以正上（0°）是区间中点
+    expect(dialPointToBpm(0, -100)).toBe(clampBpm(BPM_MIN + 0.5 * (BPM_MAX - BPM_MIN)));
+    // 正右是 90°，相对起点 225°，即扇形的 5/6
+    expect(dialPointToBpm(100, 0)).toBe(clampBpm(BPM_MIN + (5 / 6) * (BPM_MAX - BPM_MIN)));
+    // 正下落在 90° 缺口里，吸附到端点而不是给出中间值
+    expect([BPM_MIN, BPM_MAX]).toContain(dialPointToBpm(0, 100));
+    // 圆心没有方向
+    expect(dialAngleFromPoint(0, 0)).toBe(0);
+  });
+
+  it("底部缺口里的角度吸附到更近的端点，不跳变", () => {
+    // 缺口从 +135° 到 +225°：前半段算最大，后半段算最小
+    expect(dialAngleToBpm(140)).toBe(BPM_MAX);
+    expect(dialAngleToBpm(220)).toBe(BPM_MIN);
+    // 12 点钟方向不是缺口，它就是扇形中点
+    expect(dialAngleToBpm(0)).toBe(clampBpm(BPM_MIN + 0.5 * (BPM_MAX - BPM_MIN)));
+  });
+
+  it("负角度与超过 360° 的角度先归一到 [0, 360)", () => {
+    // -135° == 225°（缺口后半段）→ 最小值
+    expect(dialAngleToBpm(-135)).toBe(BPM_MIN);
+    expect(dialAngleToBpm(500)).toBe(dialAngleToBpm(140));
+    expect(dialAngleFromPoint(0, 100)).toBe(180);
+    expect(dialAngleFromPoint(-100, 0)).toBe(270);
+  });
+
+  it("非有限输入不把 BPM 弄成 NaN", () => {
+    expect(dialAngleToBpm(Number.NaN)).toBe(BPM_DEFAULT);
+    expect(Number.isFinite(dialPointToBpm(Number.POSITIVE_INFINITY, 0))).toBe(true);
+    expect(Number.isFinite(dialPointToBpm(0, Number.NaN))).toBe(true);
   });
 });
 
@@ -680,7 +741,7 @@ describe("start() 里 await resume 之后复核页面可见性（方案 §4）",
   it("复核位置在 await audio.resume() 之后、置 running 之前", () => {
     const body = startBody();
     const resumed = body.indexOf("await audio.resume()");
-    const guard = body.indexOf("mayStartRunning(document.visibilityState)");
+    const guard = body.indexOf("resumeContinuation(");
     const running = body.indexOf('phaseRef.current = "running"');
 
     expect(resumed).toBeGreaterThan(-1);
@@ -690,14 +751,69 @@ describe("start() 里 await resume 之后复核页面可见性（方案 §4）",
 
   it("命中复核时走暂停分支：先落 paused 再 suspend，之后才轮到 running", () => {
     const body = startBody();
-    const guard = body.indexOf("mayStartRunning(document.visibilityState)");
+    const guard = body.indexOf("resumeContinuation(");
+    const pauseBranch = body.indexOf('if (continuation === "pause")', guard);
     const running = body.indexOf('phaseRef.current = "running"');
-    const paused = body.indexOf('phaseRef.current = "paused"', guard);
+    const paused = body.indexOf('phaseRef.current = "paused"', pauseBranch);
 
-    expect(paused).toBeGreaterThan(guard);
+    expect(pauseBranch).toBeGreaterThan(guard);
+    expect(paused).toBeGreaterThan(pauseBranch);
     expect(paused).toBeLessThan(running);
-    expect(body.indexOf("await audio.suspend()", guard)).toBeGreaterThan(guard);
+    expect(body.indexOf("await audio.suspend()", pauseBranch)).toBeGreaterThan(paused);
     // 走暂停分支时不能启动调度器：startTicking() 只出现在 running 之后
-    expect(body.indexOf("startTicking()", guard)).toBeGreaterThan(running);
+    expect(body.indexOf("startTicking();", guard)).toBeGreaterThan(running);
+  });
+});
+
+describe("resumeContinuation：音频解锁 resolve 时该不该继续", () => {
+  it("代次一致且可见：正常开跑", () => {
+    expect(resumeContinuation(3, 3, "visible")).toBe("run");
+    expect(resumeContinuation(0, 0, "visible")).toBe("run");
+  });
+
+  it("代次一致但页面隐藏：走暂停语义", () => {
+    expect(resumeContinuation(3, 3, "hidden")).toBe("pause");
+  });
+
+  it("代次已前进（卸载或新一轮启动）:丢弃，隐藏与可见都不许继续", () => {
+    // 卸载后重建 interval 就是在泄露后台定时器；组件没了 setState 也没意义
+    expect(resumeContinuation(3, 4, "visible")).toBe("discard");
+    expect(resumeContinuation(3, 4, "hidden")).toBe("discard");
+    expect(resumeContinuation(0, 1, "visible")).toBe("discard");
+  });
+});
+
+describe("start() 的 await 续段不会在卸载后重建调度器（定时器泄露）", () => {
+  it("请求代次在 await 之前就推进，作废判定才有基准", () => {
+    const body = startBody();
+    const bump = body.indexOf("startGenerationRef.current += 1");
+    const resumed = body.indexOf("await audio.resume()");
+
+    expect(bump).toBeGreaterThan(-1);
+    expect(bump).toBeLessThan(resumed);
+  });
+
+  it("丢弃分支排在 startTicking() 之前，且是真返回", () => {
+    const body = startBody();
+    const discard = body.indexOf('if (continuation === "discard") return;');
+    const running = body.indexOf('phaseRef.current = "running"');
+    // 用带分号的调用形式，避免命中注释里提到的 startTicking()
+    const ticking = body.indexOf("startTicking();");
+
+    expect(discard).toBeGreaterThan(-1);
+    expect(discard).toBeLessThan(running);
+    expect(ticking).toBeGreaterThan(discard);
+  });
+
+  it("卸载清理推进代次，让挂着的 await 续段看到自己已作废", () => {
+    const from = metronomeSource.indexOf("卸载时 dispose");
+    expect(from).toBeGreaterThan(-1);
+    const cleanup = metronomeSource.slice(from);
+    const bump = cleanup.indexOf("startGenerationRef.current += 1");
+    const stop = cleanup.indexOf("stopTicking();");
+
+    // 先作废再清调度器：续段即便抢在这中间跑，也不会再往后走
+    expect(bump).toBeGreaterThan(-1);
+    expect(bump).toBeLessThan(stop);
   });
 });
