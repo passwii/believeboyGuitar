@@ -12,7 +12,7 @@ export const TOPICS = [
 export type Topic = (typeof TOPICS)[number];
 
 export const DIFFICULTIES = [1, 2, 3, 4, 5] as const;
-export type Difficulty = (typeof DIFFICULTIES)[number];
+type Difficulty = (typeof DIFFICULTIES)[number];
 
 export interface Lesson {
   /** 唯一标识，对应 content/lessons/<slug>.html */

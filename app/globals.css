@@ -1,71 +1,287 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   设计令牌
+   ----------------------------------------------------------------------------
+   方向：琴房边桌（暖纸白 / 编辑排版）× iOS 原生外壳（留白、字重、发丝线、
+   半透明导航、44pt 触摸目标、系统曲线动效）。
+   契约与验收标准见 DESIGN.md；本文件是令牌的唯一实现处。
+
+   原则：令牌只保留「有引用」的条目。新增前先确认已有令牌无法表达，
+   否则 tests/design-system.test.ts 会报未使用令牌。
+   ========================================================================== */
+
 @theme {
-  --color-canvas: #f4f1e9;
-  --color-surface: #fbfaf6;
-  --color-surface-muted: #efece4;
-  --color-ink: #262820;
-  --color-ink-muted: #68675f;
-  --color-rule: #d8d3c8;
+  /* ---- 表面：三级，靠亮度而非阴影分层 ---- */
+  --color-canvas: #f3f0e8;
+  --color-surface: #fbfaf7;
+  --color-surface-muted: #e9e5db;
+
+  /* ---- 墨色：文字三级 + 状态与图形两级 ----
+     文字三级（950/700/500）都在 canvas / surface / surface-muted 上达到 AA
+     （tests/design-system.test.ts 守护）；中间灰阶不设，层级靠字号与字重。
+     300 与 200 不承担正文可读性，只用于状态与图形：
+       · 300：禁用态文字。低于 AA 可接受，因为禁用项不传递信息，
+         但它必须“看得出被禁用”，所以不能直接用更浅的 100。
+       · 200：图形轨道与浅描边（节拍器圆环刻度等）。与 rule 同值但语义不同：
+         rule 是分隔线，200 是轨道；两者将来允许各自变化，不合并。
+     100：最浅的填充（非根音音位、难度空刻度）。 */
+  --color-ink-950: #23251e;
+  --color-ink-700: #5f5e56;
+  --color-ink-500: #5a5951;
+  --color-ink-300: #a9a49a;
+  --color-ink-200: #d9d4c9;
+  --color-ink-100: #ece8de;
+
+  /* ---- 强调：锈橙。只用于链接、选中态与根音 ---- */
+  --color-accent-700: #9e3b26;
+  --color-accent-600: #b0503a;
+  --color-accent-100: #f0e0d7;
+  --color-accent-50: #f7efe9;
+
+  /* ---- 边界 ---- */
+  --color-rule: #d9d4c9;
   --color-control-edge: #6c6a62;
-  --color-accent: #ad462e;
-  --color-accent-soft: #f1e1d9;
-  --color-on-accent: #ffffff;
 
-  --color-ink-950: #262820;
-  --color-ink-700: #68675f;
-  --color-ink-500: #68675f;
-  --color-ink-400: #6c6a62;
-  --color-ink-300: #b5b1a7;
-  --color-ink-200: #d8d3c8;
-  --color-ink-100: #efece4;
-  --color-ink-50: #f4f1e9;
-
-  --color-accent-700: #ad462e;
-  --color-accent-600: #ad462e;
-  --color-accent-100: #f1e1d9;
-  --color-accent-50: #f7eee9;
-
+  /* ---- 指板画布：正文流里的局部高对比区域 ---- */
   --color-board-800: oklch(0.32 0.018 58);
   --color-board-900: oklch(0.24 0.016 58);
-  --color-board-label: #d4cfc5;
 
+  /* ---- 字体：依赖本机字体栈，不引外部请求 ---- */
   --font-display: Georgia, "Songti SC", "STSong", "Noto Serif CJK SC", serif;
   --font-sans: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui,
-    sans-serif;
-  --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, ui-monospace,
+    monospace;
+
+  /* ---- 排版阶梯：六role。界面文字只用这六档 ---- */
+  --text-display: clamp(1.75rem, 1.42rem + 1.45vw, 2.125rem);
+  --text-display--line-height: 1.16;
+  --text-display--letter-spacing: -0.022em;
+  --text-display--font-weight: 600;
+
+  --text-title: 1.3125rem;
+  --text-title--line-height: 1.4;
+  --text-title--letter-spacing: -0.012em;
+  --text-title--font-weight: 600;
+
+  --text-body: 1rem;
+  --text-body--line-height: 1.75;
+
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.45;
+  --text-label--font-weight: 500;
+
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.5;
+
+  /* micro 只用于区块标注（eyebrow）。正文与控件不得使用。 */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1.45;
+  --text-micro--letter-spacing: 0.14em;
+
+  --leading-body: 1.75;
+
+  /* ---- 度量 ---- */
+  --container-page: 1120px;
+  --container-measure: 40em;
+  --container-rail: 13rem;
+
+  /* ---- 圆角：三档，不出现第四种 ---- */
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-pill: 999px;
+
+  /* ---- 阴影：只用于「浮起一层」的控件 ---- */
+  --shadow-segment: 0 1px 2px rgb(35 37 30 / 0.14), 0 0 0 0.5px rgb(35 37 30 / 0.05);
+
+  /* ---- 动效：iOS 系统曲线。只保留一条曲线：界面里没有需要“退场”的独立节奏 ---- */
+  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-body {
-  background-color: var(--color-canvas);
-  color: var(--color-ink-950);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.8;
-  -webkit-font-smoothing: antialiased;
+/* ============================================================================
+   基础层
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* 导航栏实测高度，供粘性定位与锚点留白复用 */
+    --nav-h: 56px;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink-950);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-100);
+    color: var(--color-ink-950);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-700);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* 触屏没有 hover，按压反馈必须由 :active 承担 */
+  /* 触屏没有 hover，按压反馈必须由 :active 承担；44pt 是下限，不是目标 */
+  a,
+  button,
+  summary,
+  label[for] {
+    touch-action: manipulation;
+  }
+
+  @media (hover: none) {
+    a:active,
+    button:active,
+    summary:active {
+      opacity: 0.62;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
-}
+/* ============================================================================
+   组件层：全站复用，避免同一套排版在四个页面各写一遍
+   ========================================================================== */
 
-a,
-button,
-input,
-select,
-textarea,
-summary {
-  transition: color 150ms ease, background-color 150ms ease,
-    border-color 150ms ease;
-}
+@layer components {
+  /* 页面外壳：唯一宽度与留白来源，含安全区 */
+  .shell {
+    margin-inline: auto;
+    width: 100%;
+    max-width: var(--container-page);
+    padding-inline: max(1.25rem, env(safe-area-inset-left));
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  @media (min-width: 640px) {
+    .shell {
+      padding-inline: 2rem;
+    }
+  }
+
+  /* 导航栏高度由内容决定（含 44pt 触控行），这里只是让它有个下限 */
+  .shell-nav {
+    display: flex;
+    min-height: 3.5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  /* 阅读列 */
+  .measure {
+    max-width: var(--container-measure);
+  }
+
+  /* 选择型控件（筛选芯片、把位芯片）：44pt 触摸目标 + 填充式形态 */
+  .chip {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: var(--radius-control);
+    background-color: var(--color-surface-muted);
+    padding-inline: 0.875rem;
+    color: var(--color-ink-700);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.45;
+    transition: background-color 150ms var(--ease-standard),
+      color 150ms var(--ease-standard);
+  }
+
+  @media (hover: hover) {
+    .chip:hover {
+      background-color: var(--color-surface);
+      color: var(--color-ink-950);
+    }
+  }
+
+  .chip[aria-pressed="true"],
+  .chip[aria-pressed="true"]:hover {
+    background-color: var(--color-accent-700);
+    color: #ffffff;
+  }
+
+  /* 分段控件：iOS 样式，选中项为白色浮起块 */
+  .segment-track {
+    display: inline-flex;
+    gap: 2px;
+    border-radius: var(--radius-control);
+    background-color: var(--color-surface-muted);
+    padding: 2px;
+  }
+
+  .segment {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding-inline: 0.875rem;
+    color: var(--color-ink-700);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition: background-color 150ms var(--ease-standard),
+      color 150ms var(--ease-standard);
+  }
+
+  .segment[aria-pressed="true"] {
+    background-color: var(--color-surface);
+    color: var(--color-ink-950);
+    box-shadow: var(--shadow-segment);
+  }
+
+  /* 触屏上分段控件也要够得着 */
+  @media (hover: none) {
+    .segment {
+      min-height: 44px;
+    }
+  }
+
+  /* 列表行：iOS 列表的悬停/按压底。
+     注意不要用大圆角：它会和“发丝线分隔”的列表节奏打架，2px 只用来
+     让悬停底不显出尖角。 */
+  .row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border-radius: 2px;
+    padding: 1.25rem 0.75rem;
+    margin-inline: -0.75rem;
+    transition: background-color 150ms var(--ease-standard);
+  }
+
+  @media (hover: hover) {
+    .row:hover {
+      background-color: color-mix(in oklab, var(--color-surface-muted) 70%, transparent);
+    }
   }
 }

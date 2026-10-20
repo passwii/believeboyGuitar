@@ -18,10 +18,6 @@ export function stripArticleWrapper(html: string): string {
   return (match ? match[1] : html).trim();
 }
 
-export function isWidgetName(value: string): value is WidgetName {
-  return (WIDGET_NAMES as readonly string[]).includes(value);
-}
-
 /** 正文里出现的组件名，按出现顺序返回（含未注册的名字，交给校验函数报错） */
 export function widgetMarkerNames(html: string): string[] {
   return [...html.matchAll(MARKER)].map((match) => match[1]);
@@ -38,10 +34,13 @@ export function splitContentSections(html: string): ContentSection[] {
     if (prose !== "") sections.push({ kind: "prose", html: prose });
 
     const name = match[1];
-    if (!isWidgetName(name)) {
+    // 用 find 取回窄化后的元素本身，避免 `as WidgetName` 断言：
+    // 命中则 name 的类型就是 WidgetName，未命中则抛错。
+    const widget = WIDGET_NAMES.find((candidate) => candidate === name);
+    if (!widget) {
       throw new Error(`正文引用了未注册的组件：${name}`);
     }
-    sections.push({ kind: "widget", name });
+    sections.push({ kind: "widget", name: widget });
 
     cursor = start + match[0].length;
   }

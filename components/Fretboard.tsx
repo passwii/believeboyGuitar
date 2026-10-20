@@ -1,8 +1,12 @@
 import { STANDARD_TUNING } from "@/lib/guitar";
 
 /**
- * 纯展示用的横向指板图（SVG，无交互状态）。
+ * 纯展示用的横向指板图（SVG）。
  * 音位、变暗、高亮都由调用方算好传进来，方便复用在不同页面上。
+ *
+ * 交互说明：悬停/按下音位会联动同名音，点击可固定高亮。这是给指针设备的
+ * 渐进增强——键盘用户获取同一信息走下方的「七把位速查」表格，因此这里不给
+ * 每个音位加 tab 焦点（一张图会有几十个 tab 停靠点，反而更难用）。
  */
 
 const STRING_GAP = 34;
@@ -35,14 +39,19 @@ export type FretboardNote = {
 export type FretboardProps = {
   fretCount: number;
   notes: FretboardNote[];
-  /** 悬停某个音时回调它的音名（用于同名音联动高亮），离开时传 null */
+  ariaLabel: string;
+  /** 指针进入某个音时回调它的音高类（用于同名音联动高亮），离开时传 null */
   onHoverPitchClass?: (pitchClass: number | null) => void;
+  /** 点击某个音时回调它的音高类（触屏与固定高亮用） */
+  onTogglePitchClass?: (pitchClass: number) => void;
 };
 
 export function Fretboard({
   fretCount,
   notes,
+  ariaLabel,
   onHoverPitchClass,
+  onTogglePitchClass,
 }: FretboardProps) {
   const stringCount = STANDARD_TUNING.length;
   const width = PAD_LEFT + fretCount * FRET_WIDTH + PAD_RIGHT;
@@ -68,9 +77,10 @@ export function Fretboard({
       width={width}
       height={height}
       role="img"
-      aria-label={`C 大调一弦三音指板图，显示第 1 到第 ${fretCount} 品`}
-      className="block h-auto w-full"
-      style={{ minWidth: width }}
+      aria-label={ariaLabel}
+      /* 保留 width/height 的内在尺寸，由外层 overflow-x-auto 承担横向滚动；
+         这样不需要内联 style，也不会把音位缩到看不清。 */
+      className="block h-auto max-w-none"
     >
       <defs>
         <linearGradient id="fretboard-surface" x1="0" y1="0" x2="0" y2="1">
@@ -85,7 +95,7 @@ export function Fretboard({
         y={boardTop}
         width={fretCount * FRET_WIDTH}
         height={boardHeight}
-        rx={6}
+        rx={8}
         fill="url(#fretboard-surface)"
       />
 
@@ -177,10 +187,11 @@ export function Fretboard({
         return (
           <g
             key={note.key}
-            opacity={note.dimmed ? 0.14 : 1}
-            className="transition-opacity duration-150"
-            onMouseEnter={() => onHoverPitchClass?.(note.pitchClass)}
-            onMouseLeave={() => onHoverPitchClass?.(null)}
+            opacity={note.dimmed ? 0.16 : 1}
+            className="cursor-pointer transition-opacity duration-150"
+            onPointerEnter={() => onHoverPitchClass?.(note.pitchClass)}
+            onPointerLeave={() => onHoverPitchClass?.(null)}
+            onClick={() => onTogglePitchClass?.(note.pitchClass)}
           >
             <title>{note.title}</title>
             <circle
@@ -196,7 +207,7 @@ export function Fretboard({
                 r={NOTE_RADIUS - 3.5}
                 fill="none"
                 strokeWidth={2}
-                className="stroke-accent-600"
+                className="stroke-accent-700"
               />
             ) : null}
             <text

@@ -1,21 +1,47 @@
 import Link from "next/link";
 import type { Lesson } from "@/content/manifest";
+import { DifficultyMeter } from "@/components/DifficultyMeter";
 
+/**
+ * 资料条目。
+ *
+ * 标题优先，摘要其次，元数据最后；三者用字号与墨色分层，不用色块包住整行。
+ * 整行是一个链接，hover 底由 `.row` 提供。
+ */
 export function LessonCard({ lesson }: { lesson: Lesson }) {
   return (
-    <Link
-      href={`/library/${lesson.slug}`}
-      className="group block min-w-0 break-words py-6"
-    >
-      <h3 className="text-xl font-medium leading-snug text-ink underline decoration-rule underline-offset-4 group-hover:text-accent group-hover:decoration-accent">
-        {lesson.title}
-      </h3>
-      <p className="mt-3 max-w-3xl text-base leading-[1.8] text-ink-muted">{lesson.summary}</p>
-      <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
-        <span>{lesson.stage}</span>
-        <span>难度 {lesson.difficulty}</span>
-        <span>{lesson.topics.join(" / ")}</span>
-      </p>
+    <Link href={`/library/${lesson.slug}`} className="row">
+      <span className="min-w-0 flex-1">
+        <span className="block text-title text-balance text-ink-950">{lesson.title}</span>
+        <span className="mt-1.5 block text-body text-ink-700 text-pretty">
+          {lesson.summary}
+        </span>
+        <span className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta text-ink-500">
+          <span>{lesson.stage}</span>
+          <span aria-hidden="true" className="text-rule">
+            ·
+          </span>
+          <DifficultyMeter value={lesson.difficulty} />
+          <span aria-hidden="true" className="text-rule">
+            ·
+          </span>
+          <span>{lesson.topics.join(" / ")}</span>
+        </span>
+      </span>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 7 12"
+        fill="none"
+        className="mt-2 size-3 shrink-0 self-start text-ink-100"
+      >
+        <path
+          d="M1 1l5 5-5 5"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </Link>
   );
 }

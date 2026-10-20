@@ -16,12 +16,24 @@ const STRING_HEADERS = [6, 5, 4, 3, 2, 1];
 /** 整条指板上所有属于 C 大调的音，模块级算一次即可 */
 const NECK_NOTES = buildNeckNotes(FRET_COUNT);
 
+/**
+ * 音名选择器用的音级列表：C 大调七个音级，顺序同音阶。
+ * 键盘用户靠这七个按钮拿到「同名音都在哪」这个信息，而不是在几十个
+ * 音位上逐个 Tab（见 DESIGN.md §7 的键盘策略）。
+ */
+const PITCH_CHOICES = Array.from(
+  new Map(
+    NECK_NOTES.map((note) => [note.pitchClass, { pitchClass: note.pitchClass, name: note.name }]),
+  ).values(),
+).sort((a, b) => a.pitchClass - b.pitchClass);
+
 type LabelMode = "name" | "degree";
 
 export function ThreeNotesPerString() {
   const [activeDegree, setActiveDegree] = useState<number | null>(null);
   const [labelMode, setLabelMode] = useState<LabelMode>("name");
   const [hoveredPitchClass, setHoveredPitchClass] = useState<number | null>(null);
+  const [pinnedPitchClass, setPinnedPitchClass] = useState<number | null>(null);
 
   const activePattern = useMemo(
     () => PATTERNS.find((pattern) => pattern.degree === activeDegree) ?? null,
@@ -32,6 +44,12 @@ export function ThreeNotesPerString() {
     () => (activePattern ? patternKeys(activePattern) : null),
     [activePattern],
   );
+
+  // 悬停优先，松开后回落到点按固定下来的音（触屏没有 hover）。
+  // 这里刻意不叠加「焦点高亮」：按钮点过之后焦点会留在上面，若焦点也参与
+  // 联动，按 Enter 取消后那个音会被焦点重新点亮，看起来像按钮失灵。
+  // 键盘用户靠 :focus-visible 的焦点环确认位置，靠 aria-pressed 确认状态。
+  const highlightedPitchClass = hoveredPitchClass ?? pinnedPitchClass;
 
   const notes: FretboardNote[] = useMemo(
     () =>
@@ -48,30 +66,38 @@ export function ThreeNotesPerString() {
           dimmed,
           emphasized:
             !dimmed &&
-            hoveredPitchClass !== null &&
-            note.pitchClass === hoveredPitchClass,
+            highlightedPitchClass !== null &&
+            note.pitchClass === highlightedPitchClass,
           title: `${note.stringNumber} 弦 ${note.fret} 品 · ${note.name}（${note.degree} 级）`,
         };
       }),
-    [activeKeys, hoveredPitchClass, labelMode],
+    [activeKeys, highlightedPitchClass, labelMode],
   );
 
   const togglePattern = (degree: number) =>
     setActiveDegree((current) => (current === degree ? null : degree));
 
+  const modeText = labelMode === "name" ? "音名" : "级数";
+  const ariaLabel = activePattern
+    ? `C 大调 ${activePattern.modeZh} 把位指板图，第 ${activePattern.minFret} 到 ${activePattern.maxFret} 品，标注方式：${modeText}`
+    : `C 大调一弦三音指板图，第 1 到第 ${FRET_COUNT} 品，标注方式：${modeText}`;
+
   return (
     <>
-      <section className="border border-rule bg-surface p-4 sm:p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3">
-          <h2 className="text-base font-semibold tracking-tight text-ink-950">
+      <section
+        aria-labelledby="fretboard-heading"
+        className="rounded-card border border-rule bg-surface p-4 sm:p-6"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <h2
+            id="fretboard-heading"
+            className="text-title text-ink-950"
+            // 正文里已有同名 H2，这里只作为控件标题，不参与目录
+          >
             七个把位指板图
           </h2>
 
-          <div
-            role="group"
-            aria-label="音位标注方式"
-            className="flex rounded-sm border border-control-edge p-0.5 text-xs"
-          >
+          <div role="group" aria-label="音位标注方式" className="segment-track">
             {(
               [
                 ["name", "音名"],
@@ -83,11 +109,7 @@ export function ThreeNotesPerString() {
                 type="button"
                 aria-pressed={labelMode === mode}
                 onClick={() => setLabelMode(mode)}
-                className={`rounded-sm px-3 py-1.5 font-medium transition-colors ${
-                  labelMode === mode
-                    ? "bg-accent-700 text-white"
-                    : "text-ink-700 hover:text-ink-950"
-                }`}
+                className="segment"
               >
                 {text}
               </button>
@@ -95,12 +117,9 @@ export function ThreeNotesPerString() {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          <PatternChip
-            active={activeDegree === null}
-            onClick={() => setActiveDegree(null)}
-          >
-            全部
+        <div role="group" aria-label="按把位筛选" className="mt-4 flex flex-wrap gap-1.5">
+          <PatternChip active={activeDegree === null} onClick={() => setActiveDegree(null)}>
+            <span className={activeDegree === null ? "text-white" : "text-ink-700"}>全部</span>
           </PatternChip>
           {PATTERNS.map((pattern) => (
             <PatternChip
@@ -120,32 +139,79 @@ export function ThreeNotesPerString() {
           ))}
         </div>
 
-        <div className="mt-5 overflow-x-auto">
-          <Fretboard
-            fretCount={FRET_COUNT}
-            notes={notes}
-            onHoverPitchClass={setHoveredPitchClass}
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span
+            id="pitch-picker-label"
+            className="text-micro uppercase text-ink-500"
+          >
+            点亮同名音
+          </span>
+          <div
+            role="group"
+            aria-labelledby="pitch-picker-label"
+            className="flex flex-wrap gap-1.5"
+          >
+            {PITCH_CHOICES.map(({ pitchClass: pc, name }) => {
+              const active = pinnedPitchClass === pc;
+              return (
+                <button
+                  key={pc}
+                  type="button"
+                  aria-pressed={active}
+                  aria-label={`点亮所有 ${name} 音`}
+                  onClick={() =>
+                    setPinnedPitchClass((current) => (current === pc ? null : pc))
+                  }
+                  className={`inline-flex size-11 items-center justify-center rounded-pill font-mono text-label transition-colors duration-150 ${
+                    active
+                      ? "bg-accent-700 text-white"
+                      : "bg-surface-muted text-ink-700 hover:text-ink-950"
+                  }`}
+                >
+                  {name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="relative mt-5">
+          <div className="overflow-x-auto overscroll-x-contain">
+            <Fretboard
+              fretCount={FRET_COUNT}
+              notes={notes}
+              ariaLabel={ariaLabel}
+              onHoverPitchClass={setHoveredPitchClass}
+              onTogglePitchClass={(pitchClass) =>
+                setPinnedPitchClass((current) => (current === pitchClass ? null : pitchClass))
+              }
+            />
+          </div>
+          {/* 可横向滑动的边缘提示：手机上替代一行小字说明 */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-surface to-transparent sm:hidden"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-surface to-transparent sm:hidden"
           />
         </div>
 
-        <p className="mt-1.5 text-[11px] text-ink-500 sm:hidden">
-          ← 左右滑动查看第 1–{FRET_COUNT} 品 →
+        <p className="mt-2 text-meta text-ink-500 sm:hidden">
+          左右滑动查看第 1–{FRET_COUNT} 品，点按音位可固定高亮同名音
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule pt-4 text-xs text-ink-700">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule pt-4 text-meta text-ink-700">
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-3 rounded-full bg-accent-600" aria-hidden />
+            <span className="size-3 rounded-pill bg-accent-600" aria-hidden="true" />
             根音（1 级 C）
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span
-              className="size-3 rounded-full bg-ink-100 ring-1 ring-rule"
-              aria-hidden
-            />
+            <span className="size-3 rounded-pill bg-ink-100" aria-hidden="true" />
             其他音级
           </span>
           <span>标准调弦 EADGBE · 低音弦画在图下方</span>
-          <span>把鼠标停在任一音上，会同时点亮同名音</span>
         </div>
 
         <PatternDetail pattern={activePattern} />
@@ -173,10 +239,10 @@ function PatternChip({
       title={title}
       aria-pressed={active}
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs transition-colors ${
+      className={`inline-flex min-h-11 items-center gap-1.5 rounded-control border px-3 text-meta transition-colors duration-150 ${
         active
-          ? "border-accent-700 bg-accent-700 text-white"
-          : "border-control-edge bg-surface text-ink-700 hover:bg-accent-50 hover:text-ink-950"
+          ? "border-transparent bg-accent-700 text-white"
+          : "border-rule bg-surface text-ink-700 hover:border-control-edge hover:text-ink-950"
       }`}
     >
       {children}
@@ -187,7 +253,7 @@ function PatternChip({
 function PatternDetail({ pattern }: { pattern: Pattern | null }) {
   if (!pattern) {
     return (
-      <p className="mt-4 border-t border-rule pt-4 text-xs leading-relaxed text-ink-500">
+      <p className="mt-4 border-t border-rule pt-4 text-meta leading-relaxed text-ink-500">
         图上显示的是整条指板里的 C 大调音位。点选上方任一把位，只会留下那一个把位的
         六个音组，形状和位置会看得更清楚。
       </p>
@@ -207,8 +273,8 @@ function PatternDetail({ pattern }: { pattern: Pattern | null }) {
     <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-rule pt-4 sm:grid-cols-3 lg:grid-cols-5">
       {items.map(([label, value]) => (
         <div key={label}>
-          <dt className="text-[11px] text-ink-500">{label}</dt>
-          <dd className="mt-0.5 text-sm font-medium text-ink-950">{value}</dd>
+          <dt className="text-micro uppercase text-ink-500">{label}</dt>
+          <dd className="mt-1 text-label text-ink-950">{value}</dd>
         </div>
       ))}
     </dl>
@@ -223,18 +289,18 @@ function PatternTable({
   onSelect: (degree: number) => void;
 }) {
   return (
-    <section className="mt-6">
-      <h2 className="text-base font-semibold tracking-tight text-ink-950">
+    <section aria-labelledby="pattern-table-heading" className="mt-8">
+      <h2 id="pattern-table-heading" className="text-title text-ink-950">
         七把位速查
       </h2>
-      <p className="mt-1 text-xs leading-relaxed text-ink-500">
+      <p className="mt-1 text-meta leading-relaxed text-ink-500">
         每格是该弦上的三个音：数字是品位，字母是音名。
       </p>
 
-      <div className="mt-3 overflow-x-auto border border-rule bg-surface">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
+      <div className="mt-3 overflow-x-auto overscroll-x-contain rounded-card border border-rule bg-surface">
+        <table className="w-full min-w-[640px] border-collapse text-label">
           <thead>
-            <tr className="border-b border-rule text-[11px] text-ink-500">
+            <tr className="border-b border-rule text-micro uppercase text-ink-500">
               <th scope="col" className="w-[120px] px-3 py-2.5 text-left font-medium">
                 把位
               </th>
@@ -256,34 +322,25 @@ function PatternTable({
               return (
                 <tr
                   key={pattern.degree}
-                  className={`border-b border-rule last:border-0 ${
-                    active ? "bg-accent-50" : ""
-                  }`}
+                  className={`border-b border-rule last:border-0 ${active ? "bg-accent-50" : ""}`}
                 >
                   <th scope="row" className="px-3 py-1.5 text-left font-normal">
                     <button
                       type="button"
                       aria-pressed={active}
                       onClick={() => onSelect(pattern.degree)}
-                      className="inline-flex items-baseline gap-1.5 rounded-sm border border-control-edge px-1.5 py-1 whitespace-nowrap transition-colors hover:bg-accent-50"
+                      className="inline-flex min-h-9 items-baseline gap-1.5 whitespace-nowrap rounded-control px-1.5 py-1 transition-colors duration-150 hover:bg-accent-50"
                     >
-                      <span className="text-xs text-ink-500">
+                      <span className="text-micro text-ink-500">
                         {DEGREE_MARKS[pattern.degree - 1]}
                       </span>
-                      <span className="font-semibold text-ink-950">
-                        {start.name}
-                      </span>
-                      <span className="text-xs text-ink-500">
-                        {pattern.modeZh}
-                      </span>
+                      <span className="font-semibold text-ink-950">{start.name}</span>
+                      <span className="text-micro text-ink-500">{pattern.modeZh}</span>
                     </button>
                   </th>
 
                   {pattern.notes.map((group) => (
-                    <td
-                      key={group[0].stringIndex}
-                      className="px-2 py-1.5 text-center"
-                    >
+                    <td key={group[0].stringIndex} className="px-2 py-1.5 text-center">
                       <div className="flex items-start justify-center gap-2.5">
                         {group.map((note) => (
                           <span
@@ -291,7 +348,7 @@ function PatternTable({
                             className="flex w-4 flex-col items-center leading-tight"
                           >
                             <span
-                              className={`font-mono text-xs ${
+                              className={`font-mono text-micro ${
                                 note.degree === 1
                                   ? "font-semibold text-accent-700"
                                   : "text-ink-700"
@@ -300,9 +357,9 @@ function PatternTable({
                               {note.fret}
                             </span>
                             <span
-                              className={`text-[11px] ${
+                              className={`text-micro ${
                                 note.degree === 1
-                                  ? "font-medium text-accent-600"
+                                  ? "font-medium text-accent-700"
                                   : "text-ink-500"
                               }`}
                             >

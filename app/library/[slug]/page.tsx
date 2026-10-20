@@ -3,6 +3,7 @@ import path from "node:path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { lessons } from "@/content/manifest";
+import { DifficultyMeter } from "@/components/DifficultyMeter";
 import { LessonWidget } from "@/components/LessonWidget";
 import { LessonTableOfContents } from "@/components/LessonTableOfContents";
 import { splitContentSections } from "@/lib/content-sections";
@@ -18,7 +19,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const lesson = lessons.find((item) => item.slug === slug);
-  return { title: lesson ? `${lesson.title} · 电吉他学习资料库` : "电吉他学习资料库" };
+  return { title: lesson ? lesson.title : "电吉他学习资料库" };
 }
 
 export default async function LessonPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -36,65 +37,82 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const showToc = shouldShowLessonToc(content.headings);
 
   return (
-    <main className="mx-auto w-full max-w-[1120px] px-5 py-10 sm:py-14">
-      <Link href="/library" className="text-sm text-ink-muted hover:text-accent">
-        ← 资料库
+    <main className="shell flex-1 py-8 sm:py-12">
+      <Link
+        href="/library"
+        className="-ml-3 inline-flex min-h-11 items-center rounded-control px-3 text-label text-ink-700 transition-colors duration-150 hover:text-ink-950"
+      >
+        <svg aria-hidden="true" viewBox="0 0 7 12" fill="none" className="mr-1.5 size-3">
+          <path
+            d="M6 1L1 6l5 5"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        资料库
       </Link>
 
-      <header className="mt-6 border-b border-rule pb-8">
-        <h1 className="max-w-[28em] font-display text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
-          {lesson.title}
-        </h1>
-        <p className="mt-4 max-w-[42em] text-base leading-[1.8] text-ink-muted">
-          {lesson.summary}
-        </p>
-        <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-xs">
-          <div className="flex gap-1">
-            <dt className="text-ink-muted">阶段</dt>
-            <dd className="text-ink">{lesson.stage}</dd>
+      <header className="mt-4 max-w-3xl">
+        <h1 className="text-display font-display text-ink-950 text-balance">{lesson.title}</h1>
+        <p className="mt-4 measure text-body text-ink-700 text-pretty">{lesson.summary}</p>
+        <dl className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-meta text-ink-500">
+          <div className="flex items-center gap-1.5">
+            <dt>阶段</dt>
+            <dd className="text-ink-950">{lesson.stage}</dd>
           </div>
-          <div className="flex gap-1">
-            <dt className="text-ink-muted">难度</dt>
-            <dd className="text-ink">
-              {lesson.difficulty} / 5
-              <span className="ml-2" aria-hidden="true">
-                {"★".repeat(lesson.difficulty)}
-                {"☆".repeat(5 - lesson.difficulty)}
-              </span>
+          <div className="flex items-center gap-1.5">
+            <dt>难度</dt>
+            <dd>
+              <DifficultyMeter value={lesson.difficulty} />
             </dd>
           </div>
-          <div className="flex gap-1">
-            <dt className="text-ink-muted">主题</dt>
-            <dd className="text-ink">{lesson.topics.join(" / ")}</dd>
+          <div className="flex items-center gap-1.5">
+            <dt>主题</dt>
+            <dd className="text-ink-950">{lesson.topics.join(" / ")}</dd>
           </div>
-          <div className="flex gap-1">
-            <dt className="text-ink-muted">整理于</dt>
-            <dd className="text-ink">{lesson.updatedAt}</dd>
+          <div className="flex items-center gap-1.5">
+            <dt>整理于</dt>
+            <dd className="text-ink-950 tabular-nums">{lesson.updatedAt}</dd>
           </div>
         </dl>
       </header>
 
-      <div className={`mt-8 grid gap-8 md:gap-12 ${showToc ? "md:grid-cols-[13rem_minmax(0,1fr)]" : "grid-cols-1"}`}>
-        {showToc && <LessonTableOfContents headings={content.headings} />}
-        <div className="min-w-0 max-w-[42em]">
-          <div className="space-y-8">
-            {sections.map((section, index) =>
-              section.kind === "prose" ? (
-                <div
-                  key={`prose-${index}`}
-                  className="lesson"
-                  dangerouslySetInnerHTML={{ __html: section.html }}
-                />
-              ) : (
-                <LessonWidget key={`widget-${index}`} name={section.name} />
-              ),
-            )}
-          </div>
+      <div className="mt-8 border-t border-rule pt-8">
+        <div
+          className={`grid gap-10 ${
+            showToc
+              ? "md:grid-cols-[var(--container-rail)_minmax(0,1fr)] md:gap-12"
+              : "grid-cols-1"
+          }`}
+        >
+          {showToc && <LessonTableOfContents headings={content.headings} />}
+          <article className="min-w-0">
+            <div className="space-y-8">
+              {sections.map((section, index) =>
+                section.kind === "prose" ? (
+                  <div
+                    key={`prose-${index}`}
+                    className="lesson measure"
+                    // 正文已由 sanitizeContentHtml 清过，且只来自仓库内 content/lessons/*.html，
+                    // 不接受外部输入；见 lib/sanitize-content.ts 与 tests/sanitize-content.test.ts。
+                    // pi-lens-ignore: dangerously-set-inner-html
+                    dangerouslySetInnerHTML={{ __html: section.html }}
+                  />
+                ) : (
+                  <LessonWidget key={`widget-${index}`} name={section.name} />
+                ),
+              )}
+            </div>
 
-          <footer className="mt-12 border-t border-rule pt-6 text-xs text-ink-muted">
-            <p>来源：{lesson.source}</p>
-            {lesson.tags.length > 0 && <p className="mt-1">标签：{lesson.tags.join(" · ")}</p>}
-          </footer>
+            <footer className="measure mt-14 border-t border-rule pt-5 text-meta text-ink-500">
+              <p className="text-pretty">来源：{lesson.source}</p>
+              {lesson.tags.length > 0 && (
+                <p className="mt-1.5">标签：{lesson.tags.join(" · ")}</p>
+              )}
+            </footer>
+          </article>
         </div>
       </div>
     </main>

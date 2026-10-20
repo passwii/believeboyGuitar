@@ -5,7 +5,7 @@
  * 避免出现「错一个音就练错」的问题。
  */
 
-export const NOTE_NAMES = [
+const NOTE_NAMES = [
   "C",
   "C#",
   "D",
@@ -20,7 +20,7 @@ export const NOTE_NAMES = [
   "B",
 ] as const;
 
-export type NoteName = (typeof NOTE_NAMES)[number];
+type NoteName = (typeof NOTE_NAMES)[number];
 
 export type GuitarString = {
   /** 弦号：1 = 最细的高音弦，6 = 最粗的低音弦 */
@@ -42,28 +42,28 @@ export const STANDARD_TUNING: GuitarString[] = [
 ];
 
 /** C 大调音阶七个音级相对 C 的半音数 */
-export const C_MAJOR_SEMITONES: number[] = [0, 2, 4, 5, 7, 9, 11];
+const C_MAJOR_SEMITONES: number[] = [0, 2, 4, 5, 7, 9, 11];
 
-export function pitchClass(midi: number): number {
+function pitchClass(midi: number): number {
   return ((midi % 12) + 12) % 12;
 }
 
-export function noteName(midi: number): NoteName {
+function noteName(midi: number): NoteName {
   return NOTE_NAMES[pitchClass(midi)];
 }
 
 /** 音级 1–7；不属于 C 大调时返回 null */
-export function scaleDegree(midi: number): number | null {
+function scaleDegree(midi: number): number | null {
   const index = C_MAJOR_SEMITONES.indexOf(pitchClass(midi));
   return index === -1 ? null : index + 1;
 }
 
 /** 带八度的音名，如 C3、E4（C4 = 中央八度记法） */
-export function noteWithOctave(midi: number): string {
+function noteWithOctave(midi: number): string {
   return `${noteName(midi)}${Math.floor(midi / 12) - 1}`;
 }
 
-export type Mode = {
+type Mode = {
   /** 把位编号 1–7，同时等于起始音级 */
   degree: number;
   /** 起始音级对应的调式 */
@@ -73,7 +73,7 @@ export type Mode = {
   character: string;
 };
 
-export const MODES: Mode[] = [
+const MODES: Mode[] = [
   { degree: 1, mode: "Ionian", modeZh: "伊奥尼亚", character: "大调本体，最稳定" },
   { degree: 2, mode: "Dorian", modeZh: "多利亚", character: "小调 + 升 6 音" },
   { degree: 3, mode: "Phrygian", modeZh: "弗里吉亚", character: "小调 + 降 2 音，西班牙色彩" },
@@ -91,7 +91,7 @@ const NOTES_PER_PATTERN = STRINGS_PER_PATTERN * NOTES_PER_STRING;
 /** 把位起始音允许高到的最高品位，超过就整体降一个八度 */
 const MAX_START_FRET = 12;
 
-export type PatternNote = {
+type PatternNote = {
   /** 0 = 6 弦（最低音弦），5 = 1 弦 */
   stringIndex: number;
   stringNumber: number;
@@ -136,7 +136,7 @@ function patternStartMidi(degree: number): number {
   return midi;
 }
 
-export function buildPattern(degree: number): Pattern {
+function buildPattern(degree: number): Pattern {
   const meta = MODES.find((item) => item.degree === degree);
   if (!meta) throw new Error(`未知音级：${degree}`);
 

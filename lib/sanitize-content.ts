@@ -6,6 +6,10 @@
  * 「内容约定」里禁止的东西在渲染时再清一遍，而不是只靠 `npm test` 事后拦截。
  *
  * 与 lib/content-check.ts 的规则一一对应：script / style / link / 行内 style / 事件处理器。
+ *
+ * 被引用处：app/library/[slug]/page.tsx（渲染前清理）与 tests/sanitize-content.test.ts。
+ * 注意：静态分析工具若只按「生产入口」分析，会把本文件误报为未使用——
+ * 它同时被页面与测试引用，全量分析下并非死文件。
  */
 export function sanitizeContentHtml(html: string): string {
   return (
