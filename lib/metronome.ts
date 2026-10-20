@@ -86,7 +86,7 @@ export const DIAL_SWEEP_DEG = 270;
 export const DIAL_START_DEG = -135;
 
 /** BPM 在圆环上的占比（0 = 最小速度，1 = 最大速度） */
-export function bpmToDialRatio(bpm: number): number {
+function bpmToDialRatio(bpm: number): number {
   return (clampBpm(bpm) - BPM_MIN) / (BPM_MAX - BPM_MIN);
 }
 

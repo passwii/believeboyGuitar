@@ -43,6 +43,7 @@ describe("模块私有符号不应重新导出", () => {
     ],
     "lib/content-sections.ts": ["isWidgetName"],
     "content/manifest.ts": ["Difficulty"],
+    "lib/metronome.ts": ["bpmToDialRatio"],
   };
 
   for (const [file, names] of Object.entries(PRIVATE)) {
