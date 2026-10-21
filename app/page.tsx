@@ -3,6 +3,7 @@ import { home, lessons } from "@/content/manifest";
 import { recentLessons } from "@/lib/lessons";
 import { LessonCard } from "@/components/LessonCard";
 import { EmptyLibrary } from "@/components/EmptyLibrary";
+import { ToolPages } from "@/components/ToolPages";
 
 export default function HomePage() {
   const recent = recentLessons(lessons, 4);
@@ -68,6 +69,8 @@ export default function HomePage() {
           </ul>
         )}
       </section>
+
+      <ToolPages />
     </main>
   );
 }

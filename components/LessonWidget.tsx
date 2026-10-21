@@ -1,5 +1,8 @@
 import type { ComponentType } from "react";
 import { ThreeNotesPerString } from "@/components/ThreeNotesPerString";
+import { CagedSystem } from "@/components/CagedSystem";
+import { TwelveBarBlues } from "@/components/TwelveBarBlues";
+import { BendPitchMeter } from "@/components/BendPitchMeter";
 import type { WidgetName } from "@/content/widgets";
 
 /**
@@ -8,6 +11,9 @@ import type { WidgetName } from "@/content/widgets";
  */
 const WIDGETS: Record<WidgetName, ComponentType> = {
   "c-major-three-notes-per-string": ThreeNotesPerString,
+  "caged-system": CagedSystem,
+  "twelve-bar-blues": TwelveBarBlues,
+  "bend-pitch-meter": BendPitchMeter,
 };
 
 export function LessonWidget({ name }: { name: WidgetName }) {

@@ -297,8 +297,10 @@ function PatternTable({
         每格是该弦上的三个音：数字是品位，字母是音名。
       </p>
 
-      <div className="mt-3 overflow-x-auto overscroll-x-contain rounded-card border border-rule bg-surface">
-        <table className="w-full min-w-[640px] border-collapse text-label">
+      <div className="mt-3 overflow-hidden rounded-card border border-rule bg-surface">
+        {/* 表格自己横向滚动（display: block），不靠外层容器：
+            display: table 的表格宽度由内容决定，放进 overflow-x-auto 里仍会撑破页面。 */}
+        <table className="block w-full max-w-full overflow-x-auto overscroll-x-contain border-collapse text-label">
           <thead>
             <tr className="border-b border-rule text-micro uppercase text-ink-500">
               <th scope="col" className="w-[120px] px-3 py-2.5 text-left font-medium">
@@ -329,7 +331,7 @@ function PatternTable({
                       type="button"
                       aria-pressed={active}
                       onClick={() => onSelect(pattern.degree)}
-                      className="inline-flex min-h-9 items-baseline gap-1.5 whitespace-nowrap rounded-control px-1.5 py-1 transition-colors duration-150 hover:bg-accent-50"
+                      className="row-button whitespace-nowrap hover:bg-accent-50"
                     >
                       <span className="text-micro text-ink-500">
                         {DEGREE_MARKS[pattern.degree - 1]}
