@@ -25,20 +25,32 @@ npm run build    # 静态导出到 out/
 | `content/lessons/*.html` | 每篇正文，只写语义标签，不带样式 |
 | `content/content.css` | 内容区排版样式 |
 | `content/widgets.ts` | 正文可嵌入的交互组件名清单 |
-| `app/` | 页面外壳：主页、资料库、内容页 |
+| `app/` | 页面外壳：主页、资料库、内容页、工具页 |
 | `components/` | 导航、卡片、筛选、空状态、指板图等组件 |
 | `lib/` | 纯函数：音位推导、查询筛选、一致性校验 |
 | `inbox/` | 原始资料投放处（不纳入版本库） |
 | `archive/` | 整理完成后的原始资料归档（不纳入版本库） |
+| `research/` | 调研资料：抓取的来源正文与报告（不纳入版本库） |
 
 ## 新增一篇资料
-
 1. 把原始资料放进 `inbox/`
 2. 先确认内容结构：怎么分节、哪些不确定、哪些结论需要核对
 3. 生成 `content/lessons/<slug>.html`，并在 `content/manifest.ts` 登记一条记录
 4. 浏览器打开实际页面，确认排版正常、内容没走样
 5. 原始资料移到 `archive/`
 6. 运行 `npm test` 与 `npm run build`
+
+## 资料与工具页的区别
+
+| | 资料 | 工具页 |
+| --- | --- | --- |
+| 位置 | `content/lessons/*.html` + `content/manifest.ts` | `app/<route>/page.tsx` |
+| 登记 | 登记进 manifest | 不登记 |
+| 导航 | 从资料库进 | 从首页的「工具」区块进 |
+| 例子 | 《C 大调一弦三音系统》 | /chords、/rhythms、/cheatsheet |
+
+工具页是拿来用的（查指法、排练习、划节奏），不是读的资料。
+它们的音位与参数全部由 `lib/` 下的纯函数推导，页面里不写死常量。
 
 ## 内容约定
 

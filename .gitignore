@@ -44,5 +44,8 @@ next-env.d.ts
 /inbox/
 /archive/
 
+# 调研资料：含外部来源的抓取正文与 PDF，同样涉及版权
+/research/
+
 # vitest
 /.vitest/
