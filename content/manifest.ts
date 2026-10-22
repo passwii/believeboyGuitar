@@ -159,4 +159,17 @@ export const lessons: Lesson[] = [
       "本资料库原创内容，依据 Boss、Strymon、Focusrite、Marshall、Seymour Duncan、Celestion 官方文档与 Sound on Sound、The Rig Doctor、Guitar Lobby 等公开资料改写。与《Pocket AMP（SK17）操作与效果模块手册》不重复：本文讲通用原理，已列出可补充项与一条待实机核对的 IR 长度发现。",
     updatedAt: "2026-10-20",
   },
+  {
+    slug: "week-1-finger-independence",
+    title: "第 1 周：锻炼各手指的独立运动能力",
+    summary:
+      "《电吉他手的养成计划 365日》第 1 周的四条左手练习：每日必弹、周一换指、周二固定基准指、周三三连音，附 TAB 谱与练习要点。",
+    stage: "入门",
+    topics: ["技巧", "曲谱"],
+    tags: ["左手", "手指独立", "指法", "TAB", "交替拨弦", "教材整理"],
+    difficulty: 2,
+    source:
+      "依据《电吉他手的养成计划 365日》第 1 周（原书第 6 页）整理。曲谱与练习要点为个人学习改写，未转载原书扫描图；品位与指法请在琴上核对。",
+    updatedAt: "2026-10-22",
+  },
 ];

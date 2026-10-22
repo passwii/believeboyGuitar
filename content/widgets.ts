@@ -10,6 +10,7 @@ export const WIDGET_NAMES = [
   "caged-system",
   "twelve-bar-blues",
   "bend-pitch-meter",
+  "week1-tab-drill",
 ] as const;
 
 export type WidgetName = (typeof WIDGET_NAMES)[number];
