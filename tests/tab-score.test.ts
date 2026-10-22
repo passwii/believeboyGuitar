@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TabExercise } from "@/components/TabExercise";
 import { TabStaff } from "@/components/TabStaff";
 import { deriveTabPitch, groupNotesForRhythm, type TabNote } from "@/lib/tab";
+import { TAB_LAYOUT, tabBeamRowY, tabStemSpan, tabStringY } from "@/lib/tab-layout";
 import { FRET_TO_FINGER, WEEK1_SECTIONS } from "@/lib/tab-exercises";
 
 describe("第 1 周曲谱数据", () => {
@@ -125,6 +126,73 @@ describe("TAB 谱面", () => {
   });
 });
 
+/** 从静态标记里取出符干（组件给符干打了 `tab-stem` 标记）。 */
+function stemLines(markup: string): { x1: number; y1: number; x2: number; y2: number }[] {
+  return [...markup.matchAll(/<line\b[^>]*class="tab-stem"[^>]*>/g)].map(([tag]) => {
+    const read = (name: string) => Number(new RegExp(`${name}="(-?[\\d.]+)"`).exec(tag)?.[1]);
+    return { x1: read("x1"), y1: read("y1"), x2: read("x2"), y2: read("y2") };
+  });
+}
+
+describe("符杠与品位数字连成一体", () => {
+  const section = WEEK1_SECTIONS[0];
+  const html = renderToStaticMarkup(
+    createElement(TabStaff, { measures: section.measures, bpm: section.bpm }),
+  );
+  const stems = stemLines(html);
+  const lowE = tabStringY(0, 6);
+  const beamRow = tabBeamRowY(lowE);
+  const stem = tabStemSpan({ stringY: lowE, fontSize: TAB_LAYOUT.noteFontSize, beamY: beamRow });
+
+  it("每个音符都有一条符干，上端在符杠行", () => {
+    expect(stems).toHaveLength(32);
+    expect(stems.every((line) => line.y1 === beamRow)).toBe(true);
+  });
+
+  it("符干下端贴着品位数字，不是悬在谱面顶部", () => {
+    expect(stems.every((line) => line.y2 === stem.bottom)).toBe(true);
+    // 数字在 6 弦上，符干必须一直画到它上面
+    expect(stem.bottom).toBeGreaterThan(lowE - 14);
+    expect(stem.bottom).toBeLessThan(lowE);
+  });
+
+  it("符杠不高于谱表，低把位练习的节奏符号就在数字上方", () => {
+    expect(beamRow).toBeGreaterThan(TAB_LAYOUT.staffTop);
+    expect(beamRow).toBeLessThan(lowE);
+  });
+});
+
+describe("跨弦的谱面", () => {
+  const notes: TabNote[] = [1, 2, 3, 4, 5, 6].map((string) => ({
+    string: string as TabNote["string"],
+    fret: 0,
+    duration: "8",
+  }));
+  const html = renderToStaticMarkup(createElement(TabStaff, { measures: [{ notes }], bpm: 90 }));
+  const stems = stemLines(html);
+  const beamRow = tabBeamRowY(tabStringY(0, 1));
+
+  it("每根弦上的音符都有自己的符干，从符杠落到各自的数字", () => {
+    expect(stems).toHaveLength(6);
+    expect(stems.every((line) => line.y1 === beamRow)).toBe(true);
+
+    const bottoms = stems.map((line) => line.y2).sort((a, b) => a - b);
+    const expected = [1, 2, 3, 4, 5, 6].map(
+      (string) =>
+        tabStemSpan({
+          stringY: tabStringY(0, string),
+          fontSize: TAB_LAYOUT.noteFontSize,
+          beamY: beamRow,
+        }).bottom,
+    );
+    for (const bottom of bottoms) expect(expected).toContain(bottom);
+  });
+
+  it("音符高到一弦时，符杠让到谱表上方", () => {
+    expect(beamRow).toBeLessThan(TAB_LAYOUT.staffTop);
+  });
+});
+
 describe("第 1 周 widget", () => {
   const html = renderToStaticMarkup(createElement(TabExercise));
 
@@ -148,5 +216,13 @@ describe("第 1 周 widget", () => {
       }),
     );
     expect(tripletMeasure.match(/>3<\/text>/g)).toHaveLength(4);
+  });
+});
+
+describe("空小节", () => {
+  const html = renderToStaticMarkup(createElement(TabStaff, { measures: [{ notes: [] }], bpm: 90 }));
+
+  it("不画出 NaN 坐标", () => {
+    expect(html).not.toContain("NaN");
   });
 });

@@ -1,5 +1,17 @@
 import type { TabMeasure } from "@/lib/tab";
 import { describeMeasureNotes, groupNotesForRhythm } from "@/lib/tab";
+import {
+  TAB_LAYOUT,
+  tabBeamRowY,
+  tabBeamYs,
+  tabFretBaselineY,
+  tabNoteFontSize,
+  tabNoteX,
+  tabStemSpan,
+  tabStringY,
+  tabSystemWidth,
+  tabTripletMark,
+} from "@/lib/tab-layout";
 
 export type TabStaffProps = {
   measures: readonly TabMeasure[];
@@ -11,31 +23,12 @@ export type TabStaffProps = {
   title?: string;
 };
 
-const MEASURES_PER_SYSTEM = 4;
-const MEASURE_WIDTH = 150;
-const SYSTEM_PAD_X = 16;
-const MEASURE_PAD_X = 11;
-const STAFF_TOP = 44;
-const STRING_GAP = 18;
-const STRING_COUNT = 6;
-const RHYTHM_TOP = 20;
-const SYSTEM_HEIGHT = 170;
-
-const SYSTEM_WIDTH = SYSTEM_PAD_X * 2 + MEASURE_WIDTH * MEASURES_PER_SYSTEM;
-
-function stringY(rowTop: number, string: number): number {
-  return rowTop + STAFF_TOP + (string - 1) * STRING_GAP;
-}
-
-function noteX(measureX: number, index: number, count: number): number {
-  const usable = MEASURE_WIDTH - MEASURE_PAD_X * 2;
-  return measureX + MEASURE_PAD_X + ((index + 0.5) * usable) / count;
-}
+const SYSTEM_WIDTH = tabSystemWidth();
 
 function chunkMeasures(measures: readonly TabMeasure[]): TabMeasure[][] {
   const systems: TabMeasure[][] = [];
-  for (let index = 0; index < measures.length; index += MEASURES_PER_SYSTEM) {
-    systems.push(measures.slice(index, index + MEASURES_PER_SYSTEM));
+  for (let index = 0; index < measures.length; index += TAB_LAYOUT.measuresPerSystem) {
+    systems.push(measures.slice(index, index + TAB_LAYOUT.measuresPerSystem));
   }
   return systems;
 }
@@ -52,7 +45,7 @@ export function TabStaff({
   }
 
   const systems = chunkMeasures(measures);
-  const height = systems.length * SYSTEM_HEIGHT;
+  const height = systems.length * TAB_LAYOUT.systemHeight;
   const [beatsPerBar, beatUnit] = timeSignature;
   const timeSignatureLabel = `${beatsPerBar}/${beatUnit}`;
   const description = measures
@@ -85,28 +78,33 @@ export function TabStaff({
           <desc>{`六线吉他 TAB，${timeSignatureLabel} 拍。${description}`}</desc>
 
           {systems.map((systemMeasures, systemIndex) => {
-            const rowTop = systemIndex * SYSTEM_HEIGHT;
-            const systemEndX = SYSTEM_PAD_X + systemMeasures.length * MEASURE_WIDTH;
+            const rowTop = systemIndex * TAB_LAYOUT.systemHeight;
+            const systemEndX = TAB_LAYOUT.systemPadX + systemMeasures.length * TAB_LAYOUT.measureWidth;
 
             return (
               <g key={`system-${systemIndex}`}>
                 {systemMeasures.map((measure, measureIndex) => {
-                  const measureX = SYSTEM_PAD_X + measureIndex * MEASURE_WIDTH;
+                  const measureX = TAB_LAYOUT.systemPadX + measureIndex * TAB_LAYOUT.measureWidth;
                   const count = Math.max(1, measure.notes.length);
                   const rhythmGroups = groupNotesForRhythm(measure.notes);
-                  const noteFontSize = count >= 12 ? 11 : 15;
-                  const fingerY = stringY(rowTop, STRING_COUNT) + 18;
+                  const noteFontSize = tabNoteFontSize(count);
+                  const highestStringY = measure.notes.reduce(
+                    (top, note) => Math.min(top, tabStringY(rowTop, note.string)),
+                    tabStringY(rowTop, TAB_LAYOUT.stringCount),
+                  );
+                  const beamY = tabBeamRowY(highestStringY);
+                  const fingerY = tabStringY(rowTop, TAB_LAYOUT.stringCount) + TAB_LAYOUT.fingerGap;
 
                   return (
                     <g key={`measure-${measureIndex}`}>
-                      {Array.from({ length: STRING_COUNT }, (_, stringIndex) => {
-                        const y = stringY(rowTop, stringIndex + 1);
+                      {Array.from({ length: TAB_LAYOUT.stringCount }, (_, stringIndex) => {
+                        const y = tabStringY(rowTop, stringIndex + 1);
                         return (
                           <line
                             key={`string-${stringIndex}`}
                             x1={measureX}
                             y1={y}
-                            x2={measureX + MEASURE_WIDTH}
+                            x2={measureX + TAB_LAYOUT.measureWidth}
                             y2={y}
                             stroke="currentColor"
                             strokeWidth={1}
@@ -117,78 +115,81 @@ export function TabStaff({
 
                       <line
                         x1={measureX}
-                        y1={stringY(rowTop, 1)}
+                        y1={tabStringY(rowTop, 1)}
                         x2={measureX}
-                        y2={stringY(rowTop, STRING_COUNT)}
+                        y2={tabStringY(rowTop, TAB_LAYOUT.stringCount)}
                         stroke="currentColor"
                         strokeWidth={1.25}
                       />
 
                       {rhythmGroups.map((group) => {
                         const xs = group.notes.map((_, index) =>
-                          noteX(measureX, group.start + index, count),
+                          tabNoteX(measureX, group.start + index, count),
                         );
-                        const beamY = rowTop + RHYTHM_TOP;
                         const startX = xs[0];
                         const endX = xs[xs.length - 1];
-                        const stemBottom = beamY + 13;
+                        const beamed = group.beams > 0;
+                        const beamYs = beamed ? tabBeamYs(beamY, group.beams) : [];
+                        const triplet = group.triplet ? tabTripletMark(beamY, startX, endX) : null;
 
                         return (
                           <g key={`rhythm-${group.start}`}>
-                            {xs.map((x, index) => (
-                              <line
-                                key={`stem-${group.start + index}`}
-                                x1={x}
-                                y1={beamY}
-                                x2={x}
-                                y2={stemBottom}
-                                stroke="currentColor"
-                                strokeWidth={1.25}
-                              />
-                            ))}
+                            {group.notes.map((note, index) => {
+                              const { top, bottom } = tabStemSpan({
+                                stringY: tabStringY(rowTop, note.string),
+                                fontSize: noteFontSize,
+                                beamY: beamed ? beamY : undefined,
+                              });
 
-                            {group.beams > 0 && group.notes.length > 1 ? (
-                              Array.from({ length: group.beams }, (_, beamIndex) => (
+                              return (
                                 <line
-                                  key={`beam-${beamIndex}`}
-                                  x1={startX}
-                                  y1={beamY + beamIndex * 4}
-                                  x2={endX}
-                                  y2={beamY + beamIndex * 4}
+                                  key={`stem-${group.start + index}`}
+                                  x1={xs[index]}
+                                  y1={top}
+                                  x2={xs[index]}
+                                  y2={bottom}
                                   stroke="currentColor"
-                                  strokeWidth={2.5}
-                                  strokeLinecap="round"
+                                  strokeWidth={1.25}
+                                  className="tab-stem"
                                 />
-                              ))
-                            ) : null}
+                              );
+                            })}
 
-                            {group.beams > 0 && group.notes.length === 1 ? (
+                            {beamed && group.notes.length > 1
+                              ? beamYs.map((y) => (
+                                  <line
+                                    key={`beam-${y}`}
+                                    x1={startX}
+                                    y1={y}
+                                    x2={endX}
+                                    y2={y}
+                                    stroke="currentColor"
+                                    strokeWidth={2.5}
+                                    strokeLinecap="round"
+                                  />
+                                ))
+                              : null}
+
+                            {beamed && group.notes.length === 1 ? (
                               <path
-                                d={`M ${startX} ${beamY + 2} q 7 4 5 11`}
+                                d={`M ${startX} ${beamY} q 8 5 6 13`}
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth={1.25}
                               />
                             ) : null}
 
-                            {group.triplet ? (
+                            {triplet ? (
                               <g>
                                 <path
-                                  d={`M ${startX} ${beamY - 5} v -4 H ${endX} v 4`}
+                                  d={`M ${startX} ${triplet.tickY} V ${triplet.lineY} H ${endX} V ${triplet.tickY}`}
                                   fill="none"
                                   stroke="currentColor"
                                   strokeWidth={1}
                                 />
-                                <rect
-                                  x={(startX + endX) / 2 - 6}
-                                  y={beamY - 17}
-                                  width={12}
-                                  height={12}
-                                  className="fill-canvas"
-                                />
                                 <text
-                                  x={(startX + endX) / 2}
-                                  y={beamY - 7}
+                                  x={triplet.centerX}
+                                  y={triplet.labelY}
                                   textAnchor="middle"
                                   fontFamily="var(--font-mono)"
                                   fontSize={10}
@@ -204,9 +205,8 @@ export function TabStaff({
                       })}
 
                       {measure.notes.map((note, noteIndex) => {
-                        const x = noteX(measureX, noteIndex, count);
-                        const y = stringY(rowTop, note.string);
-
+                        const x = tabNoteX(measureX, noteIndex, count);
+                        const stringY = tabStringY(rowTop, note.string);
                         const fretLabel = String(note.fret);
                         const maskWidth = noteFontSize * 0.62 * fretLabel.length + 3;
 
@@ -214,14 +214,14 @@ export function TabStaff({
                           <g key={`note-${noteIndex}`}>
                             <rect
                               x={x - maskWidth / 2}
-                              y={y - noteFontSize * 0.78}
+                              y={stringY - noteFontSize * TAB_LAYOUT.fretGlyphTop}
                               width={maskWidth}
                               height={noteFontSize}
                               className="fill-surface"
                             />
                             <text
                               x={x}
-                              y={y + 5}
+                              y={tabFretBaselineY(stringY)}
                               textAnchor="middle"
                               fontFamily="var(--font-mono)"
                               fontSize={noteFontSize}
@@ -251,9 +251,9 @@ export function TabStaff({
 
                 <line
                   x1={systemEndX}
-                  y1={stringY(rowTop, 1)}
+                  y1={tabStringY(rowTop, 1)}
                   x2={systemEndX}
-                  y2={stringY(rowTop, STRING_COUNT)}
+                  y2={tabStringY(rowTop, TAB_LAYOUT.stringCount)}
                   stroke="currentColor"
                   strokeWidth={1.25}
                 />
