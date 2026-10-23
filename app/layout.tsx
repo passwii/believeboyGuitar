@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
 import "@/content/content.css";
@@ -10,6 +11,22 @@ export const metadata: Metadata = {
     template: "%s · 电吉他学习资料库",
   },
   description: "个人电吉他学习资料的整理与长期积累",
+  applicationName: "电吉他学习资料库",
+  // PWA（BLF-1443）：清单在 app/manifest.ts，安装后从节拍器进入
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "节拍器",
+  },
+  // Next 只自动输出 android 侧的 mobile-web-app-capable；iOS 16.4 之前
+  // 靠这行才从主屏幕全屏启动
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
+  icons: {
+    icon: [{ url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {
@@ -33,6 +50,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </footer>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

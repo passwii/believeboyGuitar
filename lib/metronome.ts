@@ -191,25 +191,8 @@ export function meterChanged(current: Meter, next: Meter): boolean {
   return next.label !== current.label;
 }
 
-/** 页面可见性，取值同 `document.visibilityState`（不含已废弃的 prerender） */
-export type VisibilityState = "visible" | "hidden";
-
-/**
- * 手势解锁音频之后，是否可以进入 running。
- *
- * `start()` 必须先 `await audio.resume()` 才能出声，这一步是异步的（浏览器要求
- * 音频由用户手势解锁）；这个窗口期内用户可能把页面切到后台。此时
- * `visibilitychange` 处理器读到的 `phaseRef.current` 还不是 running，会直接
- * no-op，于是 await 一 resolve 就在隐藏的标签页里开跑——与方案 §4「页面隐藏 →
- * 状态显式转 paused」冲突。所以 await 之后必须拿那一刻的可见性再判一次，
- * 隐藏就走暂停分支，一拍都不排程。
- */
-export function mayStartRunning(visibilityState: VisibilityState): boolean {
-  return visibilityState !== "hidden";
-}
-
 /** `await audio.resume()` 之后，`start()` 的续段该怎么走 */
-export type ResumeContinuation = "run" | "pause" | "discard";
+export type ResumeContinuation = "run" | "discard";
 
 /**
  * 音频解锁 resolve 时，这次启动请求还算不算数。
@@ -221,13 +204,68 @@ export type ResumeContinuation = "run" | "pause" | "discard";
  * 会一步步累积后台定时器。所以 `start()` 在 await 之前记下请求代次，卸载（以及
  * 新的一次启动）都让代次前进，续段比对代次即可知道自己是否已经作废。
  *
- * 代次仍有效时才按那一刻的可见性分岔：隐藏走暂停语义（方案 §4），可见才开跑。
+ * 2026-10-23（BLF-1443）起不再按页面可见性分岔：页面隐藏 / 锁屏时要继续出声，
+ * 隐藏不是取消启动的理由。旧版本这里还有一个 "pause" 分支，已删除。
  */
 export function resumeContinuation(
   requestGeneration: number,
   currentGeneration: number,
-  visibilityState: VisibilityState,
 ): ResumeContinuation {
-  if (requestGeneration !== currentGeneration) return "discard";
-  return mayStartRunning(visibilityState) ? "run" : "pause";
+  return requestGeneration === currentGeneration ? "run" : "discard";
+}
+
+/**
+ * 从「已排程但还没响」的队列里截出前台窗口，并给出继续排程的锚点。
+ *
+ * 页面隐藏时调度器会向前排满一整段（见 `Metronome.tsx` 的
+ * `BACKGROUND_SCHEDULE_AHEAD_S`），这样锁屏后即使定时器被节流/冻结，音频
+ * 时钟里也还有拍子。回到前台后必须把这段长队列收回来：否则改 BPM / 拍号时
+ * 要重排上百个点击，拖一下旋钮就卡一下。
+ *
+ * 规则：
+ * - 已经响过（`time <= now`）的不在结果里；
+ * - 至少保留第一个未响的点击，哪怕它比 `aheadSeconds` 还远（30 BPM 时下一拍在
+ *   两秒后，不能因为窗口只有 120ms 就把它撤掉）；
+ * - `cutoff` 之后的点击由调用方 `audio.cancelFrom(cutoff)` 撤销；
+ * - 锚点是最后保留的那一拍的下一个位置，节拍相位因此保持不变。
+ */
+export function retainScheduleWindow(
+  pending: readonly ScheduledClick[],
+  options: {
+    now: number;
+    aheadSeconds: number;
+    intervalSeconds: number;
+    meter: Meter;
+    /** 队列里没有任何未响点击时的落点（通常是调度器已有的下一拍） */
+    fallback: ScheduledClick;
+  },
+): {
+  kept: ScheduledClick[];
+  /** 调用方需要 `cancelFrom` 的时间点 */
+  cutoff: number;
+  nextBeatIndex: number;
+  nextBeatTime: number;
+} {
+  const { now, aheadSeconds, intervalSeconds, meter, fallback } = options;
+  const future = pending.filter((entry) => entry.time > now);
+
+  if (future.length === 0) {
+    return {
+      kept: [],
+      cutoff: now,
+      nextBeatIndex: fallback.beat,
+      nextBeatTime: fallback.time,
+    };
+  }
+
+  const cutoff = Math.max(now + aheadSeconds, future[0].time);
+  const kept = future.filter((entry) => entry.time <= cutoff);
+  const last = kept[kept.length - 1];
+
+  return {
+    kept,
+    cutoff,
+    nextBeatIndex: nextBeat(last.beat, meter),
+    nextBeatTime: last.time + intervalSeconds,
+  };
 }
