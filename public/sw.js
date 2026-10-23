@@ -47,7 +47,8 @@ const OPTIONAL_SHELL = [
  */
 function buildAssets(html) {
   const assets = new Set();
-  for (const match of html.matchAll(/(?:src|href)="(\/_next\/static\/[^"]+)"/g)) {
+  const pattern = /(?:src|href)=["'](\/_next\/static\/[^"']+)["']/g;
+  for (const match of html.matchAll(pattern)) {
     assets.add(match[1]);
   }
   return [...assets];
@@ -82,13 +83,18 @@ async function precacheRequiredShell() {
   }
 }
 
-/** 可选壳：逐条 catch，任何一个 404 都不阻塞安装 */
+/**
+ * 可选壳：逐条 catch，任何一个 404 都不阻塞安装。
+ *
+ * 写进 `STATIC_CACHE` 而不是 `SHELL_CACHE`：运行时图标与清单由
+ * `staleWhileRevalidate(request, STATIC_CACHE)` 读取，装进别处等于白装。
+ */
 async function precacheOptionalShell() {
-  const shell = await caches.open(SHELL_CACHE);
+  const statics = await caches.open(STATIC_CACHE);
   await Promise.all(
     OPTIONAL_SHELL.map(async (url) => {
       try {
-        await shell.add(new Request(url, { cache: "reload" }));
+        await statics.add(new Request(url, { cache: "reload" }));
       } catch {
         // 运行时的 staleWhileRevalidate 还会再试，这里失败不算错
       }

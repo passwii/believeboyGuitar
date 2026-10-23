@@ -169,12 +169,15 @@ describe("Service Worker 首装就把构建产物装进缓存", () => {
       <script src="/_next/static/chunks/main-3.js" async></script>
       <script src="https://cdn.example.com/other.js"></script>
       <img src="/icons/icon-192.png">
+      <script src='/_next/static/chunks/quote-4.js'></script>
       </body></html>`;
 
+    // 单引号也认：压缩器换引号风格不该让整次安装失败
     expect(buildAssets(html)).toEqual([
       "/_next/static/css/app-1.css",
       "/_next/static/media/font-2.woff2",
       "/_next/static/chunks/main-3.js",
+      "/_next/static/chunks/quote-4.js",
     ]);
   });
 
@@ -187,7 +190,8 @@ describe("Service Worker 首装就把构建产物装进缓存", () => {
 
   it("必需壳失败让 install 失败：抛错、清掉半截缓存、不 skipWaiting", () => {
     const from = serviceWorker.indexOf("async function precacheRequiredShell()");
-    const to = serviceWorker.indexOf("/** 可选壳：逐条 catch");
+    // 下一个顶层注释之前都是必需壳的代码，注释文字不参与断言
+    const to = serviceWorker.indexOf("/**", from + 10);
     const required = serviceWorker.slice(from, to);
 
     expect(from).toBeGreaterThan(-1);
@@ -205,6 +209,8 @@ describe("Service Worker 首装就把构建产物装进缓存", () => {
 
     expect(optional).toContain("try {");
     expect(optional).toContain("catch {");
+    // 图标与清单运行时从 STATIC_CACHE 读，预缓存也得写进同一个缓存
+    expect(optional).toContain("caches.open(STATIC_CACHE)");
   });
 });
 
