@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BpmDial } from "@/components/BpmDial";
+import { useScreenWakeLock } from "@/components/useScreenWakeLock";
+import {
+  preferPlaybackAudioSession,
+  type AudioSessionNavigatorLike,
+} from "@/lib/background-audio";
 import {
   BPM_DEFAULT,
   BPM_MAX,
@@ -14,6 +19,7 @@ import {
   nextBeat,
   pickResumeClick,
   resumeContinuation,
+  retainScheduleWindow,
   type Meter,
   type ScheduledClick,
 } from "@/lib/metronome";
@@ -31,6 +37,15 @@ import {
  */
 const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD_S = 0.12;
+/**
+ * 页面隐藏 / 锁屏时向前排满的秒数（BLF-1443）。
+ *
+ * 隐藏页面的定时器会被节流到 ≥1s，iOS 甚至直接冻结 JS；但已经交给音频时钟
+ * 的拍子不受影响。所以进后台前先把一段时间排进去：只要 AudioContext 还活着，
+ * 锁屏后节拍就不会断。240 BPM 时这段约 1200 拍、3000 个短命节点，内存可以接受；
+ * 回到前台会立刻用 `retainScheduleWindow` 收回到 `SCHEDULE_AHEAD_S`。
+ */
+const BACKGROUND_SCHEDULE_AHEAD_S = 300;
 /** 开始 / 从暂停恢复时，第一拍相对当前时钟的提前量 */
 const START_LEAD_S = 0.06;
 /** 改拍号后新小节第一拍的提前量 */
@@ -72,6 +87,7 @@ export function Metronome() {
   const [status, setStatus] = useState("");
   const [announcedBpm, setAnnouncedBpm] = useState(BPM_DEFAULT);
   const reducedMotion = usePrefersReducedMotion();
+  const { hint: wakeLockHint, keepAwake } = useScreenWakeLock();
 
   /** 音频封装与调度器放在 ref 里：不参与渲染，也不会被闭包捕获成旧值 */
   const audioRef = useRef<MetronomeAudio | null>(null);
@@ -111,7 +127,11 @@ export function Metronome() {
       nextBeatTimeRef.current = now + RESUME_LEAD_S;
     }
 
-    const horizon = now + SCHEDULE_AHEAD_S;
+    const horizon =
+      now +
+      (document.visibilityState === "hidden"
+        ? BACKGROUND_SCHEDULE_AHEAD_S
+        : SCHEDULE_AHEAD_S);
     while (nextBeatTimeRef.current < horizon) {
       const currentMeter = meterRef.current;
       const beat = nextBeatIndexRef.current;
@@ -203,6 +223,9 @@ export function Metronome() {
     startGenerationRef.current += 1;
     const generation = startGenerationRef.current;
 
+    // 借这次用户手势再要一次屏幕常亮：挂载时被浏览器拒绝的请求，在这里能补上
+    keepAwake();
+
     let unlocked = true;
     try {
       await audio.resume();
@@ -210,31 +233,18 @@ export function Metronome() {
       unlocked = false;
     }
 
-    // 手势解锁音频是异步的，这个 await 窗口里可能发生了两件事：
-    // 1. 页面被切到后台 —— visibilitychange 处理器读到的 phaseRef 还不是 running，
-    //    已经 no-op 过，所以这里必须自己复核一次（方案 §4）：命中就走暂停语义，
-    //    不在隐藏的标签页里开跑，也一拍拍都不排程。
-    // 2. 用户导航走、组件已卸载 —— 卸载清理已经 dispose 音频、清掉 interval，
-    //    续段必须直接收手：再往下走到 startTicking() 会重建一个没人再清的 25ms
-    //    interval（反复「点开始 → 立刻切走」会累积后台定时器），也没有可更新的组件。
-    const continuation = resumeContinuation(
-      generation,
-      startGenerationRef.current,
-      document.visibilityState,
-    );
+    // 手势解锁音频是异步的。这个 await 窗口里用户可能导航走、组件已卸载 ——
+    // 卸载清理已经 dispose 音频、清掉 interval，续段必须直接收手：再往下走到
+    // startTicking() 会重建一个没人再清的 25ms interval（反复「点开始 → 立刻切走」
+    // 会累积后台定时器），也没有可更新的组件。
+    //
+    // 页面隐藏不再算作「取消启动」：BLF-1443 要求锁屏后继续出声，所以隐藏时
+    // 照常进入 running（旧版本在这里转 paused）。
+    const continuation = resumeContinuation(generation, startGenerationRef.current);
     if (continuation === "discard") return;
 
     if (!unlocked) {
       setStatus("当前浏览器无法播放声音");
-      return;
-    }
-
-    if (continuation === "pause") {
-      pendingRef.current = [];
-      phaseRef.current = "paused";
-      setPhase("paused");
-      setStatus("已暂停");
-      await audio.suspend();
       return;
     }
 
@@ -251,7 +261,7 @@ export function Metronome() {
     setPhase("running");
     setStatus(resuming ? "已继续" : "已开始");
     startTicking();
-  }, [ensureAudio, startTicking]);
+  }, [ensureAudio, keepAwake, startTicking]);
 
   const pause = useCallback(async () => {
     const audio = audioRef.current;
@@ -344,16 +354,131 @@ export function Metronome() {
     [rescheduleTimbre],
   );
 
-  /** 页面隐藏：停调度 + suspend，并把状态显式改成 paused（方案 §4） */
+  /**
+   * 锁屏 / 切到别的 app 回来之后：恢复音频时钟，并把后台排的长队列收回前台窗口。
+   *
+   * 关键点是「不补发」：队列里的拍子是按音频时钟排的，解锁后第一拍仍用队列里
+   * 的时间点，不会一口气补响一串。Safari 有时不允许无手势恢复 AudioContext，
+   * 这时退回 paused——「开始」按钮亮着，再点一下就好，不假装还在响。
+   */
+  const resumeFromBackground = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || phaseRef.current !== "running") return;
+
+    try {
+      await audio.resume();
+    } catch {
+      await pause();
+      return;
+    }
+    if (audio.state !== "running") {
+      await pause();
+      return;
+    }
+
+    const now = audio.currentTime;
+    const upcoming = pendingRef.current.find((entry) => entry.time > now);
+
+    if (!upcoming) {
+      // 队列跑空或时钟跳过了整段：从最后一拍的下一个位置重新起算
+      const last = pendingRef.current[pendingRef.current.length - 1];
+      const anchor = last
+        ? nextBeat(last.beat, meterRef.current)
+        : nextBeatIndexRef.current;
+      audio.cancelFrom(now);
+      pendingRef.current = [];
+      nextBeatIndexRef.current = anchor;
+      nextBeatTimeRef.current = now + RESUME_LEAD_S;
+    } else {
+      const plan = retainScheduleWindow(pendingRef.current, {
+        now,
+        aheadSeconds: SCHEDULE_AHEAD_S,
+        intervalSeconds: bpmToIntervalMs(bpmRef.current) / 1000,
+        meter: meterRef.current,
+        fallback: { beat: nextBeatIndexRef.current, time: nextBeatTimeRef.current },
+      });
+      audio.cancelFrom(plan.cutoff);
+      pendingRef.current = plan.kept;
+      nextBeatIndexRef.current = plan.nextBeatIndex;
+      nextBeatTimeRef.current = plan.nextBeatTime;
+    }
+
+    tick();
+  }, [pause, tick]);
+
+  /**
+   * 页面隐藏（切 app / 锁屏）不再暂停（BLF-1443）。
+   *
+   * 隐藏时立刻按后台窗口排满：浏览器会把隐藏页面的 setInterval 节流到 ≥1s，
+   * iOS 会直接冻结 JS，但已经交给音频时钟的拍子照响。回到前台先恢复音频时钟，
+   * 再把队列收回到 120ms 窗口，避免之后改 BPM 时重排几百个点击。
+   */
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden" && phaseRef.current === "running") {
-        void pause();
+      const audio = audioRef.current;
+      if (!audio || phaseRef.current !== "running") return;
+
+      if (document.visibilityState === "hidden") {
+        tick();
+        return;
       }
+
+      void resumeFromBackground();
     };
+
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [pause]);
+  }, [resumeFromBackground, tick]);
+
+  /** Safari：把这段音频声明成「媒体播放」，锁屏后系统不立刻挂起它 */
+  useEffect(() => {
+    preferPlaybackAudioSession(navigator as unknown as AudioSessionNavigatorLike);
+  }, []);
+
+  /** 锁屏 / 耳机的播放键接到节拍器上，也告诉系统这是媒体而不是后台噪音 */
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: "节拍器",
+        artist: "电吉他学习资料库",
+      });
+    } catch {
+      // 没有 MediaMetadata 的旧实现：没有锁屏信息，不影响播放
+    }
+
+    for (const [action, handler] of [
+      ["play", () => void start()],
+      ["pause", () => void pause()],
+      ["stop", () => void stop()],
+    ] as const) {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        // 部分浏览器只实现了其中一部分 action，缺哪个就少哪个
+      }
+    }
+
+    return () => {
+      for (const action of ["play", "pause", "stop"] as const) {
+        try {
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch {
+          // 未注册过的 action 在这里抛错也无所谓
+        }
+      }
+    };
+  }, [pause, start, stop]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.playbackState = phase === "running" ? "playing" : "paused";
+    } catch {
+      // 旧实现里 playbackState 可能只读
+    }
+  }, [phase]);
 
   /** 卸载时 dispose，不是只 suspend（方案 §8） */
   useEffect(() => {
@@ -503,6 +628,8 @@ export function Metronome() {
         >
           结束
         </button>
+        {/* 屏幕常亮的状态条：高度先留着，避免 request 落定后整页往下跳 */}
+        <p className="min-h-5 text-center text-meta text-ink-500">{wakeLockHint}</p>
       </section>
 
       <section>

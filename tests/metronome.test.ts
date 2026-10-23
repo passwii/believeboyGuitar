@@ -15,11 +15,11 @@ import {
   dialAngleFromPoint,
   dialAngleToBpm,
   dialPointToBpm,
-  mayStartRunning,
   meterChanged,
   nextBeat,
   pickResumeClick,
   resumeContinuation,
+  retainScheduleWindow,
   tempoName,
   type Meter,
 } from "@/lib/metronome";
@@ -331,6 +331,105 @@ describe("meterChanged：重复点当前拍号不打断节拍", () => {
     expect(meterChanged(byLabel("4/4"), byLabel("3/4"))).toBe(true);
     expect(meterChanged(byLabel("2/4"), byLabel("4/4"))).toBe(true);
     expect(meterChanged(byLabel("6/8"), byLabel("5/4"))).toBe(true);
+  });
+});
+
+describe("retainScheduleWindow：锁屏回来把长队列收回前台窗口（BLF-1443）", () => {
+  const fallback = { beat: 2, time: 99 };
+
+  it("只保留窗口内尚未响的点击，并给出继续排程的锚点", () => {
+    const pending = [
+      { beat: 0, time: 1 }, // 已响
+      { beat: 1, time: 1.1 },
+      { beat: 2, time: 1.2 },
+      { beat: 3, time: 1.35 },
+    ];
+
+    const plan = retainScheduleWindow(pending, {
+      now: 1.15,
+      aheadSeconds: 0.1,
+      intervalSeconds: 0.5,
+      meter: DEFAULT_METER,
+      fallback,
+    });
+
+    expect(plan.kept).toEqual([{ beat: 2, time: 1.2 }]);
+    expect(plan.cutoff).toBeCloseTo(1.25);
+    // 锚点是最后保留那一拍的下一个位置，相位不因裁剪而改变
+    expect(plan.nextBeatIndex).toBe(3);
+    expect(plan.nextBeatTime).toBeCloseTo(1.7);
+  });
+
+  it("慢速时窗口只有 120ms，也要保住两秒后的下一拍", () => {
+    const pending = [
+      { beat: 0, time: 10.5 },
+      { beat: 1, time: 12.5 },
+    ];
+
+    const plan = retainScheduleWindow(pending, {
+      now: 10,
+      aheadSeconds: 0.12,
+      intervalSeconds: 2,
+      meter: DEFAULT_METER,
+      fallback,
+    });
+
+    // cutoff 至少落在第一个未响点击上，不能把它撤掉
+    expect(plan.cutoff).toBe(10.5);
+    expect(plan.kept).toEqual([{ beat: 0, time: 10.5 }]);
+    expect(plan.nextBeatIndex).toBe(1);
+    expect(plan.nextBeatTime).toBe(12.5);
+  });
+
+  it("窗口覆盖整段时全保留，一个点击都不撤", () => {
+    const pending = [
+      { beat: 2, time: 5.1 },
+      { beat: 3, time: 5.35 },
+    ];
+
+    const plan = retainScheduleWindow(pending, {
+      now: 5,
+      aheadSeconds: 1,
+      intervalSeconds: 0.25,
+      meter: DEFAULT_METER,
+      fallback,
+    });
+
+    expect(plan.kept).toEqual(pending);
+    expect(plan.cutoff).toBe(6);
+  });
+
+  it("没有未响点击时落回 fallback（调度器已有的下一拍）", () => {
+    const plan = retainScheduleWindow([{ beat: 1, time: 3 }], {
+      now: 3,
+      aheadSeconds: 0.12,
+      intervalSeconds: 0.5,
+      meter: DEFAULT_METER,
+      fallback,
+    });
+
+    expect(plan.kept).toEqual([]);
+    expect(plan.cutoff).toBe(3);
+    expect(plan.nextBeatIndex).toBe(fallback.beat);
+    expect(plan.nextBeatTime).toBe(fallback.time);
+  });
+
+  it("不改动传入的队列", () => {
+    const pending = [
+      { beat: 0, time: 1 },
+      { beat: 1, time: 5 },
+    ];
+    retainScheduleWindow(pending, {
+      now: 0.5,
+      aheadSeconds: 0.12,
+      intervalSeconds: 0.5,
+      meter: DEFAULT_METER,
+      fallback,
+    });
+    expect(pending).toEqual([
+      { beat: 0, time: 1 },
+      { beat: 1, time: 5 },
+    ]);
   });
 });
 
@@ -730,14 +829,7 @@ function startBody(): string {
   return metronomeSource.slice(from, to);
 }
 
-describe("start() 里 await resume 之后复核页面可见性（方案 §4）", () => {
-  it("resume 未 resolve 期间被隐藏：复核为隐藏，不许进入 running", () => {
-    // 手势解锁音频是异步的，这个窗口里 phaseRef 还没到 running，
-    // visibilitychange 处理器会直接 no-op —— 只能靠 await 之后的复核兜住。
-    expect(mayStartRunning("hidden")).toBe(false);
-    expect(mayStartRunning("visible")).toBe(true);
-  });
-
+describe("start() 里 await resume 之后的代次复核（方案 §4，BLF-1443 修订）", () => {
   it("复核位置在 await audio.resume() 之后、置 running 之前", () => {
     const body = startBody();
     const resumed = body.indexOf("await audio.resume()");
@@ -749,37 +841,32 @@ describe("start() 里 await resume 之后复核页面可见性（方案 §4）",
     expect(running).toBeGreaterThan(guard);
   });
 
-  it("命中复核时走暂停分支：先落 paused 再 suspend，之后才轮到 running", () => {
+  it("页面隐藏不再转暂停：旧 pause 分支必须消失", () => {
     const body = startBody();
-    const guard = body.indexOf("resumeContinuation(");
-    const pauseBranch = body.indexOf('if (continuation === "pause")', guard);
-    const running = body.indexOf('phaseRef.current = "running"');
-    const paused = body.indexOf('phaseRef.current = "paused"', pauseBranch);
+    expect(body).not.toContain('continuation === "pause"');
+    expect(body).not.toContain("await audio.suspend()");
+  });
 
-    expect(pauseBranch).toBeGreaterThan(guard);
-    expect(paused).toBeGreaterThan(pauseBranch);
-    expect(paused).toBeLessThan(running);
-    expect(body.indexOf("await audio.suspend()", pauseBranch)).toBeGreaterThan(paused);
-    // 走暂停分支时不能启动调度器：startTicking() 只出现在 running 之后
-    expect(body.indexOf("startTicking();", guard)).toBeGreaterThan(running);
+  it("启动时借用户手势再要一次屏幕常亮（申请排在 await 之前）", () => {
+    const body = startBody();
+    const keepAwake = body.indexOf("keepAwake();");
+    const resumed = body.indexOf("await audio.resume()");
+
+    expect(keepAwake).toBeGreaterThan(-1);
+    expect(keepAwake).toBeLessThan(resumed);
   });
 });
 
 describe("resumeContinuation：音频解锁 resolve 时该不该继续", () => {
-  it("代次一致且可见：正常开跑", () => {
-    expect(resumeContinuation(3, 3, "visible")).toBe("run");
-    expect(resumeContinuation(0, 0, "visible")).toBe("run");
+  it("代次一致：正常开跑（页面是否可见不再影响结果）", () => {
+    expect(resumeContinuation(3, 3)).toBe("run");
+    expect(resumeContinuation(0, 0)).toBe("run");
   });
 
-  it("代次一致但页面隐藏：走暂停语义", () => {
-    expect(resumeContinuation(3, 3, "hidden")).toBe("pause");
-  });
-
-  it("代次已前进（卸载或新一轮启动）:丢弃，隐藏与可见都不许继续", () => {
+  it("代次已前进（卸载或新一轮启动）：丢弃", () => {
     // 卸载后重建 interval 就是在泄露后台定时器；组件没了 setState 也没意义
-    expect(resumeContinuation(3, 4, "visible")).toBe("discard");
-    expect(resumeContinuation(3, 4, "hidden")).toBe("discard");
-    expect(resumeContinuation(0, 1, "visible")).toBe("discard");
+    expect(resumeContinuation(3, 4)).toBe("discard");
+    expect(resumeContinuation(0, 1)).toBe("discard");
   });
 });
 
