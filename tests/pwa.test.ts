@@ -144,6 +144,70 @@ describe("Service Worker", () => {
   });
 });
 
+describe("Service Worker 首装就把构建产物装进缓存", () => {
+  /**
+   * 首装断网启动缺 JS/CSS（复核 1）：SW 在 load 之后才注册，页面自己的
+   * `/_next/static/*` 请求早已绕过 SW，install 必须自己把 HTML 引用的资源抓一遍。
+   *
+   * `buildAssets` 是 SW 里的普通函数、没有模块导出，这里从源码截出来直接跑 ——
+   * 断言解析结果，而不是断言源码里出现过某个字符串。
+   */
+  const buildAssetsSource = serviceWorker.slice(
+    serviceWorker.indexOf("function buildAssets(html)"),
+    serviceWorker.indexOf("/** 必需壳：HTML"),
+  );
+  const buildAssets = new Function(
+    `${buildAssetsSource}; return buildAssets;`,
+  )() as (html: string) => string[];
+
+  it("从 script src / link href 里挑出 /_next/static 资源，去重且不越界", () => {
+    const html = `<!doctype html><html><head>
+      <link rel="stylesheet" href="/_next/static/css/app-1.css">
+      <link rel="preload" href="/_next/static/media/font-2.woff2" as="font">
+      </head><body>
+      <script src="/_next/static/chunks/main-3.js" async></script>
+      <script src="/_next/static/chunks/main-3.js" async></script>
+      <script src="https://cdn.example.com/other.js"></script>
+      <img src="/icons/icon-192.png">
+      </body></html>`;
+
+    expect(buildAssets(html)).toEqual([
+      "/_next/static/css/app-1.css",
+      "/_next/static/media/font-2.woff2",
+      "/_next/static/chunks/main-3.js",
+    ]);
+  });
+
+  it("安装阶段解析 /metronome 的 HTML 并把资源写进 static 缓存", () => {
+    expect(serviceWorker).toContain("const assets = buildAssets(await response.text());");
+    expect(serviceWorker).toContain("await statics.put(asset, assetResponse)");
+    // 单个资源拿不到也算必需壳失败，不能留下「HTML 有、JS 没有」
+    expect(serviceWorker).toContain("if (!assetResponse.ok)");
+  });
+
+  it("必需壳失败让 install 失败：抛错、清掉半截缓存、不 skipWaiting", () => {
+    const from = serviceWorker.indexOf("async function precacheRequiredShell()");
+    const to = serviceWorker.indexOf("/** 可选壳：逐条 catch");
+    const required = serviceWorker.slice(from, to);
+
+    expect(from).toBeGreaterThan(-1);
+    expect(required).toContain("throw new Error");
+    // 必需壳里不能有把失败吞掉的 catch
+    expect(required).not.toContain("catch");
+    expect(serviceWorker).toContain("await caches.delete(SHELL_CACHE)");
+    expect(serviceWorker.indexOf("await self.skipWaiting()")).toBeGreaterThan(to);
+  });
+
+  it("可选壳仍是逐条 catch，404 不阻塞安装", () => {
+    const from = serviceWorker.indexOf("async function precacheOptionalShell()");
+    const to = serviceWorker.indexOf('self.addEventListener("install"');
+    const optional = serviceWorker.slice(from, to);
+
+    expect(optional).toContain("try {");
+    expect(optional).toContain("catch {");
+  });
+});
+
 describe("Service Worker 注册时机", () => {
   it("生产环境注册、开发环境反注册，避免预览构建的缓存盖住热更新", () => {
     expect(registration).toContain('process.env.NODE_ENV !== "production"');

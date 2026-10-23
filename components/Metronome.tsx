@@ -42,8 +42,9 @@ const SCHEDULE_AHEAD_S = 0.12;
  *
  * 隐藏页面的定时器会被节流到 ≥1s，iOS 甚至直接冻结 JS；但已经交给音频时钟
  * 的拍子不受影响。所以进后台前先把一段时间排进去：只要 AudioContext 还活着，
- * 锁屏后节拍就不会断。240 BPM 时这段约 1200 拍、3000 个短命节点，内存可以接受；
- * 回到前台会立刻用 `retainScheduleWindow` 收回到 `SCHEDULE_AHEAD_S`。
+ * 锁屏后节拍就不会断。240 BPM 时这段约 1200 拍，木质音色每拍 5 个节点
+ * （振荡器 + 增益 + 噪声源 + 滤波器 + 增益），合计约 6000 个短命节点，内存可以
+ * 接受；回到前台会立刻用 `retainScheduleWindow` 收回到 `SCHEDULE_AHEAD_S`。
  */
 const BACKGROUND_SCHEDULE_AHEAD_S = 300;
 /** 开始 / 从暂停恢复时，第一拍相对当前时钟的提前量 */
@@ -365,12 +366,30 @@ export function Metronome() {
     const audio = audioRef.current;
     if (!audio || phaseRef.current !== "running") return;
 
+    // 这次恢复的代次：await 期间用户可能暂停 / 结束，也可能重新按了开始
+    const generation = startGenerationRef.current;
+
     try {
       await audio.resume();
     } catch {
-      await pause();
+      // 代次已前进说明新一次启动接手了音频，别再 pause 掉它
+      if (startGenerationRef.current === generation && phaseRef.current === "running") {
+        await pause();
+      }
       return;
     }
+
+    // 这里必须复核，不能直接往下走：iOS 被中断时 resume() 可能挂很久才落定，
+    // 这期间用户按了暂停 / 结束，或者点开始重新起了一轮。
+    // - 代次变了：新一次启动拥有这个音频上下文，这次恢复整段作废，什么都不碰；
+    // - 相位不是 running：用户已经停下来，把刚恢复的音频时钟挂回去再返回，
+    //   否则界面显示「已暂停 / 已结束」而拍子还在响。
+    if (startGenerationRef.current !== generation) return;
+    if (phaseRef.current !== "running") {
+      await audio.suspend();
+      return;
+    }
+
     if (audio.state !== "running") {
       await pause();
       return;

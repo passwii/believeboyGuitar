@@ -904,3 +904,57 @@ describe("start() 的 await 续段不会在卸载后重建调度器（定时器�
     expect(bump).toBeLessThan(stop);
   });
 });
+
+/** 只取 `resumeFromBackground()` 回调体 */
+function backgroundResumeBody(): string {
+  const from = metronomeSource.indexOf("const resumeFromBackground = useCallback(");
+  const to = metronomeSource.indexOf("页面隐藏（切 app / 锁屏）不再暂停", from);
+  expect(from).toBeGreaterThan(-1);
+  expect(to).toBeGreaterThan(from);
+  return metronomeSource.slice(from, to);
+}
+
+describe("回前台的 resume 在 await 之后复核代次与相位（复核 2）", () => {
+  it("await 之前记下代次", () => {
+    const body = backgroundResumeBody();
+    const generation = body.indexOf("const generation = startGenerationRef.current;");
+    const resumed = body.indexOf("await audio.resume()");
+
+    expect(generation).toBeGreaterThan(-1);
+    expect(resumed).toBeGreaterThan(-1);
+    expect(generation).toBeLessThan(resumed);
+  });
+
+  it("await 之后先查代次、再查相位，两道都过了才碰队列", () => {
+    const body = backgroundResumeBody();
+    const resumed = body.indexOf("await audio.resume()");
+    const guard = body.indexOf("startGenerationRef.current !== generation", resumed);
+    const phase = body.indexOf('phaseRef.current !== "running"', resumed);
+    const scheduling = body.indexOf("pendingRef.current.find", resumed);
+
+    expect(guard).toBeGreaterThan(resumed);
+    expect(phase).toBeGreaterThan(guard);
+    expect(scheduling).toBeGreaterThan(phase);
+  });
+
+  it("相位已作废就重新 suspend 并返回，不再 tick", () => {
+    const body = backgroundResumeBody();
+    const resumed = body.indexOf("await audio.resume()");
+    const phase = body.indexOf('phaseRef.current !== "running"', resumed);
+    const suspend = body.indexOf("await audio.suspend()", resumed);
+    const tick = body.indexOf("tick();", resumed);
+
+    expect(suspend).toBeGreaterThan(phase);
+    expect(tick).toBeGreaterThan(suspend);
+  });
+
+  it("resume 抛错时也不越过代次去 pause 新一轮启动", () => {
+    const body = backgroundResumeBody();
+    const failed = body.indexOf("await pause();");
+
+    expect(failed).toBeGreaterThan(-1);
+    expect(body.slice(0, failed)).toContain(
+      'if (startGenerationRef.current === generation && phaseRef.current === "running")',
+    );
+  });
+});
