@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE } from "@/content/site";
 
 /**
  * 静态导出要求 metadata 路由显式声明 force-static，否则 `next build` 会在
@@ -14,8 +15,8 @@ export const dynamic = "force-static";
  * 还不能黑屏」的页面；旧地址 /metronome 有静态跳转壳接着（静态导出用不了
  * redirects()），已安装的实例不会 404。
  *
- * 名字在 BLF-1451 从「节拍器」改回站名：装到桌面的是整个资料库，
- * 不只是一个工具；long-press 快捷方式补齐了工具间的四个入口。
+ * 名字在 BLF-1451 从「节拍器」改回站名，BLF-1452 随站点改名走 `content/site.ts`：
+ * 装到桌面的是整个学习空间，不只是一个工具；快捷方式覆盖练习、知识与工具。
  *
  * 颜色与 `app/globals.css` 的 `--color-canvas`（冷白工作台）一致；
  * `tests/pwa.test.ts` 会核对两者没有走散。工具区的舞台黑是子树换皮，
@@ -24,10 +25,9 @@ export const dynamic = "force-static";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/tools/metronome",
-    name: "电吉他学习资料库",
-    short_name: "电吉他资料库",
-    description:
-      "个人电吉他学习资料库：资料阅读与五个拿来就用的工具，断网也能打开节拍器。",
+    name: SITE.name,
+    short_name: SITE.shortName,
+    description: `${SITE.description}，断网也能打开节拍器。`,
     lang: "zh-CN",
     dir: "ltr",
     start_url: "/tools/metronome",
@@ -54,8 +54,14 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
       {
-        name: "资料库",
-        short_name: "资料库",
+        name: "练习",
+        short_name: "练习",
+        url: "/practice",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+      },
+      {
+        name: "知识",
+        short_name: "知识",
         url: "/library",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
@@ -75,12 +81,6 @@ export default function manifest(): MetadataRoute.Manifest {
         name: "节奏型",
         short_name: "节奏型",
         url: "/tools/rhythms",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-      },
-      {
-        name: "练习计划",
-        short_name: "练习计划",
-        url: "/tools/practice",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
     ],

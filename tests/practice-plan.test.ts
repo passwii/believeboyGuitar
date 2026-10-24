@@ -5,9 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PracticePlanner } from "@/components/PracticePlanner";
 import {
-  CAVEATS,
   DEFAULT_DURATION,
-  DISCIPLINES,
   PRACTICE_DURATIONS,
   SEGMENT_RATIOS,
   TECHNIQUE_GOALS,
@@ -284,31 +282,6 @@ describe("normalizeSongTitle", () => {
   });
 });
 
-describe("纪律与提醒", () => {
-  it("正好三条纪律，每条一行标题加一行说明", () => {
-    expect(DISCIPLINES).toHaveLength(3);
-    for (const discipline of DISCIPLINES) {
-      expect(discipline.title.length).toBeGreaterThan(4);
-      expect(discipline.detail.length).toBeGreaterThan(10);
-    }
-  });
-
-  it("第一条是恒定速度，第二条是速度墙换动作，第三条是关掉节拍器", () => {
-    expect(DISCIPLINES[0].title).toContain("恒定");
-    expect(DISCIPLINES[0].title).toContain("加速");
-    expect(DISCIPLINES[1].title).toContain("速度墙");
-    expect(DISCIPLINES[1].title).toContain("绕过去");
-    expect(DISCIPLINES[2].title).toContain("关掉节拍器");
-  });
-
-  it("提醒里写明慢练不是万能解、一万小时不是结论", () => {
-    const text = CAVEATS.join("\n");
-    expect(text).toContain("慢练不是万能解");
-    expect(text).toContain("一万小时");
-    expect(CAVEATS).toHaveLength(2);
-  });
-});
-
 describe("组件结构", () => {
   const html = renderToStaticMarkup(createElement(PracticePlanner));
 
@@ -367,17 +340,17 @@ describe("组件结构", () => {
 });
 
 describe("页面外壳", () => {
-  const source = readFileSync(path.join(root, "app", "tools", "practice", "page.tsx"), "utf8");
+  const source = readFileSync(path.join(root, "app", "practice", "page.tsx"), "utf8");
 
   it("使用统一的页面外壳与阅读列", () => {
     expect(source).toContain('<main className="shell flex-1 py-10 sm:py-14">');
     expect(source).toContain("measure");
   });
 
-  it("区块标注 + 衬线主标题 + 一句说明", () => {
+  it("区块标注 + 衬线主标题，不再写导语段落", () => {
     expect(source).toContain("text-micro");
     expect(source).toContain("text-display font-display");
-    expect(source).toContain("text-pretty");
+    expect(source).not.toContain("text-body text-pretty text-ink-700\">\n          ");
   });
 
   it("没有任意字号与内联样式", () => {
@@ -385,13 +358,10 @@ describe("页面外壳", () => {
     expect(source).not.toMatch(/\sstyle\s*=/);
   });
 
-  it("三条纪律与一条提醒都由内容层提供，不在页面里硬编码", () => {
-    expect(source).toContain("DISCIPLINES.map");
-    expect(source).toContain("CAVEATS.map");
-  });
-
-  it("底部注明这是建议结构，不是标准答案", () => {
-    expect(source).toContain("建议结构");
-    expect(source).toContain("不是标准答案");
+  it("练习页只留目标、曲谱与计划三块", () => {
+    expect(source).toContain("<TabExercise");
+    expect(source).toContain("<PracticePlanner");
+    expect(source).not.toContain("DISCIPLINES");
+    expect(source).not.toContain("CAVEATS");
   });
 });
