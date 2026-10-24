@@ -20,7 +20,10 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas">
-      <div className="shell shell-nav">
+      {/* 顶部安全区（BLF-1448）：PWA 全屏启动后状态栏压在导航上，
+          viewport-fit=cover 让我们自己接管这块留白，否则站点名会被时间 / 刘海盖住。
+          安全区随屏幕旋转变化，只能用 env() 现算，不能写死像素。 */}
+      <div className="shell shell-nav pt-[env(safe-area-inset-top)]">
         <Link
           href="/"
           className="flex min-h-11 items-center font-display text-label font-semibold tracking-tight text-ink-950"

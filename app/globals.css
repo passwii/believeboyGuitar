@@ -105,8 +105,10 @@
 
 @layer base {
   :root {
-    /* 导航栏实测高度，供粘性定位与锚点留白复用 */
-    --nav-h: 56px;
+    /* 导航栏实测高度，供粘性定位与锚点留白复用。
+       必须把顶部安全区加进来（BLF-1448）：PWA 全屏时导航实际比 56px 高，
+       否则粘性目录与锚点会各自被状态栏多压掉一截。 */
+    --nav-h: calc(56px + env(safe-area-inset-top));
   }
 
   html {
@@ -171,17 +173,22 @@
    ========================================================================== */
 
 @layer components {
-  /* 页面外壳：唯一宽度与留白来源，含安全区 */
+  /* 页面外壳：唯一宽度与留白来源，含安全区。
+     左右分开取 max()：横屏刘海只在一侧时，另一侧不该跟着多出同样的留白。 */
   .shell {
     margin-inline: auto;
     width: 100%;
     max-width: var(--container-page);
-    padding-inline: max(1.25rem, env(safe-area-inset-left));
+    padding-left: max(1.25rem, env(safe-area-inset-left));
+    padding-right: max(1.25rem, env(safe-area-inset-right));
   }
 
   @media (min-width: 640px) {
     .shell {
-      padding-inline: 2rem;
+      /* 这里必须再取一次 max()：横屏 iPhone 宽 852px，会命中这个断点，
+         而 2rem 比 59px 的刘海窄——直接写死就把上面那层安全区覆盖掉了。 */
+      padding-left: max(2rem, env(safe-area-inset-left));
+      padding-right: max(2rem, env(safe-area-inset-right));
     }
   }
 

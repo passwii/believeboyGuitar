@@ -21,10 +21,20 @@ import {
  * 交互是「指针落在环上就对齐到那个角度」：圆环没有一条可以随手按住的长轨道，
  * 绝对定位才是它自然的手感。
  *
- * 命中区只做在环体那一圈（`pointer-events: stroke`）：圆心是读数，点它不该改速度；
- * 页面滚动也不该被这块 240px 的圆盘吃掉——这正是 `touch-none` 只挂在环上的原因。
+ * 命中区只做在环体那一圈：圆心是读数，点它不该改速度，页面滚动也不该被这块
+ * 240px 的圆盘吃掉。
  *
- * 不在 pointerdown 里抢焦点：环体是 SVG 元素，浏览器本来就不会把焦点顺带给外层
+ * 防滚动是这块控件最容易写错的地方（BLF-1448）。`touch-action: none` 必须落在
+ * **HTML** 元素上：写在 SVG 的 `<circle>` 子元素上会被浏览器忽略（实测在环上
+ * 竖拖 180px，页面照滚约 230px，速度还跟着变）；写到 SVG 根上确实能挡滚动，
+ * 但会连圆心一起锁死，读数区就不能用来翻页了。
+ *
+ * 现在的结构是三层 HTML：
+ * 1. 整圆的拖拽层（`touch-action: none`）——挡滚动、改速度；
+ * 2. 盖在中间的圆心盘（不带 touch-action）——拖它页面照常滚；
+ * 3. 读数（`pointer-events-none`）——纯视觉。
+ *
+ * 不在 pointerdown 里抢焦点：拖拽层是 div，浏览器本来就不会把焦点顺带给外层
  * 容器，强行 focus() 会让鼠标拖一次就出现一圈整环的焦点环，和圆环本身分不开。
  * 键盘用户从 Tab 进来，方向微调照常可用。
  */
@@ -33,8 +43,6 @@ const VIEW = 200;
 const CENTER = VIEW / 2;
 const RADIUS = 82;
 const STROKE = 9;
-/** 环体的可拖拽宽度：比视觉描边宽，手指好按住（约 44px） */
-const HIT_STROKE = 44;
 
 type Point = { x: number; y: number };
 
@@ -70,9 +78,8 @@ type BpmDialProps = {
 
 export function BpmDial({ value, onChange }: BpmDialProps) {
   const draggingRef = useRef(false);
-
   /** 指针相对 SVG 中心的位置 → BPM */
-  const bpmAt = useCallback((event: PointerEvent<SVGCircleElement>): number | null => {
+  const bpmAt = useCallback((event: PointerEvent<HTMLDivElement>): number | null => {
     const rect = event.currentTarget.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return null;
 
@@ -83,7 +90,7 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
   }, []);
 
   const onPointerDown = useCallback(
-    (event: PointerEvent<SVGCircleElement>) => {
+    (event: PointerEvent<HTMLDivElement>) => {
       // 只响应主键；右键菜单、双指缩放都不该改速度
       if (event.button !== 0) return;
 
@@ -100,7 +107,7 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
   );
 
   const onPointerMove = useCallback(
-    (event: PointerEvent<SVGCircleElement>) => {
+    (event: PointerEvent<HTMLDivElement>) => {
       if (!draggingRef.current) return;
       const next = bpmAt(event);
       if (next !== null && next !== value) onChange(next);
@@ -108,7 +115,7 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
     [bpmAt, onChange, value],
   );
 
-  const endDrag = useCallback((event: PointerEvent<SVGCircleElement>) => {
+  const endDrag = useCallback((event: PointerEvent<HTMLDivElement>) => {
     draggingRef.current = false;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -193,6 +200,7 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
           className="fill-surface stroke-accent-700"
           strokeWidth={3}
         />
+        {/* 端点数字画在环外侧，靠 overflow-visible 出界 */}
         <text
           x={MIN_LABEL.x}
           y={MIN_LABEL.y}
@@ -211,24 +219,33 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
         >
           {BPM_MAX}
         </text>
-        {/* 透明加宽的环体：既是拖拽命中区，也让上下滑动页面经过圆心时不被吃掉 */}
-        <circle
-          cx={CENTER}
-          cy={CENTER}
-          r={RADIUS}
-          fill="none"
-          stroke="transparent"
-          strokeWidth={HIT_STROKE}
-          pointerEvents="stroke"
-          className="touch-none"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-        />
       </svg>
 
-      {/* 读数压在圆环中心：不接管指针，落在圆心上时页面照常滚动 */}
+      {/*
+        环体命中层是 **HTML** 元素，不是 SVG 里的 circle（BLF-1448）。
+
+        `touch-action` 只在 SVG 根元素上可靠生效，挂在 `<circle>` 这类子元素上会被
+        浏览器忽略：旧写法给环体写了 `touch-none`，实测在环上竖拖 180px 页面照样
+        滚了约 230px，速度也跟着变——一次操作两个结果。
+        挪到 SVG 根上能挡住滚动，但会把圆心一起锁死，读数区就不能用来翻页了。
+
+        所以拆成两层 HTML：这一层是整圆、`touch-action: none`，负责接收拖拽；
+        上面的圆心盘盖住中间 60%，它没有 `touch-action: none`，拖它页面照常滚。
+        60% 这个数沿用旧命中区的内边界（82 - 44/2 = 60，盘面 200 宽即 60%），
+        圆心留白和以前一样大，只是现在由 HTML 元素承担 touch-action。
+      */}
+      <div
+        className="absolute inset-0 rounded-full touch-none"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      />
+
+      {/* 圆心：盖住环体的中间部分，不接管拖拽也不带 touch-action:none */}
+      <div className="absolute left-1/2 top-1/2 size-[60%] -translate-x-1/2 -translate-y-1/2 rounded-full" />
+
+      {/* 读数压在圆心：纯视觉，不接管指针 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <p className="text-6xl font-semibold tabular-nums leading-none">{value}</p>
         <p className="mt-2 text-sm text-ink-700">{tempoName(value)}</p>
