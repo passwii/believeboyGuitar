@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>站点前端重设计讨论 · 预览索引</title>
+<style>
+  :root {
+    --canvas: #f3f0e8;
+    --surface: #fbfaf7;
+    --muted: #e9e5db;
+    --ink: #23251e;
+    --ink-2: #5f5e56;
+    --rule: #d9d4c9;
+    --accent: #9e3b26;
+    --accent-soft: #f0e0d7;
+    --serif: Georgia, "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+    --sans: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .shell { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 4px; }
+
+  /* 顶部条 */
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--canvas) 82%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+    border-bottom: 1px solid var(--rule);
+  }
+  .topbar-in { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 56px; }
+  .brand { font-family: var(--serif); font-weight: 600; font-size: 15px; letter-spacing: .01em; color: var(--ink); text-decoration: none; }
+  .topbar nav { display: flex; gap: 4px; }
+  .topbar nav a {
+    font-size: 14px; color: var(--ink-2); text-decoration: none;
+    padding: 8px 12px; border-radius: 10px; white-space: nowrap;
+  }
+  .topbar nav a:hover { color: var(--ink); background: var(--muted); }
+
+  header.hero { padding: 64px 0 8px; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-2); font-weight: 500;
+  }
+  h1 {
+    font-family: var(--serif); font-size: clamp(30px, 4.5vw, 40px);
+    line-height: 1.16; letter-spacing: -0.02em; font-weight: 600;
+    margin-top: 12px; max-width: 22em;
+  }
+  .lede { margin-top: 16px; max-width: 40em; color: var(--ink-2); }
+  .status-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .status-pill {
+    font-size: 13px; color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 999px; padding: 4px 12px;
+  }
+
+  section { padding: 48px 0 8px; }
+  h2 {
+    font-family: var(--serif); font-size: 24px; font-weight: 600;
+    letter-spacing: -0.01em; line-height: 1.3;
+    padding-top: 24px;
+  }
+  h2 + .h2-note { color: var(--ink-2); margin-top: 6px; max-width: 46em; }
+  h3 { font-size: 17px; font-weight: 600; margin-top: 28px; line-height: 1.4; }
+
+  /* 现状盘点 */
+  .audit { margin-top: 20px; border-top: 1px solid var(--rule); }
+  .audit li {
+    list-style: none; display: grid; grid-template-columns: 44px 1fr; gap: 12px;
+    padding: 16px 0; border-bottom: 1px solid var(--rule);
+  }
+  .audit .no { font-family: var(--serif); font-size: 21px; color: var(--accent); line-height: 1.4; }
+  .audit p strong { font-weight: 600; }
+  .audit p span { color: var(--ink-2); }
+
+  /* 竞品 */
+  .refs { margin-top: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .ref {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 14px; padding: 20px 22px;
+  }
+  .ref .ref-name { font-weight: 600; font-size: 15px; }
+  .ref .ref-kind { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+  .ref ul { margin: 12px 0 0 1.2em; color: var(--ink-2); font-size: 14.5px; line-height: 1.8; }
+  .ref ul li { margin-top: 4px; }
+  .ref ul li::marker { color: var(--accent); }
+  @media (max-width: 760px) { .refs { grid-template-columns: 1fr; } }
+
+  /* IA 图 */
+  .ia { margin-top: 24px; border: 1px solid var(--rule); border-radius: 14px; background: var(--surface); padding: 28px 24px; }
+  .ia-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 760px) { .ia-cols { grid-template-columns: 1fr; } }
+  .ia-col h4 { font-size: 13px; font-weight: 600; color: var(--ink-2); letter-spacing: .06em; }
+  .ia-node {
+    margin-top: 10px; border: 1px solid var(--rule); border-radius: 10px;
+    background: var(--canvas); padding: 10px 14px;
+  }
+  .ia-node .route { font-family: SFMono-Regular, Cascadia Code, Consolas, ui-monospace, monospace; font-size: 12.5px; color: var(--accent); }
+  .ia-node .what { font-size: 13.5px; color: var(--ink-2); line-height: 1.55; margin-top: 2px; }
+  .ia-node.hot { border-color: var(--accent); background: var(--accent-soft); }
+  .ia-node.hot .route { color: var(--accent); }
+  .ia-sub { margin-left: 20px; padding: 8px 12px; font-size: 12.5px; }
+  .ia-sub .what { margin-top: 0; }
+
+  /* 方向卡片 */
+  .dirs { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .dirs { grid-template-columns: 1fr; } }
+  .dir-card {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--rule); border-radius: 14px; overflow: hidden;
+    background: var(--surface); text-decoration: none;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .dir-card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(35,37,30,.08); }
+  .dir-visual { height: 120px; position: relative; border-bottom: 1px solid var(--rule); }
+  .dir-visual .mini-title { position: absolute; left: 18px; bottom: 12px; font-size: 13px; font-weight: 600; }
+  .dir-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .dir-body .tag { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+  .dir-body h3 { margin: 0; font-size: 18px; font-family: inherit; }
+  .dir-body p { font-size: 14px; color: var(--ink-2); line-height: 1.7; }
+  .dir-body .swatches { display: flex; gap: 6px; margin-top: auto; padding-top: 10px; }
+  .dir-body .swatches i { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(35,37,30,.14); }
+
+  /* PWA 清单 */
+  .pwa-list { margin-top: 20px; border-top: 1px solid var(--rule); }
+  .pwa-list li {
+    list-style: none; padding: 14px 0 14px 0; border-bottom: 1px solid var(--rule);
+    display: grid; grid-template-columns: 200px 1fr; gap: 16px;
+  }
+  @media (max-width: 700px) { .pwa-list li { grid-template-columns: 1fr; gap: 4px; } }
+  .pwa-list .k { font-weight: 600; font-size: 14.5px; }
+  .pwa-list .v { color: var(--ink-2); font-size: 14.5px; }
+
+  /* 决策点 */
+  .ask { margin-top: 20px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 14px 14px 0; padding: 20px 24px; }
+  .ask ol { margin-left: 1.3em; }
+  .ask li { margin-top: 8px; font-size: 15px; }
+  .ask li::marker { color: var(--accent); font-weight: 600; }
+
+  footer { margin-top: 72px; border-top: 1px solid var(--rule); padding: 28px 0 48px; color: var(--ink-2); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="shell topbar-in">
+    <a class="brand" href="./">电吉他学习资料库 · 重设计讨论</a>
+    <nav aria-label="预览导航">
+      <a href="./a-paper.html">方向 A</a>
+      <a href="./b-stage.html">方向 B</a>
+      <a href="./c-panel.html">方向 C</a>
+    </nav>
+  </div>
+</div>
+
+<main class="shell">
+  <header class="hero">
+    <p class="eyebrow">BLF-1451 · 讨论稿</p>
+    <h1>站点前端重设计：先定结构，再定气质</h1>
+    <p class="lede">
+      这一轮不改任何站点代码。下面是现状盘点、竞品考察、一套信息架构提案，
+      以及三个视觉方向的完整预览（桌面 + 手机 PWA）。每个方向都是可以直接点开看的静态页面。
+    </p>
+    <div class="status-row">
+      <span class="status-pill">纯静态预览，站点代码零改动</span>
+      <span class="status-pill">2026-10-24</span>
+      <span class="status-pill">覆盖：首页 / 资料库 / 工具间 / 节拍器 / 手机 PWA</span>
+    </div>
+  </header>
+
+  <section id="audit">
+    <h2>现状盘点：混乱从哪里来</h2>
+    <p class="h2-note">把现有站点过一遍，「乱」不是样式问题，是结构问题。逐条列出来：</p>
+    <ol class="audit">
+      <li><span class="no">1</span><p><strong>首页混了三件不相关的事。</strong>
+        <span>定位语、学习目标、最近整理、五个工具列表全部纵向堆在一页里，彼此没有视觉分区，扫一眼抓不到重点。</span></p></li>
+      <li><span class="no">2</span><p><strong>工具的地位不一致。</strong>
+        <span>节拍器独占主导航入口，其余四个工具（速查表、和弦库、练习计划、节奏型）只能从首页列表深处进。五个工具明明是同一类东西，却有两套待遇。</span></p></li>
+      <li><span class="no">3</span><p><strong>「读」和「用」两种模式没有分开。</strong>
+        <span>资料是拿来读的（长文、目录、筛选），工具是拿来用的（全屏、大控件、即时反馈）。现在两者共用同一套页面外壳，工具页被导航和页脚夹着，不像一个「仪器」。</span></p></li>
+      <li><span class="no">4</span><p><strong>手机上的层级不统一。</strong>
+        <span>资料库的筛选收在结果下面、工具入口埋在首页第四屏、节拍器又是全屏页。同样一件操作（「找东西」），在不同页面要走不同的路径。</span></p></li>
+      <li><span class="no">5</span><p><strong>PWA 装完之后没有「应用感」。</strong>
+        <span>安装后落地在节拍器（这点是对的），但站内导航、返回路径还是网页逻辑；长按图标只有一个快捷方式；工具页的离线与全屏体验没有推广到全部工具。</span></p></li>
+    </ol>
+  </section>
+
+  <section id="refs">
+    <h2>竞品考察：值得借的做法</h2>
+    <p class="h2-note">用浏览器实际过了一遍同类站点（工具站 + 个人信息管理站），记下结构层面的做法，只借思路不搬样式。</p>
+    <div class="refs">
+      <div class="ref">
+        <p class="ref-name">Songsterr</p>
+        <p class="ref-kind">曲谱工具站 · 工具型参考</p>
+        <ul>
+          <li>工具即首页：打开就是可用的播放器与搜索，没有营销层。</li>
+          <li>移动端常驻底部 dock，六个高频操作永远在同一位置，像原生 App。</li>
+          <li>列表行只有「曲名 + 艺人 + 难度点」，密度高但不乱。</li>
+        </ul>
+      </div>
+      <div class="ref">
+        <p class="ref-name">Raindrop.io</p>
+        <p class="ref-kind">书签管理站 · 个人信息管理参考</p>
+        <ul>
+          <li>「集合（分组）+ 列表 + 筛选」是稳定骨架，所有内容在这套骨架里流动。</li>
+          <li>搜索与筛选永远在内容上方一屏内，先给结果再给工具。</li>
+          <li>空状态与计数做得诚实：有多少、缺什么，一眼可见。</li>
+        </ul>
+      </div>
+      <div class="ref">
+        <p class="ref-name">mymind</p>
+        <p class="ref-kind">个人收藏库 · 气质参考</p>
+        <ul>
+          <li>个人库不需要营销首页：定位语一句话讲完，气质全部来自排版与秩序。</li>
+          <li>「不组织也是一种组织」：靠搜索和自动分组降低维护负担，和我们「manifest 唯一事实来源」的思路同源。</li>
+          <li>衬线大标题 + 大量留白，证明工具站也可以有编辑气质。</li>
+        </ul>
+      </div>
+      <div class="ref">
+        <p class="ref-name">PWA 通用模式</p>
+        <p class="ref-kind">Apple / Google 官方指引</p>
+        <ul>
+          <li>独立窗口 + 底部安全区 tab 栏，是移动 PWA 的标准外壳。</li>
+          <li>manifest shortcuts：长按桌面图标直达高频功能（现有 manifest 只配了资料库一个）。</li>
+          <li>离线外壳优先：工具页先做到断网可用，内容页次之。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="ia">
+    <h2>信息架构提案：书房 × 工具间</h2>
+    <p class="h2-note">
+      三个方向共用同一套结构骨架（这也是节拍器「独立开来」思路的推广）：
+      把「读资料的房间」和「用工具的房间」分开，各有各的外壳和导航。
+    </p>
+    <div class="ia">
+      <div class="ia-cols">
+        <div class="ia-col">
+          <h4>书桌（入口）</h4>
+          <div class="ia-node">
+            <span class="route">/</span>
+            <p class="what">首页瘦身为「继续整理 + 学习目标」两件事，工具入口压缩成一行横排入口条，让给内容。</p>
+          </div>
+        </div>
+        <div class="ia-col">
+          <h4>书房（读模式）</h4>
+          <div class="ia-node">
+            <span class="route">/library</span>
+            <p class="what">全部资料：搜索、筛选、列表。桌面右栏留目录位，移动端保持「先看结果」。</p>
+          </div>
+          <div class="ia-node ia-sub">
+            <span class="route">/library/&lt;slug&gt;</span>
+            <p class="what">阅读页。现状问题不大，换外壳即可。</p>
+          </div>
+        </div>
+        <div class="ia-col">
+          <h4>工具间（用模式）</h4>
+          <div class="ia-node hot">
+            <span class="route">/tools</span>
+            <p class="what">新增工具 hub，五个工具一律平等，从这里进。</p>
+          </div>
+          <div class="ia-node ia-sub hot">
+            <span class="route">/tools/metronome</span>
+            <p class="what">全屏仪器式外壳，无页脚、无正文干扰，控件按拇指热区排布。</p>
+          </div>
+          <div class="ia-node ia-sub">
+            <span class="route">/tools/*</span>
+            <p class="what">速查表 / 和弦库 / 练习计划 / 节奏型，同样外壳。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h3>导航随之简化</h3>
+    <p style="max-width:46em; color:var(--ink-2); margin-top:6px;">
+      桌面：站名 + 「资料」「工具」两个入口，节拍器的特殊待遇取消（它从 dock 和快捷方式获得更直接的入口）。
+      手机：顶部只留站名，导航整体下沉为底部 dock（首页 / 资料 / 工具 / 节拍器），带安全区避让。
+      这是移动 PWA 最像原生 App 的一步。
+    </p>
+  </section>
+
+  <section id="directions">
+    <h2>三个视觉方向</h2>
+    <p class="h2-note">结构一致，气质不同。点开任何一个都是完整的多页预览（首页、资料库、工具间、节拍器、手机 PWA）。</p>
+    <div class="dirs">
+      <a class="dir-card" href="./a-paper.html">
+        <div class="dir-visual" style="background:#f3f0e8;">
+          <span class="mini-title" style="font-family:Georgia,'Songti SC',serif; color:#23251e;">纸上琴房</span>
+        </div>
+        <div class="dir-body">
+          <span class="tag">方向 A · 演进</span>
+          <h3>纸上琴房</h3>
+          <p>保留现在的暖纸面与衬线气质，只修结构：首页分区、工具统一外壳、移动端 dock。风险最小，气质延续。</p>
+          <div class="swatches">
+            <i style="background:#f3f0e8"></i><i style="background:#fbfaf7"></i>
+            <i style="background:#23251e"></i><i style="background:#5f5e56"></i>
+            <i style="background:#9e3b26"></i><i style="background:#d9d4c9"></i>
+          </div>
+        </div>
+      </a>
+      <a class="dir-card" href="./b-stage.html">
+        <div class="dir-visual" style="background:#15130f;">
+          <span class="mini-title" style="font-family:ui-sans-serif,system-ui,sans-serif; color:#f0ede4;">舞台侧</span>
+        </div>
+        <div class="dir-body">
+          <span class="tag">方向 B · 重做</span>
+          <h3>舞台侧</h3>
+          <p>暗色仪器面板：工具是主角，琥珀色单强调色，移动端原生 App 式 dock。PWA 安装后最像「一个应用」。</p>
+          <div class="swatches">
+            <i style="background:#15130f"></i><i style="background:#201d17"></i>
+            <i style="background:#f0ede4"></i><i style="background:#b5b0a0"></i>
+            <i style="background:#e8a33d"></i><i style="background:#353127"></i>
+          </div>
+        </div>
+      </a>
+      <a class="dir-card" href="./c-panel.html">
+        <div class="dir-visual" style="background:#f4f4f2;">
+          <span class="mini-title" style="font-family:ui-monospace,SFMono-Regular,monospace; color:#17181a;">工作台面板</span>
+        </div>
+        <div class="dir-body">
+          <span class="tag">方向 C · 重做</span>
+          <h3>工作台面板</h3>
+          <p>冷白精工风：网格、发丝线、等宽数字、电蓝单强调色。工具像仪器面板，资料像技术手册，精确冷静。</p>
+          <div class="swatches">
+            <i style="background:#f4f4f2"></i><i style="background:#ffffff"></i>
+            <i style="background:#17181a"></i><i style="background:#5c5f66"></i>
+            <i style="background:#2547f4"></i><i style="background:#e2e3df"></i>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section id="pwa">
+    <h2>移动端 PWA 适配清单</h2>
+    <p class="h2-note">无论选哪个方向，以下适配都做。现有基础（manifest、Service Worker、安装提示、安全区）保留并扩展。</p>
+    <ul class="pwa-list">
+      <li><span class="k">底部 dock 导航</span><span class="v">移动端导航下沉到底部，四项（首页 / 资料 / 工具 / 节拍器），44pt 触控目标，env(safe-area-inset-bottom) 避让，PWA 独立窗口与浏览器里同样成立。</span></li>
+      <li><span class="k">工具统一外壳</span><span class="v">全部工具页去掉正文页脚与面包屑，控件置底、结果置顶，全部达到节拍器现在的全屏标准；断网可用列入验收。</span></li>
+      <li><span class="k">manifest shortcuts</span><span class="v">长按桌面图标直达：节拍器（已默认）、和弦库、速查表、节奏型。现在只配了资料库一个，全部补齐。</span></li>
+      <li><span class="k">start_url 策略</span><span class="v">保持 /tools/metronome 不变：安装这个应用的主要场景是练琴，打开即出声。读资料的场景走 dock，两不耽误。</span></li>
+      <li><span class="k">iOS 细节</span><span class="v">apple-web-app-title 从「节拍器」改回站名（现在全站装到桌面都叫节拍器，是历史遗留）；状态栏样式随方向定；启动画面色与 canvas 同源。</span></li>
+      <li><span class="k">离线分层</span><span class="v">第一层：外壳 + 全部工具页预缓存（练习时可能没网）；第二层：访问过的资料页缓存；标签页 / 元数据本就静态，天然离线。</span></li>
+      <li><span class="k">不做的</span><span class="v">推送通知、进度统计、账号云同步仍不做（与 CLAUDE.md 的「刻意不做」一致）。</span></li>
+    </ul>
+  </section>
+
+  <section id="ask">
+    <h2>需要你拍板的事</h2>
+    <div class="ask">
+      <ol>
+        <li>三个方向选哪个？也可以混搭（例如 A 的纸面 + B 的移动端 dock，两者不冲突）。</li>
+        <li>工具路由迁到 <code>/tools/*</code> 吗？迁的话旧路径用 Vercel 重定向兜底，收藏夹不失效。</li>
+        <li>首页保留「学习目标」区块吗？它和「最近整理」哪个更常看？这决定书桌页谁是第一屏。</li>
+        <li>暗色（方向 B）如果落选，是否接受「仅工具页局部暗色画布」的折中（现在的指板已经是这个做法）？</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="shell" style="padding:0;">
+      本页与三个方向预览均为独立静态文件（public/design-previews/），站点本身零改动。数据示例取自 content/manifest.ts 的真实内容。
+    </div>
+  </footer>
+</main>
+
+</body>
+</html>
