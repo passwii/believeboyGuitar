@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { INSTALL_CAPTURE_SCRIPT } from "@/lib/install-prompt";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
@@ -40,6 +41,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN">
+      <head>
+        {/* 安装提示的「抢跑」脚本（BLF-1448）：beforeinstallprompt 早于 React
+            挂载就触发，等到 useEffect 再监听会漏掉。必须放在 head 里最先执行。 */}
+        <script
+          // 静态字符串、无插值，不需要转义
+          dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }}
+        />
+      </head>
       <body className="flex min-h-svh flex-col">
         <SiteNav />
         {children}

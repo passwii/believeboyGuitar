@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { Metronome } from "@/components/Metronome";
 import { MetronomeGuide } from "@/components/MetronomeGuide";
 
@@ -13,6 +14,10 @@ export default function MetronomePage() {
         <h1 className="text-display font-display text-ink-950 text-balance">节拍器</h1>
         <div className="mt-8">
           <Metronome />
+        </div>
+        {/* 安装入口放在控件下方：先让用户用起来，再谈安装（BLF-1448） */}
+        <div className="mt-8 empty:hidden">
+          <InstallPrompt />
         </div>
         <MetronomeGuide />
       </div>
