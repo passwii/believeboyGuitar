@@ -7,8 +7,8 @@
    · 读值区（书桌 / 资料库 / 正文）= 方向 C「工作台面板」：冷白精工、发丝线、
      等宽数字、电蓝强调。性格来自排版与编目感。
    · 工具区（/tools 子树）= 方向 B「舞台侧」：舞台黑仪器面板、琥珀强调。
-     通过 .zone-tools 整体换掉语义令牌的值实现（见文件后半段），
-     组件零改动跟暗。这不是暗色模式：colorScheme 仍是 light。
+     通过 .zone-tools（@layer components 内，见文件后半段）整体换掉语义
+     令牌的值实现，组件零改动跟暗。这不是暗色模式：colorScheme 仍是 light。
    外壳层仍是 iOS 原生手感：留白、字重、发丝线、半透明导航、44pt 触摸目标、
    系统曲线动效。契约与验收标准见 DESIGN.md；本文件是令牌的唯一实现处。
 
@@ -325,41 +325,50 @@
       background-color: color-mix(in oklab, var(--color-surface-muted) 70%, transparent);
     }
   }
+
+  /* 工具区：舞台侧（方向 B）的基础层。
+     必须留在 @layer components 里（BLF-1451 复核踩过）：未分层样式在层叠里
+     必胜，.zone-tools 的 background-color 会压过导航与 dock 的
+     bg-canvas/78 / bg-canvas/92（utilities 层），半透明外壳退化成实底、
+     backdrop-blur 空转。分层之后：外壳 div（无背景工具类）拿到实底画布，
+     导航与 dock 的半透明工具类照常赢。 */
+  .zone-tools {
+    --color-canvas: #15130f;
+    --color-surface: #201d17;
+    --color-surface-muted: #262219;
+    --color-ink-950: #f0ede4;
+    --color-ink-700: #b5b0a0;
+    --color-ink-500: #918c7e;
+    --color-ink-300: #6b6659;
+    --color-ink-200: #3a352a;
+    --color-ink-100: #2c2820;
+    --color-accent-700: #e8a33d;
+    --color-accent-600: #f0b45a;
+    --color-accent-100: #4a3a1c;
+    --color-accent-50: #2a2115;
+    --color-on-accent: #1c1509;
+    --color-rule: #353127;
+    --color-control-edge: #857e6a;
+    --shadow-segment: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 0.5px rgb(240 237 228 / 0.08);
+
+    background-color: var(--color-canvas);
+    color: var(--color-ink-950);
+  }
 }
 
 /* ============================================================================
    工具区：舞台侧（方向 B）
    ----------------------------------------------------------------------------
-   /tools 子树是一间暗色仪器室：在这里整体换掉语义令牌的值，工具组件
-   一行不改就跟着换皮。值取自设计预览 b-stage.html 的面板色板：
-   舞台黑 #15130F · 墨 #F0EDE4 · 琥珀 #E8A33D。
+   /tools 子树是一间暗色仪器室：.zone-tools（@layer components 内）在这里
+   整体换掉语义令牌的值，工具组件一行不改就跟着换皮。值取自设计预览
+   b-stage.html 的面板色板：舞台黑 #15130F · 墨 #F0EDE4 · 琥珀 #E8A33D。
    对比度与亮区同一标准：三级墨色在三级表面上 ≥ 4.5:1，
    on-accent 在琥珀上 ≥ 4.5:1（tests/design-system.test.ts 守护）。
    ========================================================================== */
 
-.zone-tools {
-  --color-canvas: #15130f;
-  --color-surface: #201d17;
-  --color-surface-muted: #262219;
-  --color-ink-950: #f0ede4;
-  --color-ink-700: #b5b0a0;
-  --color-ink-500: #918c7e;
-  --color-ink-300: #6b6659;
-  --color-ink-200: #3a352a;
-  --color-ink-100: #2c2820;
-  --color-accent-700: #e8a33d;
-  --color-accent-600: #f0b45a;
-  --color-accent-100: #4a3a1c;
-  --color-accent-50: #2a2115;
-  --color-on-accent: #1c1509;
-  --color-rule: #353127;
-  --color-control-edge: #857e6a;
-  --shadow-segment: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 0.5px rgb(240 237 228 / 0.08);
-
-  background-color: var(--color-canvas);
-  color: var(--color-ink-950);
-}
-
+/* 这两条是有意留在层外的：它们要压过上面 components 层里 .chip / .segment
+   自己的选中态规则，而层叠里未分层样式必胜——这正是 .zone-tools 基础层
+   不能留在层外的原因，两组规则的胜出方向相反。 */
 /* 亮区的「选中 = 强调底 + 白字」在暗区是「琥珀底 + 近黑字」：
    白字压在琥珀上只有约 1.9:1，这两条覆盖不能省。 */
 .zone-tools .chip[aria-pressed="true"],

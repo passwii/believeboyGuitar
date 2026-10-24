@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import manifest from "@/app/manifest";
 import { Metronome } from "@/components/Metronome";
+import { TOOL_PAGES } from "@/components/ToolPages";
 import {
   preferPlaybackAudioSession,
   type AudioSessionNavigatorLike,
@@ -226,6 +227,122 @@ describe("Service Worker 首装就把构建产物装进缓存", () => {
     expect(optional).toContain("catch {");
     // 图标与清单运行时从 STATIC_CACHE 读，预缓存也得写进同一个缓存
     expect(optional).toContain("caches.open(STATIC_CACHE)");
+  });
+});
+
+describe("Service Worker 旧地址的离线兜底（BLF-1451 复核）", () => {
+  /**
+   * 装过的 PWA start_url 还是 /metronome 这类旧地址（BLF-1443 时代装的）。
+   * 新 worker 接管后 activate 会删掉存着旧地址的旧版本缓存，而必需壳里
+   * 只有 /tools/metronome——没有兜底的话，断网启动直接抛
+   * 「offline and not cached」，装好的应用打不开（review 阻塞项 1）。
+   *
+   * 与 buildAssets 同一手法：从源码截出 LEGACY_ROUTES 与 networkFirst
+   * 真跑一遍，断言行为而不是字符串。
+   */
+  const routesFrom = serviceWorker.indexOf("const LEGACY_ROUTES");
+  const legacyRoutesSource = serviceWorker.slice(
+    routesFrom,
+    serviceWorker.indexOf("/**", routesFrom),
+  );
+  const networkFirstSource = serviceWorker.slice(
+    serviceWorker.indexOf("async function networkFirst"),
+    serviceWorker.indexOf('self.addEventListener("fetch"'),
+  );
+
+  /** cache.match / cache.put 的最小替身：按路径存取 HTML 文本。
+      真 Cache 接受相对路径字符串（按 SW 基准地址解析），这里照做。 */
+  function fakeCache(entries: Record<string, string> = {}) {
+    const map = new Map(Object.entries(entries));
+    const puts: string[] = [];
+    const toPath = (key: Request | string) => {
+      const raw = typeof key === "string" ? key : key.url;
+      return raw.startsWith("/") ? raw : new URL(raw).pathname;
+    };
+    return {
+      puts,
+      match: async (key: Request | string) => {
+        const body = map.get(toPath(key));
+        return body === undefined ? undefined : new Response(body);
+      },
+      put: async (key: Request | string, response: Response) => {
+        puts.push(toPath(key));
+        map.set(toPath(key), await response.text());
+      },
+    };
+  }
+
+  /** 拼出可调用的 networkFirst：cache 与 fetch 由沙箱外的替身注入 */
+  const runNetworkFirst = new Function(
+    "cacheStub",
+    "fetchStub",
+    `${legacyRoutesSource}\n${networkFirstSource}\n
+     const caches = { open: async () => cacheStub };
+     const fetch = fetchStub;
+     return (request) => networkFirst(request, "shell-test");`,
+  ) as unknown as (
+    cache: ReturnType<typeof fakeCache>,
+    fetchImpl: typeof fetch,
+  ) => (request: Request) => Promise<Response>;
+
+  it("映射表覆盖工具清单里的每个旧地址，规范页都真实存在", () => {
+    const table = new Function(`${legacyRoutesSource}; return LEGACY_ROUTES;`)() as Record<
+      string,
+      string
+    >;
+    for (const tool of TOOL_PAGES) {
+      const legacy = tool.href.replace(/^\/tools/, "");
+      expect(table[legacy], `${legacy} 缺少离线兜底映射`).toBe(tool.href);
+      expect(
+        existsSync(path.join(root, "app", tool.href, "page.tsx")),
+        `${tool.href} 的页面不存在，映射指向了空处`,
+      ).toBe(true);
+    }
+  });
+
+  it("断网打开旧 start_url：直接回已缓存的规范页，而不是失败", async () => {
+    const cache = fakeCache({ "/tools/metronome": "<html>规范页</html>" });
+    const offline: typeof fetch = async () => {
+      throw new TypeError("load failed");
+    };
+    const response = await runNetworkFirst(cache, offline)(
+      new Request("https://library.test/metronome"),
+    );
+    expect(await response.text()).toBe("<html>规范页</html>");
+  });
+
+  it("在线时照常回源，并把结果写回原路径", async () => {
+    const cache = fakeCache();
+    const fetchStub: typeof fetch = async () => new Response("<html>新壳</html>");
+    const response = await runNetworkFirst(cache, fetchStub)(
+      new Request("https://library.test/metronome"),
+    );
+    expect(await response.text()).toBe("<html>新壳</html>");
+    expect(cache.puts).toContain("/metronome");
+  });
+
+  it("原路径自己有缓存时优先用它（在线访问过的跳转壳）", async () => {
+    const cache = fakeCache({
+      "/metronome": "<html>跳转壳</html>",
+      "/tools/metronome": "<html>规范页</html>",
+    });
+    const offline: typeof fetch = async () => {
+      throw new TypeError("load failed");
+    };
+    const response = await runNetworkFirst(cache, offline)(
+      new Request("https://library.test/metronome"),
+    );
+    expect(await response.text()).toBe("<html>跳转壳</html>");
+  });
+
+  it("新旧都没有时照旧报「offline and not cached」，不假装成功", async () => {
+    const cache = fakeCache();
+    const offline: typeof fetch = async () => {
+      throw new TypeError("load failed");
+    };
+    await expect(
+      runNetworkFirst(cache, offline)(new Request("https://library.test/nowhere")),
+    ).rejects.toThrow("offline and not cached");
   });
 });
 

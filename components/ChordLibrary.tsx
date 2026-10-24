@@ -139,7 +139,11 @@ export function ChordLibrary() {
             <span
               aria-hidden="true"
               className={`inline-block size-3.5 rounded-pill border ${
-                includeInversions ? "border-white bg-white" : "border-control-edge"
+                includeInversions
+                  ? // 选中点压在 accent-700 上：亮区白、暗区近黑都由 on-accent 承担，
+                    // 写死 white 在暗区（重映射成琥珀）只剩 2:1 出头，勾选态看不清
+                    "border-on-accent bg-on-accent"
+                  : "border-control-edge"
               }`}
             />
             同时看转位
@@ -562,7 +566,7 @@ function ChordNeck({ voicings }: { voicings: ChordVoicing[] }) {
                 textAnchor="middle"
                 fontSize={11}
                 fontWeight={600}
-                className={note.isRoot ? "fill-white" : "fill-ink-950"}
+                className={note.isRoot ? "fill-on-accent" : "fill-ink-950"}
               >
                 {note.name}
               </text>

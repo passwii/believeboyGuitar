@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -201,6 +201,108 @@ describe("令牌引用完整性", () => {
     expect(
       [...new Set(offenders)],
       "以下颜色工具类没有对应的 --color-* 令牌（Tailwind 会静默丢弃）",
+    ).toEqual([]);
+  });
+});
+
+describe("工具区组件不写死颜色（BLF-1451 复核）", () => {
+  /**
+   * /tools 子树靠 .zone-tools 重映射换皮，前提是组件只用语义令牌类。
+   * text- 前缀之外的 fill- / bg- / border- 写死色（如 fill-white）用的是
+   * Tailwind 内置值，不受重映射影响——BLF-1451 正是 fill-white 漏在
+   * 和弦库根音上：亮区电蓝上 5.5:1，暗区重映射成琥珀后只剩 1.85:1，
+   * 而 498 个测试全绿没拦住。这里把「不写颜色字面量」的守护扩到
+   * 暗区实际渲染的全部组件。
+   *
+   * 渲染面不手工维护：从 app/tools/** 的 page / layout 出发，沿
+   * @/ 与相对导入走完整张组件图谱；SiteNav / SiteFooter 不被 tools 页
+   * 导入，但它们带 zone-tools 变体、同样渲染在暗区，作为额外根加入。
+   * 正文流里的 lesson widget（如 Fretboard 的 fill-white）不在此列：
+   * 它们属于亮区阅读流，对比度由各自的页面测试守护。
+   */
+
+  const resolveImport = (fromFile: string, spec: string): string | null => {
+    const base = spec.startsWith("@/")
+      ? path.join(root, spec.slice(2))
+      : spec.startsWith(".")
+        ? path.resolve(path.dirname(fromFile), spec)
+        : null;
+    if (!base) return null;
+    for (const candidate of [base, `${base}.ts`, `${base}.tsx`]) {
+      if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+    }
+    return null;
+  };
+
+  const collectReachable = (entries: string[]): Set<string> => {
+    const seen = new Set<string>();
+    const queue = [...entries];
+    while (queue.length > 0) {
+      const file = queue.pop()!;
+      if (seen.has(file) || !file.endsWith(".tsx")) continue;
+      seen.add(file);
+      for (const match of readFileSync(file, "utf8").matchAll(
+        /(?:\bfrom|\bimport)\s*["']([^"']+)["']/g,
+      )) {
+        const resolved = resolveImport(file, match[1]);
+        if (resolved) queue.push(resolved);
+      }
+    }
+    return seen;
+  };
+
+  const toolDir = path.join(root, "app", "tools");
+  const toolEntries = readdirSync(toolDir, { recursive: true, encoding: "utf8" })
+    .filter((name) => /(^|\/)(page|layout)\.tsx$/.test(name))
+    .map((name) => path.join(toolDir, name));
+  const darkZoneFiles = collectReachable([
+    ...toolEntries,
+    path.join(root, "components", "SiteNav.tsx"),
+    path.join(root, "components", "SiteFooter.tsx"),
+  ]);
+
+  it("图谱确实覆到工具页与外壳（防收集逻辑静默失效）", () => {
+    for (const must of [
+      "components/ChordLibrary.tsx",
+      "components/Metronome.tsx",
+      "components/SiteNav.tsx",
+    ]) {
+      expect(
+        [...darkZoneFiles].map((file) => path.relative(root, file)),
+      ).toContain(must);
+    }
+    // 正文流的 Fretboard 不该被卷进来：它的 fill-white 是亮区阅读流的决定
+    expect(
+      [...darkZoneFiles].map((file) => path.relative(root, file)),
+    ).not.toContain("components/Fretboard.tsx");
+  });
+
+  it("暗区渲染的组件里没有颜色字面量", () => {
+    /** 四种形态：hex、rgb()/hsl()/oklch()、任意值颜色类、
+        Tailwind 内置色名（transparent / current / inherit 只表达
+        「不选色」，不参与换皮，放行）。 */
+    const colorPrefix =
+      "(?:text|bg|border|fill|stroke|ring|outline|decoration|divide|from|via|to|accent|caret)";
+    const literalPatterns: RegExp[] = [
+      /#[0-9a-f]{3,8}\b/i,
+      /\b(?:rgba?|hsla?|oklch)\s*\(/i,
+      new RegExp(`\\b${colorPrefix}-\\[`),
+      new RegExp(
+        `\\b${colorPrefix}-(?:white|black|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\\d{2,3})?\\b`,
+      ),
+    ];
+
+    const offenders: string[] = [];
+    for (const file of [...darkZoneFiles].sort()) {
+      const text = readFileSync(file, "utf8");
+      for (const pattern of literalPatterns) {
+        const match = text.match(pattern);
+        if (match) offenders.push(`${path.relative(root, file)}: ${match[0]}`);
+      }
+    }
+    expect(
+      offenders,
+      "工具区组件必须只用语义令牌类，写死颜色会绕过 .zone-tools 换皮",
     ).toEqual([]);
   });
 });

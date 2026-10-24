@@ -75,6 +75,13 @@
 | `on-accent` | `#1C1509` | 琥珀底上的近黑文字 |
 | `rule / control-edge` | `#353127 / #857E6A` | 暗区发丝线与控件边界 |
 
+`.zone-tools` 的基础规则（令牌重映射 + 实底画布）必须留在 `@layer components`
+内：未分层样式在层叠里必胜，会把导航与 dock 的半透明底
+（`bg-canvas/78` / `bg-canvas/92`，utilities 层）压成实底、让 `backdrop-blur`
+空转（BLF-1451 复核踩过）。分层之后：外壳容器（无背景工具类）拿到实底画布，
+导航与 dock 的半透明照常生效。两条 `aria-pressed` 覆盖规则反向利用同一规则，
+刻意留在层外以压过 `.chip` / `.segment` 自己的选中态。
+
 对比度（`tests/design-system.test.ts` 自动守护，两个区域同一标准）：
 
 - 三级墨色在 `canvas` / `surface` / `surface-muted` 上均 ≥ 4.5:1（亮区与暗区都验）。
@@ -203,7 +210,10 @@
 
 旧地址 `/metronome` 等保留**静态跳转壳**（React 19 提升的 meta refresh + 可点链接）：
 本站是 `output: "export"`，Next 的 `redirects()` 不可用，而已安装的 PWA `start_url`
-还是旧地址，跳转壳必须一直留着。
+还是旧地址，跳转壳必须一直留着。离线时的兜底由 Service Worker 承担：
+`networkFirst` 失败时按 `LEGACY_ROUTES` 把旧地址映射到已缓存的规范页
+（`public/sw.js`，`tests/pwa.test.ts` 守护）——装过的实例断网启动不再
+依赖跳转壳里的第二次导航。
 
 共同约定：
 
@@ -271,7 +281,12 @@
   - 只声明六档字号；界面代码不出现任意字号。
   - 选择型控件的 44px 下限仍然存在。
 - `tests/pwa.test.ts` 守护清单与 Service Worker：安装落在 `/tools/metronome`、
-  名字是站名、快捷方式覆盖工具间、必需壳路径与跳转壳不脱节。
+  名字是站名、快捷方式覆盖工具间、必需壳路径与跳转壳不脱节；旧地址的离线兜底
+  映射真跑一遍（断网开旧 `start_url` 直接回规范页）。
+- `tests/design-system.test.ts` 的「不写颜色字面量」覆盖 `/tools` 子树实际渲染的
+  全部组件（从路由导入图谱推得，含带 `zone-tools` 变体的导航与页脚）：
+  `fill-` / `bg-` / `border-` 等前缀写死 Tailwind 内置色名会绕过语义令牌换皮，
+  直接红。正文流里的 lesson widget 不在此列，它们有各自的对比度守护。
 - `tests/tool-pages.test.ts` 守护工具清单与路由一致，且旧地址各有跳转壳。
 - `tests/three-notes-contrast.test.ts` 守护把位芯片与速查表的文字对比度。
 - `tests/guitar-derivations.test.ts` 守护音位推导：音位、形状位置、推弦目标
