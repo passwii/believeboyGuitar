@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { INSTALL_CAPTURE_SCRIPT } from "@/lib/install-prompt";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
 import "@/content/content.css";
@@ -13,11 +14,13 @@ export const metadata: Metadata = {
   },
   description: "个人电吉他学习资料的整理与长期积累",
   applicationName: "电吉他学习资料库",
-  // PWA（BLF-1443）：清单在 app/manifest.ts，安装后从节拍器进入
+  // PWA（BLF-1443 / BLF-1451）：清单在 app/manifest.ts。装到桌面的名字
+  // 曾是「节拍器」，站点长出工具间后改回站名——装的是整个资料库，
+  // 不只是一个工具。
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "节拍器",
+    title: "电吉他资料库",
   },
   // Next 只自动输出 android 侧的 mobile-web-app-capable；iOS 16.4 之前
   // 靠这行才从主屏幕全屏启动
@@ -31,7 +34,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f3f0e8",
+  // 与 globals.css 的 --color-canvas（冷白工作台）一致，
+  // tests/pwa.test.ts 会核对两者没有走散；工具区的舞台黑不进清单。
+  themeColor: "#f4f4f2",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -52,13 +57,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="flex min-h-svh flex-col">
         <SiteNav />
         {children}
-        <footer className="mt-auto pt-16 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-          <div className="shell">
-            <div className="border-t border-rule pt-6 text-meta text-ink-500">
-              个人学习资料库 · 内容为原始资料的整理改写
-            </div>
-          </div>
-        </footer>
+        <SiteFooter />
         <ServiceWorkerRegistration />
       </body>
     </html>

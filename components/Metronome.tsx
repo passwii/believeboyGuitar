@@ -570,7 +570,7 @@ export function Metronome() {
                 aria-pressed={selected}
                 onClick={() => changeMeter(option)}
                 className={`min-h-11 flex-1 rounded-sm px-1 text-sm font-medium ${
-                  selected ? "bg-accent-700 text-white" : "text-ink-700 hover:text-ink-950"
+                  selected ? "bg-accent-700 text-on-accent" : "text-ink-700 hover:text-ink-950"
                 }`}
               >
                 {option.label}
@@ -635,7 +635,7 @@ export function Metronome() {
         <button
           type="button"
           onClick={toggle}
-          className="h-16 w-full rounded-md bg-accent-700 text-lg font-medium text-white"
+          className="h-16 w-full rounded-md bg-accent-700 text-lg font-medium text-on-accent"
         >
           {PHASE_LABEL[phase]}
         </button>
@@ -670,7 +670,7 @@ export function Metronome() {
                 title={option.hint}
                 onClick={() => changeTimbre(option.id)}
                 className={`min-h-11 flex-1 rounded-sm px-1 text-sm font-medium ${
-                  selected ? "bg-accent-700 text-white" : "text-ink-700 hover:text-ink-950"
+                  selected ? "bg-accent-700 text-on-accent" : "text-ink-700 hover:text-ink-950"
                 }`}
               >
                 {option.label}

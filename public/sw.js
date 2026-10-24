@@ -24,12 +24,13 @@
  * 命中。只缓存 HTML 的话，装完直接断网启动会拿到一张没有 JS 的页面。
  */
 
-const VERSION = "2026-10-23-2";
+const VERSION = "2026-10-24-1";
 const SHELL_CACHE = `shell-${VERSION}`;
 const STATIC_CACHE = `static-${VERSION}`;
 
-/** 拿不到就等于离线打不开节拍器，失败必须让 install 失败 */
-const REQUIRED_SHELL = ["/metronome"];
+/** 拿不到就等于离线打不开节拍器，失败必须让 install 失败
+ *  （BLF-1451：节拍器迁到 /tools/metronome，旧地址有跳转壳） */
+const REQUIRED_SHELL = ["/tools/metronome"];
 
 /**
  * 可选壳：清单与安装图标。缺一张只是图标不好看，不值得让用户失去离线能力。
@@ -91,15 +92,16 @@ async function precacheRequiredShell() {
  */
 async function precacheOptionalShell() {
   const statics = await caches.open(STATIC_CACHE);
-  await Promise.all(
-    OPTIONAL_SHELL.map(async (url) => {
-      try {
-        await statics.add(new Request(url, { cache: "reload" }));
-      } catch {
-        // 运行时的 staleWhileRevalidate 还会再试，这里失败不算错
-      }
-    }),
-  );
+  // 逐条 await：任何一条 404 都只丢掉它自己，不阻塞安装。
+  // 写进 STATIC_CACHE 而不是 SHELL_CACHE：运行时图标与清单由
+  // staleWhileRevalidate(request, STATIC_CACHE) 读取，装进别处等于白装。
+  for (const url of OPTIONAL_SHELL) {
+    try {
+      await statics.add(new Request(url, { cache: "reload" }));
+    } catch {
+      // 运行时的 staleWhileRevalidate 还会再试，这里失败不算错
+    }
+  }
 }
 
 self.addEventListener("install", (event) => {
@@ -180,7 +182,14 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
-  const url = new URL(request.url);
+  // request.url 来自 SW 的请求对象，实践中总是合法 URL；包一层只是
+  // 让「解析失败」也落到同源检查的退出路径上，绝不让 worker 抳未捕获异常。
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return;
+  }
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));

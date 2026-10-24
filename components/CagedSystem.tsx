@@ -170,7 +170,7 @@ function ShapeChip({
       onClick={onClick}
       className={`inline-flex min-h-11 items-center gap-1.5 rounded-control border px-3 text-meta transition-colors duration-150 ${
         active
-          ? "border-transparent bg-accent-700 text-white"
+          ? "border-transparent bg-accent-700 text-on-accent"
           : "border-rule bg-surface text-ink-700 hover:border-control-edge hover:text-ink-950"
       }`}
     >

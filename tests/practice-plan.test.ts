@@ -367,7 +367,7 @@ describe("组件结构", () => {
 });
 
 describe("页面外壳", () => {
-  const source = readFileSync(path.join(root, "app", "practice", "page.tsx"), "utf8");
+  const source = readFileSync(path.join(root, "app", "tools", "practice", "page.tsx"), "utf8");
 
   it("使用统一的页面外壳与阅读列", () => {
     expect(source).toContain('<main className="shell flex-1 py-10 sm:py-14">');

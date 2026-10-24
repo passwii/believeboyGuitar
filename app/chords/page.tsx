@@ -1,25 +1,37 @@
 import type { Metadata } from "next";
-import { ChordLibrary } from "@/components/ChordLibrary";
+import Link from "next/link";
+
+/**
+ * 旧地址的静态跳转页（BLF-1451）。机制见 app/metronome/page.tsx 的说明：
+ * 静态导出用不了 redirects()，React 19 把 <meta> 提升进 head 完成跳转。
+ */
 
 export const metadata: Metadata = {
-  title: "和弦库",
+  title: "和弦库已迁移",
+  alternates: { canonical: "/tools/chords" },
 };
-
-export default function ChordsPage() {
+export default function ChordsRedirectPage() {
   return (
-    <main className="shell flex-1 py-10 sm:py-14">
-      <header className="measure">
-        <p className="text-micro font-medium uppercase text-ink-500">Chord library</p>
-        <h1 className="mt-3 text-display font-display text-ink-950 text-balance">
-          和弦库
+    <main className="shell flex-1 py-16 sm:py-24">
+      <div className="measure">
+        <p className="font-mono text-micro font-medium uppercase text-ink-500">已迁移</p>
+        <h1 className="mt-3 text-display font-display text-balance text-ink-950">
+          和弦库搬进了工具间
         </h1>
-        <p className="mt-4 text-body text-ink-700 text-pretty">
-          选一个根音和性质，列出它在指板上的实用按法。
-          每个按法都由标准调弦与音程组合推导，不是抄的指法表。
+        <p className="mt-4 text-body text-pretty text-ink-700">
+          新地址是 /tools/chords，正在带你过去……
         </p>
-      </header>
-
-      <ChordLibrary />
+        <p className="mt-6">
+          <Link
+            href="/tools/chords"
+            className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-medium text-on-accent transition-colors duration-150 hover:bg-accent-600"
+          >
+            立即前往
+          </Link>
+        </p>
+        {/* React 19 将 meta 提升进 head；content 只能是静态字符串 */}
+        <meta httpEquiv="refresh" content="0;url=/tools/chords" />
+      </div>
     </main>
   );
 }

@@ -76,7 +76,7 @@ export function BendPitchMeter() {
             onClick={() => setStringNumber(number)}
             className={`inline-flex size-11 items-center justify-center rounded-pill font-mono text-label transition-colors duration-150 ${
               stringNumber === number
-                ? "bg-accent-700 text-white"
+                ? "bg-accent-700 text-on-accent"
                 : "bg-surface-muted text-ink-700 hover:text-ink-950"
             }`}
           >

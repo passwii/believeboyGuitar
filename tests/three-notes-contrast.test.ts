@@ -58,7 +58,7 @@ function buttonBackground(button: string): string {
 function markColor(button: string): string {
   const className = button.match(/<span class="([^"]+)">[①②③④⑤⑥⑦]<\/span>/)?.[1];
   if (!className) throw new Error("Degree mark not rendered");
-  const token = className.match(/\btext-(ink-\d+|white)\b/)?.[1];
+  const token = className.match(/\btext-(ink-\d+|on-accent)\b/)?.[1];
   if (!token) throw new Error(`Degree mark has no text color: ${className}`);
   return token;
 }
@@ -67,7 +67,7 @@ function modeColor(button: string, modeZh: string): string {
   const span = [...button.matchAll(/<span class="([^"]+)">([^<]+)<\/span>/g)]
     .find(([, , text]) => text === modeZh);
   if (!span) throw new Error(`Mode label not rendered: ${modeZh}`);
-  const token = span[1].match(/\btext-(ink-\d+|white)\b/)?.[1];
+  const token = span[1].match(/\btext-(ink-\d+|on-accent)\b/)?.[1];
   if (!token) throw new Error(`Mode label has no text color: ${span[1]}`);
   return token;
 }

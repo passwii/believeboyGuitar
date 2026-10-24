@@ -81,7 +81,7 @@ export function ChordLibrary() {
                   onClick={() => setRoot(item)}
                   className={`inline-flex size-11 items-center justify-center rounded-pill font-mono text-label transition-colors duration-150 ${
                     active
-                      ? "bg-accent-700 text-white"
+                      ? "bg-accent-700 text-on-accent"
                       : "bg-surface-muted text-ink-700 hover:text-ink-950"
                   }`}
                 >
@@ -111,12 +111,12 @@ export function ChordLibrary() {
                   onClick={() => setTypeId(item.id)}
                   className={`inline-flex min-h-11 items-center gap-1.5 rounded-control border px-3 text-meta transition-colors duration-150 ${
                     active
-                      ? "border-transparent bg-accent-700 text-white"
+                      ? "border-transparent bg-accent-700 text-on-accent"
                       : "border-rule bg-surface text-ink-700 hover:border-control-edge hover:text-ink-950"
                   }`}
                 >
                   <span className="font-semibold">{chordSymbol(root, item)}</span>
-                  <span className={active ? "text-white" : "text-ink-500"}>
+                  <span className={active ? "text-on-accent" : "text-ink-500"}>
                     {item.label}
                   </span>
                 </button>
@@ -132,7 +132,7 @@ export function ChordLibrary() {
             onClick={() => setIncludeInversions((current) => !current)}
             className={`inline-flex min-h-11 items-center gap-2 rounded-control border px-3 text-meta transition-colors duration-150 ${
               includeInversions
-                ? "border-transparent bg-accent-700 text-white"
+                ? "border-transparent bg-accent-700 text-on-accent"
                 : "border-rule bg-surface text-ink-700 hover:border-control-edge hover:text-ink-950"
             }`}
           >
@@ -330,7 +330,7 @@ function ChordBox({ voicing }: { voicing: ChordVoicing }) {
                     className={`flex h-9 w-10 items-center justify-center border-t border-r border-rule font-mono text-micro ${
                       hit
                         ? cell.isRoot
-                          ? "bg-accent-700 font-semibold text-white"
+                          ? "bg-accent-700 font-semibold text-on-accent"
                           : "bg-accent-100 font-semibold text-ink-950"
                         : "text-ink-300"
                     } ${column.isNut ? "border-l-2 border-l-ink-950" : ""} ${

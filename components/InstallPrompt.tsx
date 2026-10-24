@@ -161,7 +161,7 @@ export function InstallPrompt() {
           <button
             type="button"
             onClick={() => void install()}
-            className="min-h-11 rounded-control bg-accent-700 px-4 text-label font-medium text-white"
+            className="min-h-11 rounded-control bg-accent-700 px-4 text-label font-medium text-on-accent"
           >
             安装
           </button>

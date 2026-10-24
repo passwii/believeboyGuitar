@@ -1,76 +1,36 @@
 import type { Metadata } from "next";
-import { PracticePlanner } from "@/components/PracticePlanner";
-import { CAVEATS, DISCIPLINES } from "@/lib/practice-plan";
+import Link from "next/link";
+
+/**
+ * 旧地址的静态跳转页（BLF-1451）。机制见 app/metronome/page.tsx 的说明：
+ * 静态导出用不了 redirects()，React 19 把 <meta> 提升进 head 完成跳转。
+ */
 
 export const metadata: Metadata = {
-  title: "练习计划",
-  description: "选好总时长、技术目标与曲目，生成一份每次练琴都能照着做的练习计划。",
+  title: "练习计划已迁移",
+  alternates: { canonical: "/tools/practice" },
 };
-
-export default function PracticePage() {
+export default function PracticeRedirectPage() {
   return (
-    <main className="shell flex-1 py-10 sm:py-14">
-      <header className="measure">
-        <p className="text-micro font-medium uppercase text-ink-500">Practice plan</p>
-        <h1 className="mt-3 text-display font-display text-ink-950 text-balance">练习计划</h1>
-        <p className="mt-4 text-body text-ink-700 text-pretty">
-          选好总时长、今天要练的技术和曲目，生成一份照着做就能练的安排。
-        </p>
-      </header>
-
+    <main className="shell flex-1 py-16 sm:py-24">
       <div className="measure">
-        <PracticePlanner />
-
-        <section className="mt-14" aria-labelledby="practice-discipline-heading">
-          <h2
-            id="practice-discipline-heading"
-            className="text-micro font-medium uppercase text-ink-500"
+        <p className="font-mono text-micro font-medium uppercase text-ink-500">已迁移</p>
+        <h1 className="mt-3 text-display font-display text-balance text-ink-950">
+          练习计划搬进了工具间
+        </h1>
+        <p className="mt-4 text-body text-pretty text-ink-700">
+          新地址是 /tools/practice，正在带你过去……
+        </p>
+        <p className="mt-6">
+          <Link
+            href="/tools/practice"
+            className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-medium text-on-accent transition-colors duration-150 hover:bg-accent-600"
           >
-            三条纪律
-          </h2>
-          <ol className="mt-4 list-none divide-y divide-rule border-y border-rule">
-            {DISCIPLINES.map((discipline, index) => (
-              <li
-                key={discipline.title}
-                className="border-l-2 border-accent-700 py-5 pl-4 sm:pl-5"
-              >
-                <p className="text-title text-ink-950 text-pretty">
-                  <span className="mr-2 text-ink-500 tabular-nums">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  {discipline.title}
-                </p>
-                <p className="mt-2 text-body text-ink-700 text-pretty">{discipline.detail}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="mt-14" aria-labelledby="practice-caveat-heading">
-          <h2
-            id="practice-caveat-heading"
-            className="text-micro font-medium uppercase text-ink-500"
-          >
-            一条提醒
-          </h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 text-body text-ink-700 marker:text-ink-500">
-            {CAVEATS.map((caveat) => (
-              <li key={caveat} className="text-pretty">
-                {caveat}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <footer className="mt-14 border-t border-rule pt-5">
-          <p className="text-meta text-ink-500 text-pretty">
-            这是一份建议结构，不是标准答案。段落比例来自练习方法的一般经验，
-            没有「最优间隔」这回事，具体的分钟数请按自己的作息和曲子难度调整。
-          </p>
-          <p className="mt-2 text-meta text-ink-500 text-pretty">
-            做法与纪律的依据见资料库里的《练习方法：速度墙与注意力焦点》。
-          </p>
-        </footer>
+            立即前往
+          </Link>
+        </p>
+        {/* React 19 将 meta 提升进 head；content 只能是静态字符串 */}
+        <meta httpEquiv="refresh" content="0;url=/tools/practice" />
       </div>
     </main>
   );

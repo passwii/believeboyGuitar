@@ -45,18 +45,21 @@ function pngSize(relative: string): { width: number; height: number } {
 describe("Web App Manifest", () => {
   const data = manifest();
 
-  it("安装后直接落在节拍器，scope 仍是整站", () => {
-    expect(data.id).toBe("/metronome");
-    expect(data.start_url).toBe("/metronome");
+  it("安装后直接落在工具间里的节拍器，scope 仍是整站", () => {
+    expect(data.id).toBe("/tools/metronome");
+    expect(data.start_url).toBe("/tools/metronome");
     expect(data.scope).toBe("/");
     expect(data.display).toBe("standalone");
     // 装成应用后在节拍器点去资料库，不能跳出到浏览器
     expect(data.start_url).not.toBe(data.scope);
+    // 旧地址的跳转壳必须存在：已安装的实例 start_url 可能还是旧地址
+    expect(readFileSync(path.join(root, "app", "metronome", "page.tsx"), "utf8"))
+      .toContain('content="0;url=/tools/metronome"');
   });
 
-  it("名字是「节拍器」，不是整个站点名", () => {
-    expect(data.short_name).toBe("节拍器");
-    expect(data.name).toContain("节拍器");
+  it("名字是站名，不是单个工具（BLF-1451：装的是整个资料库）", () => {
+    expect(data.short_name).toBe("电吉他资料库");
+    expect(data.name).toBe("电吉他学习资料库");
     expect(data.lang).toBe("zh-CN");
   });
 
@@ -90,13 +93,25 @@ describe("Web App Manifest", () => {
       height: 180,
     });
   });
+
+  it("快捷方式覆盖资料库与工具间的四个工具（BLF-1451）", () => {
+    const urls = (data.shortcuts ?? []).map((shortcut) => shortcut.url);
+    expect(urls).toEqual([
+      "/tools/metronome",
+      "/library",
+      "/tools/chords",
+      "/tools/cheatsheet",
+      "/tools/rhythms",
+      "/tools/practice",
+    ]);
+  });
 });
 
 describe("layout 的 PWA 元信息", () => {
   it("挂上 manifest 与 iOS 的独立窗口声明", () => {
     expect(layout).toContain('manifest: "/manifest.webmanifest"');
     expect(layout).toMatch(/appleWebApp:\s*\{[\s\S]*?capable:\s*true/);
-    expect(layout).toContain('title: "节拍器"');
+    expect(layout).toContain('title: "电吉他资料库"');
   });
 
   it("apple-touch-icon 指向清单里那张 180px 图标", () => {
@@ -138,8 +153,8 @@ describe("Service Worker", () => {
     expect(serviceWorker).toContain("self.clients.claim()");
   });
 
-  it("预缓存节拍器页面本身，断网也能打开", () => {
-    expect(serviceWorker).toContain('"/metronome"');
+  it("预缓存工具间里的节拍器页面，断网也能打开", () => {
+    expect(serviceWorker).toContain('"/tools/metronome"');
     expect(serviceWorker).toContain('"/manifest.webmanifest"');
   });
 });
@@ -181,7 +196,7 @@ describe("Service Worker 首装就把构建产物装进缓存", () => {
     ]);
   });
 
-  it("安装阶段解析 /metronome 的 HTML 并把资源写进 static 缓存", () => {
+  it("安装阶段解析 /tools/metronome 的 HTML 并把资源写进 static 缓存", () => {
     expect(serviceWorker).toContain("const assets = buildAssets(await response.text());");
     expect(serviceWorker).toContain("await statics.put(asset, assetResponse)");
     // 单个资源拿不到也算必需壳失败，不能留下「HTML 有、JS 没有」

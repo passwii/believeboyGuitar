@@ -92,9 +92,55 @@ describe("设计令牌", () => {
         ).toBeGreaterThanOrEqual(4.5);
       }
     }
-    expect(contrast("#ffffff", token("accent-700"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token("on-accent"), token("accent-700"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token("accent-700"), token("canvas"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token("accent-700"), token("accent-50"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("工具区（.zone-tools）的暗色重映射与亮区同一套 AA 标准", () => {
+    // .zone-tools 是「同一套语义令牌、另一组值」（DESIGN.md §3）。
+    // 重映射写在 @theme 之外，这里单独抓出来验，防止暗区换皮时对比度漏气。
+    const zone = css.match(/\.zone-tools\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(zone, "globals.css 里应该有 .zone-tools 重映射块").not.toBe("");
+
+    const zoneToken = (name: string) => {
+      const value = zone.match(new RegExp(`--color-${name}:\\s*(#[0-9a-f]{6})`, "i"))?.[1];
+      if (!value) throw new Error(`.zone-tools 缺少令牌重映射：${name}`);
+      return value;
+    };
+    const luminance = (hex: string) => {
+      const channels = hex.match(/[0-9a-f]{2}/gi) ?? [];
+      const [r, g, b] = channels.map((channel) => {
+        const value = parseInt(channel, 16) / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+
+    for (const background of ["canvas", "surface", "surface-muted"]) {
+      for (const ink of ["ink-950", "ink-700", "ink-500"]) {
+        expect(
+          contrast(zoneToken(ink), zoneToken(background)),
+          `工具区 ${ink} on ${background}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    // 琥珀底上必须是近黑字：白字压在琥珀上只有约 1.9:1
+    expect(contrast(zoneToken("on-accent"), zoneToken("accent-700"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(zoneToken("accent-700"), zoneToken("canvas"))).toBeGreaterThanOrEqual(4.5);
+    // 重映射必须覆盖全部语义令牌，否则工具区会漏出亮区的值
+    for (const token of [
+      "canvas", "surface", "surface-muted",
+      "ink-950", "ink-700", "ink-500", "ink-300", "ink-200", "ink-100",
+      "accent-700", "accent-600", "accent-100", "accent-50", "on-accent",
+      "rule", "control-edge",
+    ]) {
+      expect(zone, `.zone-tools 应重映射 --color-${token}`).toContain(`--color-${token}:`);
+    }
   });
 });
 
