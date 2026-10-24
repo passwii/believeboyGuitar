@@ -347,7 +347,7 @@ describe("重音模型速查来自 METERS", () => {
    ========================================================================== */
 
 describe("速查页的结构", () => {
-  const pagePath = path.join(root, "app", "cheatsheet", "page.tsx");
+  const pagePath = path.join(root, "app", "tools", "cheatsheet", "page.tsx");
   const pageSource = readFileSync(pagePath, "utf8");
 
   it("页面用原生 details/summary 折叠，不依赖 JS 状态", () => {
@@ -418,7 +418,7 @@ describe("速查页的结构", () => {
 
   it("动效只用项目的那一条曲线，且时长在 150/200ms 两档内", () => {
     const files = [
-      "app/cheatsheet/page.tsx",
+      "app/tools/cheatsheet/page.tsx",
       "components/CheatsheetSection.tsx",
       ...CHEATSHEET_COMPONENTS.map((name) => `components/${name}.tsx`),
     ];

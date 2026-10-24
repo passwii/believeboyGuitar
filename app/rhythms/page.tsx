@@ -1,35 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { RhythmPatterns } from "@/components/RhythmPatterns";
+
+/**
+ * 旧地址的静态跳转页（BLF-1451）。机制见 app/metronome/page.tsx 的说明：
+ * 静态导出用不了 redirects()，React 19 把 <meta> 提升进 head 完成跳转。
+ */
 
 export const metadata: Metadata = {
-  title: "节奏型",
+  title: "节奏型已迁移",
+  alternates: { canonical: "/tools/rhythms" },
 };
-
-export default function RhythmsPage() {
+export default function RhythmsRedirectPage() {
   return (
-    <main className="shell flex-1 py-10 sm:py-14">
-      <header className="measure">
-        <p className="text-micro font-medium uppercase text-ink-500">Rhythm patterns</p>
-        <h1 className="mt-3 text-display font-display text-ink-950 text-balance">节奏型</h1>
-        <p className="mt-4 text-body text-ink-700 text-pretty">
-          把十六分音符的网格摊开：哪些格子要出声，哪些格子只让手保持运动。
-          再按重音把一小节切成能慢练的组。
+    <main className="shell flex-1 py-16 sm:py-24">
+      <div className="measure">
+        <p className="font-mono text-micro font-medium uppercase text-ink-500">已迁移</p>
+        <h1 className="mt-3 text-display font-display text-balance text-ink-950">
+          节奏型搬进了工具间
+        </h1>
+        <p className="mt-4 text-body text-pretty text-ink-700">
+          新地址是 /tools/rhythms，正在带你过去……
         </p>
-        <p className="mt-3 text-meta text-ink-500">
-          拍号与重音沿用
+        <p className="mt-6">
           <Link
-            href="/metronome"
-            className="inline-flex min-h-11 items-center text-accent-700 underline underline-offset-4"
+            href="/tools/rhythms"
+            className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-medium text-on-accent transition-colors duration-150 hover:bg-accent-600"
           >
-            节拍器
+            立即前往
           </Link>
-          里的模型——节拍器的重音就是这里的分组锚点。
         </p>
-      </header>
-
-      <div className="mt-10">
-        <RhythmPatterns />
+        {/* React 19 将 meta 提升进 head；content 只能是静态字符串 */}
+        <meta httpEquiv="refresh" content="0;url=/tools/rhythms" />
       </div>
     </main>
   );

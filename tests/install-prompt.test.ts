@@ -29,7 +29,7 @@ const dial = read("components/BpmDial.tsx");
 const nav = read("components/SiteNav.tsx");
 const globals = read("app/globals.css");
 const layout = read("app/layout.tsx");
-const metronomePage = read("app/metronome/page.tsx");
+const metronomePage = read("app/tools/metronome/page.tsx");
 const installPrompt = read("components/InstallPrompt.tsx");
 
 describe("调速交互不触发页面滚动（BLF-1448）", () => {
@@ -100,7 +100,10 @@ describe("安全区（BLF-1448）", () => {
   });
 
   it("页脚底部安全区仍然保留（不被这轮改动带走）", () => {
-    expect(layout).toContain("env(safe-area-inset-bottom)");
+    // BLF-1451 页脚拆成了 SiteFooter（要跟着工具区换皮）；dock 让位也在这层做
+    const footer = read("components/SiteFooter.tsx");
+    expect(footer).toContain("env(safe-area-inset-bottom)");
+    expect(footer).toContain("--dock-h");
   });
 
   it("viewport-fit=cover 是 env() 生效的前提，不能删", () => {

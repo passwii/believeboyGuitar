@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -92,9 +92,55 @@ describe("设计令牌", () => {
         ).toBeGreaterThanOrEqual(4.5);
       }
     }
-    expect(contrast("#ffffff", token("accent-700"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token("on-accent"), token("accent-700"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token("accent-700"), token("canvas"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token("accent-700"), token("accent-50"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("工具区（.zone-tools）的暗色重映射与亮区同一套 AA 标准", () => {
+    // .zone-tools 是「同一套语义令牌、另一组值」（DESIGN.md §3）。
+    // 重映射写在 @theme 之外，这里单独抓出来验，防止暗区换皮时对比度漏气。
+    const zone = css.match(/\.zone-tools\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(zone, "globals.css 里应该有 .zone-tools 重映射块").not.toBe("");
+
+    const zoneToken = (name: string) => {
+      const value = zone.match(new RegExp(`--color-${name}:\\s*(#[0-9a-f]{6})`, "i"))?.[1];
+      if (!value) throw new Error(`.zone-tools 缺少令牌重映射：${name}`);
+      return value;
+    };
+    const luminance = (hex: string) => {
+      const channels = hex.match(/[0-9a-f]{2}/gi) ?? [];
+      const [r, g, b] = channels.map((channel) => {
+        const value = parseInt(channel, 16) / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+
+    for (const background of ["canvas", "surface", "surface-muted"]) {
+      for (const ink of ["ink-950", "ink-700", "ink-500"]) {
+        expect(
+          contrast(zoneToken(ink), zoneToken(background)),
+          `工具区 ${ink} on ${background}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    // 琥珀底上必须是近黑字：白字压在琥珀上只有约 1.9:1
+    expect(contrast(zoneToken("on-accent"), zoneToken("accent-700"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(zoneToken("accent-700"), zoneToken("canvas"))).toBeGreaterThanOrEqual(4.5);
+    // 重映射必须覆盖全部语义令牌，否则工具区会漏出亮区的值
+    for (const token of [
+      "canvas", "surface", "surface-muted",
+      "ink-950", "ink-700", "ink-500", "ink-300", "ink-200", "ink-100",
+      "accent-700", "accent-600", "accent-100", "accent-50", "on-accent",
+      "rule", "control-edge",
+    ]) {
+      expect(zone, `.zone-tools 应重映射 --color-${token}`).toContain(`--color-${token}:`);
+    }
   });
 });
 
@@ -155,6 +201,108 @@ describe("令牌引用完整性", () => {
     expect(
       [...new Set(offenders)],
       "以下颜色工具类没有对应的 --color-* 令牌（Tailwind 会静默丢弃）",
+    ).toEqual([]);
+  });
+});
+
+describe("工具区组件不写死颜色（BLF-1451 复核）", () => {
+  /**
+   * /tools 子树靠 .zone-tools 重映射换皮，前提是组件只用语义令牌类。
+   * text- 前缀之外的 fill- / bg- / border- 写死色（如 fill-white）用的是
+   * Tailwind 内置值，不受重映射影响——BLF-1451 正是 fill-white 漏在
+   * 和弦库根音上：亮区电蓝上 5.5:1，暗区重映射成琥珀后只剩 1.85:1，
+   * 而 498 个测试全绿没拦住。这里把「不写颜色字面量」的守护扩到
+   * 暗区实际渲染的全部组件。
+   *
+   * 渲染面不手工维护：从 app/tools/** 的 page / layout 出发，沿
+   * @/ 与相对导入走完整张组件图谱；SiteNav / SiteFooter 不被 tools 页
+   * 导入，但它们带 zone-tools 变体、同样渲染在暗区，作为额外根加入。
+   * 正文流里的 lesson widget（如 Fretboard 的 fill-white）不在此列：
+   * 它们属于亮区阅读流，对比度由各自的页面测试守护。
+   */
+
+  const resolveImport = (fromFile: string, spec: string): string | null => {
+    const base = spec.startsWith("@/")
+      ? path.join(root, spec.slice(2))
+      : spec.startsWith(".")
+        ? path.resolve(path.dirname(fromFile), spec)
+        : null;
+    if (!base) return null;
+    for (const candidate of [base, `${base}.ts`, `${base}.tsx`]) {
+      if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+    }
+    return null;
+  };
+
+  const collectReachable = (entries: string[]): Set<string> => {
+    const seen = new Set<string>();
+    const queue = [...entries];
+    while (queue.length > 0) {
+      const file = queue.pop()!;
+      if (seen.has(file) || !file.endsWith(".tsx")) continue;
+      seen.add(file);
+      for (const match of readFileSync(file, "utf8").matchAll(
+        /(?:\bfrom|\bimport)\s*["']([^"']+)["']/g,
+      )) {
+        const resolved = resolveImport(file, match[1]);
+        if (resolved) queue.push(resolved);
+      }
+    }
+    return seen;
+  };
+
+  const toolDir = path.join(root, "app", "tools");
+  const toolEntries = readdirSync(toolDir, { recursive: true, encoding: "utf8" })
+    .filter((name) => /(^|\/)(page|layout)\.tsx$/.test(name))
+    .map((name) => path.join(toolDir, name));
+  const darkZoneFiles = collectReachable([
+    ...toolEntries,
+    path.join(root, "components", "SiteNav.tsx"),
+    path.join(root, "components", "SiteFooter.tsx"),
+  ]);
+
+  it("图谱确实覆到工具页与外壳（防收集逻辑静默失效）", () => {
+    for (const must of [
+      "components/ChordLibrary.tsx",
+      "components/Metronome.tsx",
+      "components/SiteNav.tsx",
+    ]) {
+      expect(
+        [...darkZoneFiles].map((file) => path.relative(root, file)),
+      ).toContain(must);
+    }
+    // 正文流的 Fretboard 不该被卷进来：它的 fill-white 是亮区阅读流的决定
+    expect(
+      [...darkZoneFiles].map((file) => path.relative(root, file)),
+    ).not.toContain("components/Fretboard.tsx");
+  });
+
+  it("暗区渲染的组件里没有颜色字面量", () => {
+    /** 四种形态：hex、rgb()/hsl()/oklch()、任意值颜色类、
+        Tailwind 内置色名（transparent / current / inherit 只表达
+        「不选色」，不参与换皮，放行）。 */
+    const colorPrefix =
+      "(?:text|bg|border|fill|stroke|ring|outline|decoration|divide|from|via|to|accent|caret)";
+    const literalPatterns: RegExp[] = [
+      /#[0-9a-f]{3,8}\b/i,
+      /\b(?:rgba?|hsla?|oklch)\s*\(/i,
+      new RegExp(`\\b${colorPrefix}-\\[`),
+      new RegExp(
+        `\\b${colorPrefix}-(?:white|black|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\\d{2,3})?\\b`,
+      ),
+    ];
+
+    const offenders: string[] = [];
+    for (const file of [...darkZoneFiles].sort()) {
+      const text = readFileSync(file, "utf8");
+      for (const pattern of literalPatterns) {
+        const match = text.match(pattern);
+        if (match) offenders.push(`${path.relative(root, file)}: ${match[0]}`);
+      }
+    }
+    expect(
+      offenders,
+      "工具区组件必须只用语义令牌类，写死颜色会绕过 .zone-tools 换皮",
     ).toEqual([]);
   });
 });

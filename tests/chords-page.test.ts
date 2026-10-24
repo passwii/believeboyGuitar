@@ -252,7 +252,7 @@ describe("按法图与速查", () => {
 
 describe("页面外壳", () => {
   it("路由页面存在并写了标题", () => {
-    const text = source("app/chords/page.tsx");
+    const text = source("app/tools/chords/page.tsx");
     expect(text).toContain("ChordLibrary");
     expect(text).toContain("和弦库");
     expect(text).toContain("shell");

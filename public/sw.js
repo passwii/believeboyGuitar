@@ -5,6 +5,9 @@
  *
  * - `_next/static/*` 是带内容哈希的不可变资源，缓存优先；
  * - 页面导航走网络优先，在线时永远拿最新构建，断网才落回缓存；
+ * - 旧地址（BLF-1451 工具迁入 /tools）在导航兜底里映射到已缓存的规范页：
+ *   已安装实例的 start_url 还是 /metronome 这类旧地址，而 activate 会删掉
+ *   存着旧地址的旧版本缓存——不映射的话，装过的 PWA 断网启动会打不开。
  * - 图标与清单走 stale-while-revalidate；
  * - 只处理同源 GET，不碰 POST、跨域和浏览器扩展请求。
  *
@@ -24,12 +27,29 @@
  * 命中。只缓存 HTML 的话，装完直接断网启动会拿到一张没有 JS 的页面。
  */
 
-const VERSION = "2026-10-23-2";
+const VERSION = "2026-10-24-2";
 const SHELL_CACHE = `shell-${VERSION}`;
 const STATIC_CACHE = `static-${VERSION}`;
 
-/** 拿不到就等于离线打不开节拍器，失败必须让 install 失败 */
-const REQUIRED_SHELL = ["/metronome"];
+/** 拿不到就等于离线打不开节拍器，失败必须让 install 失败
+ *  （BLF-1451：节拍器迁到 /tools/metronome，旧地址有跳转壳） */
+const REQUIRED_SHELL = ["/tools/metronome"];
+
+/**
+ * 旧地址 → 现住地址（BLF-1451：五个工具迁入 /tools）。
+ *
+ * 只在离线兜底时用：在线时 networkFirst 照常回源，跳转壳照常工作并
+ * 被缓存；断网时旧地址不在新版壳缓存里，直接拿已缓存的规范页顶上——
+ * 比先回跳转壳、再靠 meta refresh 走第二次导航更快，也不依赖 JS。
+ * 不预缓存旧地址：install 省几次抓取，规范页本来就在必需壳里。
+ */
+const LEGACY_ROUTES = {
+  "/metronome": "/tools/metronome",
+  "/cheatsheet": "/tools/cheatsheet",
+  "/chords": "/tools/chords",
+  "/practice": "/tools/practice",
+  "/rhythms": "/tools/rhythms",
+};
 
 /**
  * 可选壳：清单与安装图标。缺一张只是图标不好看，不值得让用户失去离线能力。
@@ -91,15 +111,13 @@ async function precacheRequiredShell() {
  */
 async function precacheOptionalShell() {
   const statics = await caches.open(STATIC_CACHE);
-  await Promise.all(
-    OPTIONAL_SHELL.map(async (url) => {
-      try {
-        await statics.add(new Request(url, { cache: "reload" }));
-      } catch {
-        // 运行时的 staleWhileRevalidate 还会再试，这里失败不算错
-      }
-    }),
-  );
+  for (const url of OPTIONAL_SHELL) {
+    try {
+      await statics.add(new Request(url, { cache: "reload" }));
+    } catch {
+      // 运行时的 staleWhileRevalidate 还会再试，这里失败不算错
+    }
+  }
 }
 
 self.addEventListener("install", (event) => {
@@ -162,15 +180,28 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached ?? (await network) ?? Response.error();
 }
 
-/** 网络优先：页面导航，在线时永远拿最新 HTML */
+/** 网络优先：页面导航，在线时永远拿最新 HTML。
+ *  离线兜底先找原路径，找不到再按 LEGACY_ROUTES 找规范页：
+ *  装过的 PWA start_url 还是旧地址，activate 已删掉存它的旧缓存，
+ *  没有这一步就会抛「offline and not cached」，装好的应用打不开。 */
 async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
+  // request.url 在 fetch 处理器里已解析过一次；这里再包一层只是守住
+  // 「绝不让 worker 抳未捕获异常」的约定，解析失败就当作没有旧地址映射。
+  let legacy;
+  try {
+    legacy = LEGACY_ROUTES[new URL(request.url).pathname];
+  } catch {
+    legacy = undefined;
+  }
   try {
     const response = await fetch(request);
     if (response.ok) await cache.put(request, response.clone());
     return response;
   } catch {
-    const cached = await cache.match(request);
+    const cached =
+      (await cache.match(request)) ??
+      (legacy === undefined ? undefined : await cache.match(legacy));
     if (cached) return cached;
     throw new Error("offline and not cached");
   }
@@ -180,7 +211,14 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
-  const url = new URL(request.url);
+  // request.url 来自 SW 的请求对象，实践中总是合法 URL；包一层只是
+  // 让「解析失败」也落到同源检查的退出路径上，绝不让 worker 抛未捕获异常。
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return;
+  }
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));

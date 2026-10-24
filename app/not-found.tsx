@@ -14,7 +14,7 @@ export default function NotFound() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/library"
-            className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label text-white transition-colors duration-150 hover:bg-accent-600"
+            className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label text-on-accent transition-colors duration-150 hover:bg-accent-600"
           >
             去资料库
           </Link>

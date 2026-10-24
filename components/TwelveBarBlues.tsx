@@ -94,12 +94,12 @@ export function TwelveBarBlues() {
               onClick={() => setActiveBar(bar)}
               className={`flex min-h-11 flex-col items-center justify-center rounded-control border text-micro transition-colors duration-150 ${
                 active
-                  ? "border-transparent bg-accent-700 text-white"
+                  ? "border-transparent bg-accent-700 text-on-accent"
                   : "border-rule bg-surface text-ink-700 hover:border-control-edge hover:text-ink-950"
               }`}
             >
               <span className="font-semibold">{bar + 1}</span>
-              <span className={active ? "text-white/80" : "text-ink-500"}>
+              <span className={active ? "text-on-accent/80" : "text-ink-500"}>
                 {CHORDS[chordIndex].name}
               </span>
             </button>

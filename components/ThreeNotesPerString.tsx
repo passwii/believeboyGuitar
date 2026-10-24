@@ -119,7 +119,7 @@ export function ThreeNotesPerString() {
 
         <div role="group" aria-label="按把位筛选" className="mt-4 flex flex-wrap gap-1.5">
           <PatternChip active={activeDegree === null} onClick={() => setActiveDegree(null)}>
-            <span className={activeDegree === null ? "text-white" : "text-ink-700"}>全部</span>
+            <span className={activeDegree === null ? "text-on-accent" : "text-ink-700"}>全部</span>
           </PatternChip>
           {PATTERNS.map((pattern) => (
             <PatternChip
@@ -128,11 +128,11 @@ export function ThreeNotesPerString() {
               title={`${pattern.mode} · ${pattern.character}`}
               onClick={() => togglePattern(pattern.degree)}
             >
-              <span className={activeDegree === pattern.degree ? "text-white" : "text-ink-700"}>
+              <span className={activeDegree === pattern.degree ? "text-on-accent" : "text-ink-700"}>
                 {DEGREE_MARKS[pattern.degree - 1]}
               </span>
               <span className="font-semibold">{pattern.notes[0][0].name}</span>
-              <span className={activeDegree === pattern.degree ? "text-white" : "text-ink-700"}>
+              <span className={activeDegree === pattern.degree ? "text-on-accent" : "text-ink-700"}>
                 {pattern.modeZh}
               </span>
             </PatternChip>
@@ -164,7 +164,7 @@ export function ThreeNotesPerString() {
                   }
                   className={`inline-flex size-11 items-center justify-center rounded-pill font-mono text-label transition-colors duration-150 ${
                     active
-                      ? "bg-accent-700 text-white"
+                      ? "bg-accent-700 text-on-accent"
                       : "bg-surface-muted text-ink-700 hover:text-ink-950"
                   }`}
                 >
@@ -241,7 +241,7 @@ function PatternChip({
       onClick={onClick}
       className={`inline-flex min-h-11 items-center gap-1.5 rounded-control border px-3 text-meta transition-colors duration-150 ${
         active
-          ? "border-transparent bg-accent-700 text-white"
+          ? "border-transparent bg-accent-700 text-on-accent"
           : "border-rule bg-surface text-ink-700 hover:border-control-edge hover:text-ink-950"
       }`}
     >
