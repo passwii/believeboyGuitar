@@ -3,6 +3,7 @@ import path from "node:path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { lessons } from "@/content/manifest";
+import { SITE } from "@/content/site";
 import { DifficultyMeter } from "@/components/DifficultyMeter";
 import { LessonWidget } from "@/components/LessonWidget";
 import { LessonTableOfContents } from "@/components/LessonTableOfContents";
@@ -19,7 +20,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const lesson = lessons.find((item) => item.slug === slug);
-  return { title: lesson ? lesson.title : "电吉他学习资料库" };
+  return { title: lesson ? lesson.title : SITE.name };
 }
 
 export default async function LessonPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -51,7 +52,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
             strokeLinejoin="round"
           />
         </svg>
-        资料库
+        知识
       </Link>
 
       <header className="mt-4 max-w-3xl">

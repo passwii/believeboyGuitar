@@ -31,13 +31,27 @@ export interface Lesson {
   updatedAt: string;
 }
 
-export interface HomeGoal {
+export interface PracticeGoal {
   title: string;
   detail: string;
 }
 
-/** 主页的近期学习目标，手写维护 */
-export const home: { goals: HomeGoal[] } = {
+/**
+ * 练习空间（BLF-1452 Stage 1）。
+ *
+ * 曲谱本身在 `lib/tab-exercises.ts`：音位由标准调弦推导，资料页与练习页共用
+ * 同一份数据。这里只登记「本周练哪一节、对应哪篇资料」，以及本周的三条目标。
+ * 周次清单不写在别处。
+ */
+export const practice: {
+  current: { week: number; title: string; lessonSlug: string };
+  goals: PracticeGoal[];
+} = {
+  current: {
+    week: 1,
+    title: "锻炼各手指的独立运动能力",
+    lessonSlug: "week-1-finger-independence",
+  },
   goals: [
     {
       title: "把 C 大调一弦三音的七个把位练顺",

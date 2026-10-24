@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import manifest from "@/app/manifest";
 import { Metronome } from "@/components/Metronome";
 import { TOOL_PAGES } from "@/components/ToolPages";
+import { SITE } from "@/content/site";
 import {
   preferPlaybackAudioSession,
   type AudioSessionNavigatorLike,
@@ -58,9 +59,9 @@ describe("Web App Manifest", () => {
       .toContain('content="0;url=/tools/metronome"');
   });
 
-  it("名字是站名，不是单个工具（BLF-1451：装的是整个资料库）", () => {
-    expect(data.short_name).toBe("电吉他资料库");
-    expect(data.name).toBe("电吉他学习资料库");
+  it("名字是站名，不是单个工具（BLF-1451：装的是整个学习空间）", () => {
+    expect(data.short_name).toBe(SITE.shortName);
+    expect(data.name).toBe(SITE.name);
     expect(data.lang).toBe("zh-CN");
   });
 
@@ -95,15 +96,15 @@ describe("Web App Manifest", () => {
     });
   });
 
-  it("快捷方式覆盖资料库与工具间的四个工具（BLF-1451）", () => {
+  it("快捷方式覆盖练习、知识与工具间的四个工具（BLF-1452）", () => {
     const urls = (data.shortcuts ?? []).map((shortcut) => shortcut.url);
     expect(urls).toEqual([
       "/tools/metronome",
+      "/practice",
       "/library",
       "/tools/chords",
       "/tools/cheatsheet",
       "/tools/rhythms",
-      "/tools/practice",
     ]);
   });
 });
@@ -112,7 +113,8 @@ describe("layout 的 PWA 元信息", () => {
   it("挂上 manifest 与 iOS 的独立窗口声明", () => {
     expect(layout).toContain('manifest: "/manifest.webmanifest"');
     expect(layout).toMatch(/appleWebApp:\s*\{[\s\S]*?capable:\s*true/);
-    expect(layout).toContain('title: "电吉他资料库"');
+    // 站名只写在 content/site.ts（BLF-1452 改名「琴房」）
+    expect(layout).toContain("title: SITE.shortName");
   });
 
   it("apple-touch-icon 指向清单里那张 180px 图标", () => {
@@ -298,6 +300,12 @@ describe("Service Worker 旧地址的离线兜底（BLF-1451 复核）", () => {
         `${tool.href} 的页面不存在，映射指向了空处`,
       ).toBe(true);
     }
+
+    // BLF-1452：练习计划搬进 /practice，旧住址在工具间里的那一份也要能兜底，
+    // 而 /practice 自己是规范页，不能再当旧地址映射出去。
+    expect(table["/tools/practice"]).toBe("/practice");
+    expect(table["/practice"]).toBeUndefined();
+    expect(existsSync(path.join(root, "app", "practice", "page.tsx"))).toBe(true);
   });
 
   it("断网打开旧 start_url：直接回已缓存的规范页，而不是失败", async () => {

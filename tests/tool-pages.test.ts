@@ -80,12 +80,14 @@ describe("工具页清单", () => {
     }
   });
 
-  it("导航上有工具间与节拍器入口，移动端 dock 四项齐全", () => {
+  it("导航上有练习、知识、工具间与节拍器，移动端 dock 四项齐全（BLF-1452）", () => {
     const nav = readFileSync(path.join(root, "components", "SiteNav.tsx"), "utf8");
+    expect(nav).toContain('href: "/practice"');
+    expect(nav).toContain('href: "/library"');
     expect(nav).toContain('href: "/tools"');
     expect(nav).toContain('href: "/tools/metronome"');
-    expect(nav).toContain('href: "/"');
-    expect(nav).toContain('href: "/library"');
+    // 站点名回到首页；dock 上不再单设「书桌」
+    expect(nav).toContain('href="/"');
     expect(nav).toContain('aria-label="移动端导航"');
   });
 

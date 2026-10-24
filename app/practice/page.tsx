@@ -1,36 +1,88 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-
-/**
- * 旧地址的静态跳转页（BLF-1451）。机制见 app/metronome/page.tsx 的说明：
- * 静态导出用不了 redirects()，React 19 把 <meta> 提升进 head 完成跳转。
- */
+import { practice } from "@/content/manifest";
+import { PracticePlanner } from "@/components/PracticePlanner";
+import { TabExercise } from "@/components/TabExercise";
 
 export const metadata: Metadata = {
-  title: "练习计划已迁移",
-  alternates: { canonical: "/tools/practice" },
+  title: "练习",
 };
-export default function PracticeRedirectPage() {
+
+/**
+ * 练习（BLF-1452 Stage 1）。
+ *
+ * 首页打开后的第一个分类。只留三块：本周目标（练什么）、本周曲谱
+ * （基本要求 + 注释 + TAB）、练习计划（怎么分配时间）。
+ *
+ * 刻意不写导语：这一页是拿来照着练的，不是拿来读的。曲谱与要求都来自
+ * `lib/tab-exercises.ts`，本周练哪一节来自 `content/manifest.ts` 的 practice，
+ * 页面里不写死第二条清单。
+ *
+ * 打卡 / 进度统计仍不做（CLAUDE.md「刻意不做」）：要加时由使用者明确要求。
+ */
+export default function PracticeSpacePage() {
   return (
-    <main className="shell flex-1 py-16 sm:py-24">
+    <main className="shell flex-1 py-10 sm:py-14">
       <div className="measure">
-        <p className="font-mono text-micro font-medium uppercase text-ink-500">已迁移</p>
-        <h1 className="mt-3 text-display font-display text-balance text-ink-950">
-          练习计划搬进了工具间
-        </h1>
-        <p className="mt-4 text-body text-pretty text-ink-700">
-          新地址是 /tools/practice，正在带你过去……
-        </p>
-        <p className="mt-6">
-          <Link
-            href="/tools/practice"
-            className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-medium text-on-accent transition-colors duration-150 hover:bg-accent-600"
+        <h1 className="text-display font-display text-balance text-ink-950">练习</h1>
+
+        <section className="mt-8" aria-labelledby="practice-goals-heading">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2
+              id="practice-goals-heading"
+              className="font-mono text-micro font-medium uppercase text-ink-500"
+            >
+              本周目标
+            </h2>
+            <Link
+              href={`/library/${practice.current.lessonSlug}`}
+              className="flex min-h-11 items-center text-label text-accent-700 underline underline-offset-4"
+            >
+              练习顺序与易错点
+            </Link>
+          </div>
+          <ol className="mt-3 border-t border-rule">
+            {practice.goals.map((goal, index) => (
+              <li key={goal.title} className="flex gap-4 border-b border-rule py-4">
+                <span
+                  aria-hidden="true"
+                  className="w-7 flex-none pt-1 text-right font-mono text-meta leading-6 text-ink-500"
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-title text-pretty text-ink-950">{goal.title}</p>
+                  {goal.detail !== "" && (
+                    <p className="mt-1.5 text-body text-pretty text-ink-700">{goal.detail}</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="mt-12" aria-labelledby="practice-week-heading">
+          <h2
+            id="practice-week-heading"
+            className="font-mono text-micro font-medium uppercase text-ink-500"
           >
-            立即前往
-          </Link>
-        </p>
-        {/* React 19 将 meta 提升进 head；content 只能是静态字符串 */}
-        <meta httpEquiv="refresh" content="0;url=/tools/practice" />
+            本周练习 · 第 {practice.current.week} 周
+          </h2>
+          <p className="mt-3 text-title text-balance text-ink-950">{practice.current.title}</p>
+          <div className="mt-5">
+            <TabExercise />
+          </div>
+        </section>
+
+        <section className="mt-14" aria-labelledby="practice-plan-heading">
+          <h2
+            id="practice-plan-heading"
+            className="font-mono text-micro font-medium uppercase text-ink-500"
+          >
+            练习计划
+          </h2>
+          <PracticePlanner />
+        </section>
       </div>
     </main>
   );

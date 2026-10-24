@@ -7,7 +7,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * 工具间（/tools，BLF-1451）：五个工具一律平等的入口页。
+ * 工具间（/tools，BLF-1451）：工具一律平等的入口页。BLF-1452 起剩四个
+ * （练习计划搬进 /practice），页面只留标题与条目，不再写导语。
  *
  * 工具页清单的唯一事实来源仍是 components/ToolPages.tsx 的 TOOL_PAGES；
  * 这里与首页的「工具」区块、桌面导航、移动端 dock 都只读它，不另立清单。
@@ -16,15 +17,7 @@ export default function ToolsIndexPage() {
   return (
     <main className="shell flex-1 py-10 sm:py-14">
       <header className="measure">
-        <p className="font-mono text-micro font-medium uppercase text-ink-500">
-          Tool room
-        </p>
-        <h1 className="mt-3 text-display font-display text-balance text-ink-950">
-          工具间
-        </h1>
-        <p className="mt-4 text-body text-pretty text-ink-700">
-          拿来就用的工具，一律平等：打开页面就能用，不需要账号，不挑设备。
-        </p>
+        <h1 className="text-display font-display text-balance text-ink-950">工具间</h1>
       </header>
 
       <ol className="mt-10 border-t border-rule">

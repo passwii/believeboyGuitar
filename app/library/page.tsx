@@ -3,7 +3,7 @@ import { lessons } from "@/content/manifest";
 import { LibraryBrowser } from "@/components/LibraryBrowser";
 
 export const metadata: Metadata = {
-  title: "资料库",
+  title: "知识",
 };
 
 export default function LibraryPage() {
