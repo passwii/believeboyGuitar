@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>方向 C · 工作台面板 · 重设计预览</title>
+<style>
+  :root {
+    --bg: #f4f4f2;
+    --panel: #ffffff;
+    --ink: #17181a;
+    --ink-2: #5c5f66;
+    --ink-3: #94969c;
+    --line: #e2e3df;
+    --line-2: #cfcfcc;
+    --blue: #2547f4;
+    --blue-soft: #eef0ff;
+    --sans: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    --mono: SFMono-Regular, "Cascadia Code", Consolas, ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #ececea; color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--blue); }
+
+  .previewbar { background: #17181a; color: #f4f4f2; font-size: 13px; padding: 10px 0; }
+  .previewbar .page { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .previewbar a { color: #9fb0ff; text-decoration: none; }
+  .previewbar a:hover { text-decoration: underline; }
+
+  .intro { padding: 40px 0 8px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-2); font-weight: 500; }
+  h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.16; margin-top: 10px; }
+  .intro p.lede { margin-top: 12px; max-width: 46em; color: var(--ink-2); }
+  .traits { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .traits span { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 11px; color: var(--ink-2); }
+
+  h2.section { font-size: 24px; font-weight: 700; margin: 56px 0 6px; letter-spacing: -0.01em; }
+  p.section-note { color: var(--ink-2); max-width: 46em; margin-bottom: 20px; }
+
+  .browser { border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden; background: var(--bg); }
+  .browser-bar { display: flex; align-items: center; gap: 10px; background: #e4e4e1; padding: 8px 14px; border-bottom: 1px solid var(--line-2); }
+  .browser-bar .dots { display: flex; gap: 5px; }
+  .browser-bar .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line-2); }
+  .browser-bar .addr { flex: 1; max-width: 340px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); text-align: center; padding: 3px 10px; }
+  .browser-body { min-height: 380px; }
+
+  .site-nav { display: flex; align-items: center; justify-content: space-between; height: 52px; border-bottom: 1px solid var(--line-2); background: var(--bg); padding: 0 32px; }
+  .site-nav .brand { font-family: var(--mono); font-weight: 700; font-size: 14px; letter-spacing: -0.01em; color: var(--ink); }
+  .site-nav nav { display: flex; gap: 0; }
+  .site-nav nav span { font-size: 14px; padding: 6px 14px; color: var(--ink-2); border-left: 1px solid var(--line); }
+  .site-nav nav span:first-child { border-left: none; }
+  .site-nav nav span.on { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--blue); }
+
+  /* 首页 */
+  .home { padding: 40px 32px 48px; display: grid; grid-template-columns: 1fr 280px; gap: 40px; }
+  .home h3.hello { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+  .home p.sub { color: var(--ink-2); margin-top: 10px; max-width: 34em; }
+  .zone-label { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); margin: 34px 0 2px; }
+  .idx-row { display: flex; align-items: baseline; gap: 14px; padding: 13px 2px; border-bottom: 1px solid var(--line); }
+  .idx-row .no { font-family: var(--mono); font-size: 12px; color: var(--ink-3); width: 26px; flex: none; }
+  .idx-row .t { font-size: 16.5px; font-weight: 600; }
+  .idx-row .m { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+  .side-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-top: 34px; }
+  .side-card .zone-label { margin-top: 0; }
+  .side-card .sc-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .side-card .sc-row:last-child { border-bottom: none; }
+  .side-card .sc-row .n { font-weight: 600; }
+  .side-card .sc-row .r { font-family: var(--mono); font-size: 11px; color: var(--blue); }
+
+  /* 资料库 */
+  .lib { padding: 30px 32px 48px; }
+  .lib-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .lib-head h3 { font-size: 24px; font-weight: 700; }
+  .lib-head .count { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .lib-grid { display: grid; grid-template-columns: 200px 1fr; gap: 28px; margin-top: 18px; align-items: start; }
+  .facets { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .facets .f-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin: 12px 0 6px; }
+  .facets .f-label:first-child { margin-top: 0; }
+  .facets .f-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13.5px; color: var(--ink-2); }
+  .facets .f-row.on { color: var(--blue); font-weight: 600; }
+  .facets .f-row .n { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .searchbox { background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; padding: 11px 16px; font-size: 15px; color: var(--ink-3); display: flex; align-items: center; gap: 10px; }
+  .lib-list { margin-top: 14px; }
+  .lib-item { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; padding: 15px 2px; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .lib-item .no { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .lib-item .t { font-size: 17px; font-weight: 600; }
+  .lib-item .s { font-size: 14px; color: var(--ink-2); margin-top: 3px; max-width: 42em; }
+  .lib-item .meta { display: flex; gap: 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); margin-top: 7px; align-items: center; }
+  .diff { display: inline-flex; gap: 3px; align-items: center; }
+  .diff i { width: 12px; height: 4px; border-radius: 1px; background: var(--line); }
+  .diff i.f { background: var(--blue); }
+  .lib-item .cat { font-family: var(--mono); font-size: 11px; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 5px; padding: 2px 8px; height: fit-content; }
+
+  /* 节拍器（面板） */
+  .metro-wrap { padding: 0; background: var(--bg); }
+  .metro { display: grid; grid-template-columns: 1fr 300px; min-height: 430px; }
+  .metro-main { padding: 28px 32px; border-right: 1px solid var(--line-2); display: flex; flex-direction: column; }
+  .metro-main .mt { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .12em; }
+  .readout { background: var(--ink); color: #f4f4f2; border-radius: 12px; margin-top: 18px; padding: 26px 28px 22px; display: flex; align-items: baseline; gap: 14px; }
+  .readout .bpm { font-family: var(--mono); font-size: 68px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+  .readout .u { font-family: var(--mono); font-size: 13px; color: #94969c; letter-spacing: .16em; }
+  .readout .status { margin-left: auto; display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11.5px; color: #94969c; }
+  .readout .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 3px rgba(37,71,244,.22); }
+  .metro .beatbar { display: flex; gap: 8px; margin-top: 18px; }
+  .metro .beatbar i { flex: 1; height: 8px; border-radius: 2px; background: var(--line); }
+  .metro .beatbar i.on { background: var(--blue); }
+  .metro .ctrl { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+  .metro .c-box { background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 14px; }
+  .metro .c-box .c-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .metro .seg { display: flex; gap: 3px; }
+  .metro .seg span { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; }
+  .metro .seg span.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+  .metro .tempo { display: flex; align-items: center; gap: 10px; }
+  .metro .tempo .t-btn { width: 34px; height: 34px; border: 1px solid var(--line-2); border-radius: 8px; display: grid; place-items: center; font-family: var(--mono); font-size: 16px; color: var(--ink-2); }
+  .metro .tempo .t-val { font-family: var(--mono); font-size: 15px; font-weight: 600; }
+  .metro-side { padding: 24px 26px; }
+  .metro-side .s-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+  .metro-side .preset { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .metro-side .preset .pv { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .metro-side .play-btn { margin-top: 22px; width: 100%; background: var(--blue); color: #fff; font-weight: 600; font-size: 16px; border-radius: 10px; padding: 13px 0; text-align: center; }
+
+  /* 手机 */
+  .phones { display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 290px; height: 610px; border-radius: 40px; background: var(--bg); border: 1px solid var(--line-2); box-shadow: 0 18px 44px rgba(23,24,26,.16); overflow: hidden; display: flex; flex-direction: column; flex: 0 0 auto; }
+  .phone .statusbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px 4px; font-size: 11.5px; font-weight: 600; color: var(--ink); }
+  .phone .p-content { flex: 1; overflow: hidden; padding: 4px 18px 0; }
+  .phone .p-brand { font-family: var(--mono); font-size: 20px; font-weight: 700; margin-top: 8px; }
+  .phone .p-label { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin: 16px 0 6px; }
+  .phone .p-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .phone .p-tool { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .phone .p-tool.hero { grid-column: span 2; background: var(--ink); border-color: var(--ink); color: #f4f4f2; display: flex; align-items: baseline; gap: 10px; }
+  .phone .p-tool .t { font-size: 13px; font-weight: 600; }
+  .phone .p-tool .d { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+  .phone .p-tool.hero .d { color: #94969c; }
+  .phone .p-tool .hv { margin-left: auto; font-family: var(--mono); font-size: 18px; font-weight: 700; }
+  .phone .p-row { padding: 8px 0; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: baseline; }
+  .phone .p-row .no { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+  .phone .p-row .t { font-size: 13px; font-weight: 600; }
+  .phone .p-row .m { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+  .dock { display: flex; justify-content: space-around; align-items: center; background: rgba(255,255,255,.92); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid var(--line-2); padding: 8px 8px 22px; }
+  .dock .d-item { display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .04em; color: var(--ink-3); width: 54px; }
+  .dock .d-item.on { color: var(--blue); font-weight: 700; }
+  .phone .m-read { background: var(--ink); border-radius: 12px; margin-top: 14px; padding: 20px 20px 16px; }
+  .phone .m-bpm { font-family: var(--mono); font-size: 48px; font-weight: 700; color: #f4f4f2; line-height: 1; }
+  .phone .m-bpm small { font-size: 11px; color: #94969c; letter-spacing: .14em; }
+  .phone .m-beats { display: flex; gap: 7px; margin-top: 14px; }
+  .phone .m-beats i { flex: 1; height: 7px; border-radius: 2px; background: #3a3c40; }
+  .phone .m-beats i.on { background: var(--blue); }
+  .phone .m-seg2 { display: flex; gap: 3px; margin: 16px 18px 0; }
+  .phone .m-seg2 span { flex: 1; text-align: center; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 7px; padding: 7px 0; }
+  .phone .m-seg2 span.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+  .phone .m-play { display: block; margin: 18px auto 0; width: 200px; background: var(--blue); color: #fff; font-size: 14px; font-weight: 600; border-radius: 10px; padding: 12px 0; text-align: center; }
+
+  .notes { margin-top: 8px; border-top: 1px solid var(--line-2); max-width: 720px; }
+  .notes li { list-style: none; padding: 12px 0; border-bottom: 1px solid var(--line-2); display: grid; grid-template-columns: 130px 1fr; gap: 16px; font-size: 14.5px; }
+  .notes .k { font-weight: 600; }
+  .notes .v { color: var(--ink-2); }
+  .verdict { margin-top: 32px; max-width: 720px; border-left: 3px solid var(--blue); background: var(--blue-soft); padding: 18px 22px; border-radius: 0 12px 12px 0; font-size: 14.5px; }
+  footer.pre { margin: 64px 0 56px; font-size: 13px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+
+<div class="previewbar">
+  <div class="page">
+    <span>设计方向预览 · 仅为讨论稿，站点代码零改动</span>
+    <span><a href="./b-stage.html">← 方向 B</a> ｜ <a href="./index.html">返回索引</a></span>
+  </div>
+</div>
+
+<main class="page">
+  <header class="intro">
+    <p class="eyebrow">方向 C · 重做</p>
+    <h1>工作台面板</h1>
+    <p class="lede">
+      把站子当成一台校准过的仪器：冷白底、黑墨、发丝线、等宽数字、电蓝单强调色。
+      资料像技术手册一样编目（每篇有索引号），工具像仪器面板一样精确（读数、刻度、开关各就各位）。
+      与方向 B 同样「工具优先」，但走在亮色里，长文阅读不折损。
+    </p>
+    <div class="traits">
+      <span>冷白精工</span><span>电蓝单强调色</span><span>等宽数据</span><span>资料编目化</span><span>面板式工具</span><span>亮色长文友好</span>
+    </div>
+  </header>
+
+  <h2 class="section">桌面 · 首页（索引 + 工作台）</h2>
+  <p class="section-note">
+    主栏是资料索引（编号 + 标题 + 日期，像手册目录），侧栏是学习目标卡与工具入口。
+    编号只是排序展示，不是新字段，仍由 manifest 的整理时间生成。
+  </p>
+  <div class="browser">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="addr">/</span></div>
+    <div class="browser-body">
+      <div class="site-nav">
+        <span class="brand">GUITAR-LIB / 电吉他学习资料库</span>
+        <nav><span class="on">索引</span><span>资料库</span><span>工具</span></nav>
+      </div>
+      <div class="home">
+        <div>
+          <h3 class="hello">把资料当手册查，<br />把工具当仪器用。</h3>
+          <p class="sub">个人电吉他学习资料库。内容持续整理改写，指法与音位全部由调弦推导，不手抄。</p>
+          <p class="zone-label">最新整理 / RECENT</p>
+          <div class="idx-row"><span class="no">07</span><span class="t">C 大调一弦三音系统</span><span class="m">2026-10-22</span></div>
+          <div class="idx-row"><span class="no">06</span><span class="t">推弦、揉弦与交替拨弦</span><span class="m">2026-10-21</span></div>
+          <div class="idx-row"><span class="no">05</span><span class="t">和弦构造、调式与和声进行</span><span class="m">2026-10-18</span></div>
+          <div class="idx-row"><span class="no">04</span><span class="t">Pocket AMP（SK17）操作与效果模块手册</span><span class="m">2026-10-15</span></div>
+          <div class="idx-row"><span class="no">03</span><span class="t">把位命名体系与 CAGED 连接</span><span class="m">2026-10-12</span></div>
+        </div>
+        <aside>
+          <div class="side-card">
+            <p class="zone-label">学习目标 / GOALS</p>
+            <div class="sc-row"><span class="n">把一弦三音七个把位练顺</span></div>
+            <div class="sc-row"><span class="n">用 CAGED 走一遍指板</span></div>
+            <div class="sc-row"><span class="n">记下速度墙位置</span><span class="r">96 BPM</span></div>
+          </div>
+          <div class="side-card">
+            <p class="zone-label">工具 / TOOLS</p>
+            <div class="sc-row"><span class="n">节拍器</span><span class="r">OPEN</span></div>
+            <div class="sc-row"><span class="n">和弦库</span><span class="r">OPEN</span></div>
+            <div class="sc-row"><span class="n">速查表</span><span class="r">OPEN</span></div>
+            <div class="sc-row"><span class="n">练习计划</span><span class="r">OPEN</span></div>
+            <div class="sc-row"><span class="n">节奏型</span><span class="r">OPEN</span></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">桌面 · 资料库</h2>
+  <p class="section-note">
+    筛选做成常驻侧栏（桌面），计数用等宽数字标在每一项后面。这套「刻面筛选」是 Raindrop 式的骨架，
+    手机上收进一枚「筛选」按钮。
+  </p>
+  <div class="browser">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="addr">/library</span></div>
+    <div class="browser-body">
+      <div class="site-nav">
+        <span class="brand">GUITAR-LIB / 电吉他学习资料库</span>
+        <nav><span>索引</span><span class="on">资料库</span><span>工具</span></nav>
+      </div>
+      <div class="lib">
+        <div class="lib-head"><h3>全部资料</h3><span class="count">07 RESULTS</span></div>
+        <div class="lib-grid">
+          <aside class="facets">
+            <p class="f-label">主题</p>
+            <div class="f-row on"><span>全部</span><span class="n">7</span></div>
+            <div class="f-row"><span>乐理</span><span class="n">3</span></div>
+            <div class="f-row"><span>技巧</span><span class="n">2</span></div>
+            <div class="f-row"><span>设备</span><span class="n">1</span></div>
+            <div class="f-row"><span>方法</span><span class="n">1</span></div>
+            <p class="f-label">阶段</p>
+            <div class="f-row on"><span>全部</span><span class="n">7</span></div>
+            <div class="f-row"><span>入门</span><span class="n">3</span></div>
+            <div class="f-row"><span>进阶</span><span class="n">4</span></div>
+          </aside>
+          <div>
+            <div class="searchbox">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="#94969c" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="#94969c" stroke-width="1.5" stroke-linecap="round"/></svg>
+              搜标题、简介、主题与标签
+            </div>
+            <div class="lib-list">
+              <div class="lib-item">
+                <span class="no">07</span>
+                <div>
+                  <p class="t">C 大调一弦三音系统</p>
+                  <p class="s">一条弦上的七个把位连通方式，配合节拍器从慢速开始建立指板地图。</p>
+                  <p class="meta"><span>乐理</span><span class="diff"><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></span><span>3/5</span></p>
+                </div>
+                <span class="cat">进阶</span>
+              </div>
+              <div class="lib-item">
+                <span class="no">06</span>
+                <div>
+                  <p class="t">推弦、揉弦与交替拨弦</p>
+                  <p class="s">三类基础技巧的动作要领与常见错误，配推弦目标音速查。</p>
+                  <p class="meta"><span>技巧</span><span class="diff"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span><span>4/5</span></p>
+                </div>
+                <span class="cat">进阶</span>
+              </div>
+              <div class="lib-item">
+                <span class="no">04</span>
+                <div>
+                  <p class="t">Pocket AMP（SK17）操作与效果模块手册</p>
+                  <p class="s">从接线到效果链顺序，按使用场景重排的设备手册。</p>
+                  <p class="meta"><span>设备</span><span class="diff"><i class="f"></i><i class="f"></i><i></i><i></i><i></i></span><span>2/5</span></p>
+                </div>
+                <span class="cat">入门</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">桌面 · 节拍器（仪器面板）</h2>
+  <p class="section-note">
+    方向 C 的招牌画面：左侧是黑底读数屏 + 拍点条 + 控制组，右侧是预设与说明。
+    播放状态点是全页唯一的常亮色，语义明确。
+  </p>
+  <div class="browser">
+    <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="addr">/tools/metronome</span></div>
+    <div class="browser-body">
+      <div class="site-nav">
+        <span class="brand">GUITAR-LIB / 电吉他学习资料库</span>
+        <nav><span>索引</span><span>资料库</span><span class="on">工具</span></nav>
+      </div>
+      <div class="metro-wrap">
+        <div class="metro">
+          <div class="metro-main">
+            <div class="mt"><span>METRONOME / 节拍器</span><span>SCREEN AWAKE</span></div>
+            <div class="readout">
+              <span class="bpm">96</span><span class="u">BPM</span>
+              <span class="status"><i></i>运行中</span>
+            </div>
+            <div class="beatbar"><i class="on"></i><i></i><i></i><i></i></div>
+            <div class="ctrl">
+              <div class="c-box">
+                <p class="c-label">拍号 / METER</p>
+                <div class="seg"><span>2/4</span><span class="on">4/4</span><span>3/4</span><span>6/8</span><span>5/4</span><span>7/8</span></div>
+              </div>
+              <div class="c-box">
+                <p class="c-label">音色 / SOUND</p>
+                <div class="seg"><span class="on">机械</span><span>电子</span><span>木鱼</span></div>
+              </div>
+              <div class="c-box">
+                <p class="c-label">速度 / TEMPO</p>
+                <div class="tempo"><span class="t-btn">−</span><span class="t-val">96 BPM</span><span class="t-btn">＋</span></div>
+              </div>
+              <div class="c-box">
+                <p class="c-label">重音 / ACCENT</p>
+                <div class="seg"><span class="on">第 1 拍</span><span>无</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="metro-side">
+            <p class="s-label">预设 / PRESETS</p>
+            <div class="preset"><span>热身 70 BPM</span><span class="pv">2/4</span></div>
+            <div class="preset"><span>速度墙 96 BPM</span><span class="pv">4/4</span></div>
+            <div class="preset"><span>扫拨 120 BPM</span><span class="pv">6/8</span></div>
+            <p class="s-label" style="margin-top:20px;">说明</p>
+            <p style="font-size:13px; color:var(--ink-2); margin-top:6px;">
+              配合「练习方法：速度墙与注意力焦点」使用：找到能干净弹三遍的上一档速度，从那里开始加。
+            </p>
+            <div class="play-btn">开始</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">手机 PWA（390 宽）</h2>
+  <p class="section-note">
+    移动端保持亮色，dock 用等宽小字标签；节拍器读数屏是页面上唯一的黑块，开屏即焦点。
+  </p>
+  <div class="phones">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="right"><svg width="34" height="11" viewBox="0 0 34 11" fill="#17181a"><rect x="0" y="1" width="3" height="8" rx="0.8"/><rect x="4.5" y="0" width="3" height="9" rx="0.8" opacity=".35"/><rect x="9" y="0" width="3" height="9" rx="0.8" opacity=".35"/><rect x="13.5" y="0" width="3" height="9" rx="0.8" opacity=".35"/><rect x="19" y="1.5" width="12" height="7" rx="2" fill="none" stroke="#17181a"/><rect x="20.5" y="3" width="7" height="4" rx="1"/></svg></span></div>
+      <div class="p-content">
+        <div class="p-brand">INDEX / 索引</div>
+        <p class="p-label">工具 / TOOLS</p>
+        <div class="p-tools">
+          <div class="p-tool hero"><span class="t">节拍器</span><span class="hv">96</span></div>
+          <div class="p-tool"><p class="t">和弦库</p><p class="d">12 × 9</p></div>
+          <div class="p-tool"><p class="t">速查表</p><p class="d">CAGED</p></div>
+          <div class="p-tool"><p class="t">练习计划</p><p class="d">30-60 MIN</p></div>
+          <div class="p-tool"><p class="t">节奏型</p><p class="d">8 PATTERNS</p></div>
+        </div>
+        <p class="p-label">最新整理 / RECENT</p>
+        <div class="p-row"><span class="no">07</span><span class="t">C 大调一弦三音系统</span><span class="m">10-22</span></div>
+        <div class="p-row"><span class="no">06</span><span class="t">推弦、揉弦与交替拨弦</span><span class="m">10-21</span></div>
+        <div class="p-row"><span class="no">05</span><span class="t">和弦构造、调式与和声进行</span><span class="m">10-18</span></div>
+      </div>
+      <div class="dock">
+        <span class="d-item on"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3.5 9.5L10 3.5l6.5 6v7h-4.5v-4h-4v4H3.5v-7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>索引</span>
+        <span class="d-item"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 3.5h9.5L16 6v10.5H4v-13z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 8h7M6.5 11h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>资料</span>
+        <span class="d-item"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="7" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 7V4.5h7V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>工具</span>
+        <span class="d-item"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>节拍器</span>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="right"><svg width="34" height="11" viewBox="0 0 34 11" fill="#17181a"><rect x="0" y="1" width="3" height="8" rx="0.8"/><rect x="4.5" y="0" width="3" height="9" rx="0.8" opacity=".35"/><rect x="9" y="0" width="3" height="9" rx="0.8" opacity=".35"/><rect x="13.5" y="0" width="3" height="9" rx="0.8" opacity=".35"/><rect x="19" y="1.5" width="12" height="7" rx="2" fill="none" stroke="#17181a"/><rect x="20.5" y="3" width="7" height="4" rx="1"/></svg></span></div>
+      <div class="p-content">
+        <div class="m-read">
+          <div class="m-bpm">96<small> BPM</small></div>
+          <div class="m-beats"><i class="on"></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="m-seg2"><span>2/4</span><span class="on">4/4</span><span>3/4</span><span>6/8</span></div>
+        <div class="m-seg2"><span class="on">机械</span><span>电子</span><span>木鱼</span></div>
+        <span class="m-play">开始</span>
+      </div>
+      <div class="dock">
+        <span class="d-item"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3.5 9.5L10 3.5l6.5 6v7h-4.5v-4h-4v4H3.5v-7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>索引</span>
+        <span class="d-item"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 3.5h9.5L16 6v10.5H4v-13z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 8h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>资料</span>
+        <span class="d-item"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="7" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 7V4.5h7V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>工具</span>
+        <span class="d-item on"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>节拍器</span>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">方向 C 要点</h2>
+  <ul class="notes">
+    <li><span class="k">气质</span><span class="v">冷白精工：仪器、手册、校准。与「数据来自推导，不手抄」的工程气质同源。</span></li>
+    <li><span class="k">色与字</span><span class="v">底三级（#f4f4f2 / #fff / #ececea），墨三级，电蓝 #2547f4 唯一强调；数据全部等宽字体。</span></li>
+    <li><span class="k">编目化</span><span class="v">资料列表加索引号（按整理时间生成，非新字段），呼应「个人手册」的定位。</span></li>
+    <li><span class="k">代价</span><span class="v">中高。令牌与组件重做，但保持亮色，正文排版规则大部分可迁移。</span></li>
+    <li><span class="k">适合</span><span class="v">想要明显换代感、又不想牺牲长文阅读舒适度的情况；工具控会很喜欢。</span></li>
+  </ul>
+  <div class="verdict">
+    一句话判断：B 是「把站子搬上舞台」，C 是「把站子搬进工作台」。两者换代感相当，C 保住亮色阅读，B 换来更纯粹的练琴氛围。
+  </div>
+
+  <footer class="pre">方向 C 预览完 · <a href="./index.html">返回讨论索引</a></footer>
+</main>
+
+</body>
+</html>
