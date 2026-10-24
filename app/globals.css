@@ -107,8 +107,11 @@
   :root {
     /* 导航栏实测高度，供粘性定位与锚点留白复用。
        必须把顶部安全区加进来（BLF-1448）：PWA 全屏时导航实际比 56px 高，
-       否则粘性目录与锚点会各自被状态栏多压掉一截。 */
-    --nav-h: calc(56px + env(safe-area-inset-top));
+       否则粘性目录与锚点会各自被状态栏多压掉一截。
+       但不能写成 56px + 安全区：.shell-nav 是 border-box，59px 的 padding-top
+       会把 min-height 吃掉，实际高度是 44px 触控行 + 安全区。写 56 + 安全区
+       会比真实高度多 12px，粘性目录与锚点又会各多留一截空隙。 */
+    --nav-h: max(56px, calc(44px + env(safe-area-inset-top)));
   }
 
   html {

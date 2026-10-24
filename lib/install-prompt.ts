@@ -7,8 +7,10 @@
  * 显示，全由页面自己决定。所以「装了 PWA 基建」和「用户看得到安装入口」是两件事：
  * 前者早就好了，后者一直缺着。
  *
- * 这个模块不碰 DOM：只回答「该显示哪种入口」和「点了以后该说什么」，
- * 浏览器交互在 `components/InstallPrompt.tsx` 里。
+ * 这个模块只在调用时接触最小的浏览器接口（`dispatchEvent`），不直接读全局
+ * `window`：既回答「该显示哪种入口」，也负责「消费后清空并通知」这一个原子动作，
+ * 方便在 node 环境里用假对象验证通知路径。真正的 DOM 交互在
+ * `components/InstallPrompt.tsx` 里。
  */
 
 /**
@@ -19,6 +21,17 @@ export type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
+
+/**
+ * 安装状态变化的通知事件名。
+ *
+ * `useSyncExternalStore` 的快照来源是 `window.__deferredInstallPrompt`，
+ * 改这个全局变量不会自动触发任何通知——捕获、安装完成、消费都必须显式派发它。
+ *
+ * 捕获脚本是静态字符串（不能插值），里面用字面量写了同名事件；
+ * 两处必须一致，测试会比对。
+ */
+export const INSTALL_STATE_EVENT = "deferredinstallprompt";
 
 /** 当前该给用户看什么 */
 export type InstallEntry =
@@ -90,6 +103,35 @@ export const IOS_INSTALL_STEPS = [
   "在菜单里选「添加到主屏幕」",
   "点右上角「添加」",
 ] as const;
+
+/**
+ * 消费 deferred prompt 时需要的最小宿主接口。
+ * 单独抽出来，是为了在 node 测试里传假对象，验证「清空必通知」。
+ */
+export type InstallPromptHost = {
+  __deferredInstallPrompt?: BeforeInstallPromptEvent;
+  dispatchEvent: (event: Event) => boolean;
+};
+
+/**
+ * 取走 deferred prompt：清空 + 通知订阅者，两个动作不能拆开（BLF-1448）。
+ *
+ * `prompt()` 是一次性的，用户取消后再调会抛错，所以拿到后立刻清空。但清空改的是
+ * `useSyncExternalStore` 的快照来源，不派发通知的话快照不会重算：按钮留在原地，
+ * 再点被 `if (!deferred) return` 挡回——看起来就是个死键，直到整页刷新。
+ *
+ * 返回 undefined 表示没有可消费的 prompt，此时不派发通知，避免空通知引发无谓重渲染。
+ */
+export function consumeDeferredInstallPrompt(
+  host: InstallPromptHost,
+): BeforeInstallPromptEvent | undefined {
+  const deferred = host.__deferredInstallPrompt;
+  if (!deferred) return undefined;
+
+  host.__deferredInstallPrompt = undefined;
+  host.dispatchEvent(new Event(INSTALL_STATE_EVENT));
+  return deferred;
+}
 
 /**
  * 抢在 React 之前接住 `beforeinstallprompt` 的内联脚本（BLF-1448）。

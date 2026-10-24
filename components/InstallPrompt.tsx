@@ -3,7 +3,9 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
 import {
   IOS_INSTALL_STEPS,
+  INSTALL_STATE_EVENT,
   type BeforeInstallPromptEvent,
+  consumeDeferredInstallPrompt,
   isIosUserAgent,
   isSafariUserAgent,
   resolveInstallEntry,
@@ -27,7 +29,9 @@ import {
  *    `window.__deferredInstallPrompt`，组件挂载后再读。
  *
  * 2. **deferred prompt 是一次性的**。`prompt()` 只能调一次，用户取消后再调
- *    会抛错，所以拿到后立刻清空。`appinstalled` 与 `display-mode` 一起作为
+ *    会抛错，所以拿到后立刻清空。清空的同时必须派发通知：快照来源就是那个全局
+ *    变量，只清空不通知的话 `useSyncExternalStore` 不会重算，按钮留在原地、
+ *    再点被挡回，就成了死键。`appinstalled` 与 `display-mode` 一起作为
  *    「已经装过」的判断依据。
  *
  * 不做自动弹出：入口是页面里的一行提示，用户点了才弹系统对话框。
@@ -54,14 +58,14 @@ declare global {
  */
 function subscribeInstallState(onChange: () => void): () => void {
   // 内联脚本捕获到事件、或安装完成时都会派发这个自定义事件
-  window.addEventListener("deferredinstallprompt", onChange);
+  window.addEventListener(INSTALL_STATE_EVENT, onChange);
   window.addEventListener("appinstalled", onChange);
 
   const displayMode = window.matchMedia("(display-mode: standalone)");
   displayMode.addEventListener("change", onChange);
 
   return () => {
-    window.removeEventListener("deferredinstallprompt", onChange);
+    window.removeEventListener(INSTALL_STATE_EVENT, onChange);
     window.removeEventListener("appinstalled", onChange);
     displayMode.removeEventListener("change", onChange);
   };
@@ -92,11 +96,9 @@ export function InstallPrompt() {
   const [dismissed, setDismissed] = useState(false);
 
   const install = useCallback(async () => {
-    const deferred = window.__deferredInstallPrompt;
+    // 一次性：消费时清空并通知订阅者，入口随快照一起消失，不会变成死键
+    const deferred = consumeDeferredInstallPrompt(window);
     if (!deferred) return;
-
-    // 一次性：先清空再调 prompt()，避免用户取消后按钮变成永远失败的死键
-    window.__deferredInstallPrompt = undefined;
 
     try {
       await deferred.prompt();

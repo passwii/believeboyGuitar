@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import {
   INSTALL_CAPTURE_SCRIPT,
+  INSTALL_STATE_EVENT,
   IOS_INSTALL_STEPS,
+  type BeforeInstallPromptEvent,
+  consumeDeferredInstallPrompt,
   isIosUserAgent,
   isSafariUserAgent,
   resolveInstallEntry,
@@ -90,8 +93,10 @@ describe("安全区（BLF-1448）", () => {
     expect(shellBlock).toContain("max(2rem, env(safe-area-inset-right))");
   });
 
-  it("--nav-h 含顶部安全区，粘性目录与锚点才不会被状态栏多压一截", () => {
-    expect(globals).toContain("--nav-h: calc(56px + env(safe-area-inset-top));");
+  it("--nav-h 按导航真实高度（44px 触控行 + 安全区）校准，不是 56 + 安全区", () => {
+    // .shell-nav 是 border-box：59px 安全区下真实高度是 44 + 59 = 103px，
+    // 写 56 + 59 会多出 12px，粘性目录 top 与锚点 scroll-mt 都会跟着偏。
+    expect(globals).toContain("--nav-h: max(56px, calc(44px + env(safe-area-inset-top)));");
   });
 
   it("页脚底部安全区仍然保留（不被这轮改动带走）", () => {
@@ -118,14 +123,58 @@ describe("安装入口：为什么之前「PW 没触发」", () => {
     expect(installPrompt).toContain("await deferred.userChoice;");
   });
 
-  it("deferred prompt 是一次性的：先清空再调，取消后不变成死键", () => {
+  /**
+   * 死键的根因：清空 `window.__deferredInstallPrompt` 只是改了一个全局变量，
+   * `useSyncExternalStore` 不会知道快照变了。必须显式派发通知，否则按钮留在
+   * 原地、再点被 `if (!deferred) return` 挡回，直到整页刷新。
+   */
+  it("清空 deferred prompt 时一定派发通知，订阅者才会重算快照", () => {
+    const deferred = Object.assign(new Event("beforeinstallprompt"), {
+      prompt: async () => {},
+      userChoice: Promise.resolve({ outcome: "dismissed" as const }),
+    });
+    const dispatched: Event[] = [];
+    const host = {
+      __deferredInstallPrompt: deferred as BeforeInstallPromptEvent,
+      dispatchEvent: (event: Event) => {
+        dispatched.push(event);
+        return true;
+      },
+    };
+
+    const consumed = consumeDeferredInstallPrompt(host);
+
+    expect(consumed).toBe(deferred);
+    expect(host.__deferredInstallPrompt).toBeUndefined();
+    expect(dispatched.map((event) => event.type)).toEqual([INSTALL_STATE_EVENT]);
+  });
+
+  it("没有 deferred prompt 时不派发空通知", () => {
+    const dispatched: Event[] = [];
+    const consumed = consumeDeferredInstallPrompt({
+      dispatchEvent: (event: Event) => {
+        dispatched.push(event);
+        return true;
+      },
+    });
+
+    expect(consumed).toBeUndefined();
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("组件消费时走同一个入口，不再自己清空全局变量", () => {
     const from = installPrompt.indexOf("const install = useCallback(");
-    const to = installPrompt.indexOf("if (dismissed || entry === \"hidden\") return null;");
+    const to = installPrompt.indexOf('if (dismissed || entry === "hidden") return null;');
     const body = installPrompt.slice(from, to);
 
-    expect(body.indexOf("window.__deferredInstallPrompt = undefined;")).toBeGreaterThan(-1);
-    expect(body.indexOf("window.__deferredInstallPrompt = undefined;")).toBeLessThan(
-      body.indexOf("await deferred.prompt();"),
+    expect(body).toContain("consumeDeferredInstallPrompt(window)");
+    expect(body).not.toContain("window.__deferredInstallPrompt = undefined;");
+  });
+
+  it("订阅与捕获脚本用同一个事件名，避免只清空不通知", () => {
+    expect(INSTALL_CAPTURE_SCRIPT).toContain(`new Event('${INSTALL_STATE_EVENT}')`);
+    expect(installPrompt).toContain(
+      "window.addEventListener(INSTALL_STATE_EVENT, onChange)",
     );
   });
 });
