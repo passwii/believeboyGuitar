@@ -13,6 +13,7 @@ Next.js 版本相关的写法参考脚手架生成的 `AGENTS.md`。
 - 页面组件不要用 `LayoutProps<"...">` / `PageProps<"...">` 这类构建后生成的全局类型，`tsc --noEmit` 会失败。显式写 `{ params: Promise<{ slug: string }> }`
 - `next.config.ts` 不得开启 `cacheComponents`：会让访问 `params` 的动态路由在预渲染时报错，静态导出失败
 - `@types/node` 必须保持 `^24` 以上，`vitest@5` 的 peer 要求
+- 曲谱的记谱法只做简谱，不做五线谱。此前也没有做过五线谱（第 1 周曲谱原书是「五线谱 + TAB」双行谱，页面只保留了 TAB）
 
 ## 交互组件怎么进正文
 
