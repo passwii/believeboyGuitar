@@ -115,17 +115,22 @@
 
 @layer base {
   :root {
-    /* 导航栏实测高度，供粘性定位与锚点留白复用。
-       必须把顶部安全区加进来（BLF-1448）：PWA 全屏时导航实际比 56px 高，
-       否则粘性目录与锚点会各自被状态栏多压掉一截。
-       但不能写成 56px + 安全区：.shell-nav 是 border-box，59px 的 padding-top
-       会把 min-height 吃掉，实际高度是 44px 触控行 + 安全区。写 56 + 安全区
-       会比真实高度多 12px，粘性目录与锚点又会各多留一截空隙。 */
-    --nav-h: max(56px, calc(44px + env(safe-area-inset-top)));
+    /* 粘性导航的实际高度，供长文侧栏与锚点留白复用。
+       窄屏 / PWA 顶部没有导航栏（BLF-1452 视觉重设计：安装后那条站名栏只是
+       把内容往下推），所以基准是 0；宽屏才有导航，高度是 44px 触控行 + 安全区。
+       .shell-nav 是 border-box，59px 的 padding-top 会把 min-height 吃掉，
+       所以写 44 + 安全区；写成 56 + 安全区会比真实高度多 12px。 */
+    --nav-h: 0px;
 
-    /* 移动端底部 dock 的高度（触控行 + 边框），页脚底部留白用它让位。
+    /* 移动端底部 dock 的高度（图标行 + 名称 + 边框），页脚底部留白用它让位。
        dock 只在窄屏出现，这个值在桌面不被引用。 */
-    --dock-h: 3.5rem;
+    --dock-h: 3.75rem;
+  }
+
+  @media (min-width: 640px) {
+    :root {
+      --nav-h: max(56px, calc(44px + env(safe-area-inset-top)));
+    }
   }
 
   html {
@@ -217,9 +222,44 @@
     gap: 1rem;
   }
 
+  /* 分类卡片（首页与工具间）：图标 + 名称 + 一条计数。
+     形状统一由这里给，页面只排内容。深度只靠一层底色与发丝边，
+     不加阴影——亮区是工作台，不是浮起的营销卡片。 */
+  .tile {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.25rem;
+    min-height: 7rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface);
+    padding: 1rem 1.125rem 1.125rem;
+    transition: background-color 150ms var(--ease-standard),
+      border-color 150ms var(--ease-standard);
+  }
+
+  @media (hover: hover) {
+    .tile:hover {
+      border-color: var(--color-ink-200);
+      background-color: color-mix(
+        in oklab,
+        var(--color-surface-muted) 55%,
+        var(--color-surface)
+      );
+    }
+  }
+
   /* 阅读列 */
   .measure {
     max-width: var(--container-measure);
+  }
+
+  /* 操作页列（练习）：比阅读列宽一档。TAB 谱本身 min-width 39.5rem，
+     塞进 40em 的阅读列会在桌面也出现横向滑动——练习页是拿来看谱的，
+     不是读长文的，所以单独给一档宽度。 */
+  .sheet {
+    max-width: 48rem;
   }
 
   /* 选择型控件（筛选芯片、把位芯片）：44pt 触摸目标 + 填充式形态 */

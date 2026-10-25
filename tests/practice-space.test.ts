@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { lessons, practice } from "@/content/manifest";
 import { SITE } from "@/content/site";
-import { WEEK1_SECTIONS } from "@/lib/tab-exercises";
+import { summarizeTabSections, tabSummaryText, WEEK1_SECTIONS } from "@/lib/tab-exercises";
 
 /**
  * Stage 1 的守护（BLF-1452）：首页第一分类是「练习」，练习页只留
@@ -36,21 +36,79 @@ describe("站点身份只有一个来源", () => {
 describe("首页：练习是第一分类", () => {
   const home = read("app/page.tsx");
 
-  it("练习区块排在知识与工具之前", () => {
-    const practice = home.indexOf('id="practice-heading"');
-    const knowledge = home.indexOf('id="knowledge-heading"');
-    const tools = home.indexOf('id="tools-heading"');
+  it("练习卡片排在知识、工具与节拍器之前", () => {
+    const practice = home.indexOf('id="home-practice"');
+    const knowledge = home.indexOf('id="home-knowledge"');
+    const tools = home.indexOf('id="home-tools"');
+    const metronome = home.indexOf('id="home-metronome"');
     expect(practice).toBeGreaterThan(-1);
     expect(practice).toBeLessThan(knowledge);
     expect(knowledge).toBeLessThan(tools);
+    expect(tools).toBeLessThan(metronome);
   });
 
-  it("本周练习与目标都来自 manifest，不在页面里另写一份", () => {
+  it("分类卡片是图标 + 名称，不再靠一行行文字说明", () => {
+    for (const id of ["practice", "knowledge", "tools", "metronome"]) {
+      expect(home).toContain(`<SectionIcon id="${id}"`);
+    }
+  });
+
+  it("本周练习来自 manifest，目标只在练习页读一次", () => {
     expect(home).toContain("practice.current");
-    expect(home).toContain("practice.goals");
     expect(home).toContain("WEEK1_SECTIONS");
+    // 目标不在首页重复摊开：详情在 /practice，数据仍只有 manifest 一份
+    expect(home).not.toContain("practice.goals");
     // 首页是入口，不再有导语段落
     expect(home).not.toContain("把收集到的资料整理改写成");
+  });
+
+  it("首页不再有区块小标签（eyebrow）与编号行", () => {
+    expect(home).not.toContain("text-micro");
+    expect(home).not.toContain("padStart(2");
+  });
+});
+
+describe("曲谱摘要由谱面推出，不是页面里的字面量", () => {
+  it("第 1 周的条数、速度、弦与品位都从数据算出来", () => {
+    const summary = summarizeTabSections(WEEK1_SECTIONS);
+    expect(summary.count).toBe(WEEK1_SECTIONS.length);
+
+    const bpms = [...new Set(WEEK1_SECTIONS.map((section) => section.bpm))];
+    expect(summary.bpm).toBe(bpms.length === 1 ? bpms[0] : null);
+
+    const notes = WEEK1_SECTIONS.flatMap((section) =>
+      section.measures.flatMap((measure) => measure.notes),
+    );
+    const frets = notes.map((note) => note.fret);
+    const strings = notes.map((note) => note.string);
+    expect(summary.frets).toBe(`${Math.min(...frets)}–${Math.max(...frets)}`);
+    const stringRange =
+      Math.min(...strings) === Math.max(...strings)
+        ? `${strings[0]}`
+        : `${Math.min(...strings)}–${Math.max(...strings)}`;
+    expect(summary.strings).toBe(stringRange);
+  });
+
+  it("换一组练习，摘要跟着变（不会把第 1 周写死）", () => {
+    const shifted = WEEK1_SECTIONS.map((section) => ({
+      ...section,
+      bpm: section.bpm + 20,
+      measures: section.measures.map((measure) => ({
+        notes: measure.notes.map((note) => ({ ...note, fret: (note.fret + 2) as typeof note.fret })),
+      })),
+    }));
+    const summary = summarizeTabSections(shifted);
+    expect(summary.bpm).toBe(WEEK1_SECTIONS[0].bpm + 20);
+    expect(tabSummaryText(summary)).not.toBe(tabSummaryText(summarizeTabSections(WEEK1_SECTIONS)));
+    expect(tabSummaryText(summary)).toContain("♩=");
+  });
+
+  it("首页与曲谱卡都不再手写品位字面量", () => {
+    for (const file of ["app/page.tsx", "components/TabExercise.tsx"]) {
+      const source = read(file);
+      expect(source, `${file} 又写死了品位`).not.toMatch(/6 弦 5[–-]8 品/);
+      expect(source, `${file} 又写死了速度`).not.toMatch(/♩=100/);
+    }
   });
 });
 
@@ -61,6 +119,14 @@ describe("练习空间 /practice", () => {
     expect(page).not.toContain('httpEquiv="refresh"');
     expect(page).toContain("<TabExercise");
     expect(page).toContain("<PracticePlanner");
+  });
+
+  it("本周目标与首页读的是同一份 manifest 数据", () => {
+    expect(page).toContain("practice.goals");
+    expect(practice.goals.length).toBeGreaterThan(0);
+    for (const goal of practice.goals) {
+      expect(goal.title.trim()).not.toBe("");
+    }
   });
 
   it("本周练哪一节登记在 manifest，且指向真实的资料", () => {

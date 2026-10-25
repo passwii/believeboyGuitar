@@ -24,7 +24,7 @@ export function SiteFooter() {
     >
       <div className="shell">
         <div className="border-t border-rule pt-6 text-meta text-ink-500">
-          个人学习空间 · 内容为原始资料的整理改写
+          个人学习空间
         </div>
       </div>
     </footer>

@@ -343,14 +343,17 @@ describe("页面外壳", () => {
   const source = readFileSync(path.join(root, "app", "practice", "page.tsx"), "utf8");
 
   it("使用统一的页面外壳与阅读列", () => {
-    expect(source).toContain('<main className="shell flex-1 py-10 sm:py-14">');
-    expect(source).toContain("measure");
+    expect(source).toContain('<main className="shell flex-1 pt-4 pb-10 sm:py-14">');
+    // 练习页是操作页：用比阅读列宽一档的 .sheet，TAB 谱在桌面不用横向滑动
+    expect(source).toContain("sheet");
   });
 
-  it("区块标注 + 衬线主标题，不再写导语段落", () => {
-    expect(source).toContain("text-micro");
-    expect(source).toContain("text-display font-display");
-    expect(source).not.toContain("text-body text-pretty text-ink-700\">\n          ");
+  it("页头是图标 + 紧凑标题 + 周次胶囊，不再用区块小标签", () => {
+    // 视觉重设计（BLF-1452 评论）：眉标（eyebrow）退场，区块标题自己说话
+    expect(source).toContain("<SectionIcon id=\"practice\"");
+    expect(source).toContain("text-title font-display");
+    expect(source).not.toContain("text-micro");
+    expect(source).not.toContain("font-mono text-micro");
   });
 
   it("没有任意字号与内联样式", () => {

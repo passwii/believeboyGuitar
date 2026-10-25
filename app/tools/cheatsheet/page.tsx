@@ -62,17 +62,12 @@ export default function CheatsheetPage() {
       </div>
 
       <footer className="measure mt-10 text-meta text-ink-500">
-        <p className="text-pretty">
-          这一页是工具页，不是资料，不登记在资料库清单里。
-        </p>
-        <p className="mt-2">
-          <Link
-            href="/library"
-            className="inline-flex min-h-11 items-center text-label text-accent-700 underline underline-offset-4"
-          >
-            回到资料库
-          </Link>
-        </p>
+        <Link
+          href="/library"
+          className="inline-flex min-h-11 items-center text-label text-accent-700 underline underline-offset-4"
+        >
+          回到知识
+        </Link>
       </footer>
     </main>
   );

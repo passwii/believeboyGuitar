@@ -1,85 +1,72 @@
 import Link from "next/link";
 
+import { SiteIcon, type IconName } from "@/components/SiteIcons";
+
 /**
  * 工具页清单。
  *
  * 这些页面是「拿来用的」，不是知识条目，所以不登记进 content/manifest.ts。
- * 工具间、桌面导航、移动端 dock 都从这份清单读，不另立第二份。
+ * 工具间、首页的分类卡片都从这份清单读，不另立第二份。
  *
  * BLF-1452 Stage 1：练习计划搬进「练习」空间（/practice），不再是工具——
- * 练习的曲谱、要求与时间分配应该在同一页，而不是分两处。详细说明也压到
- * 一行，工具间与首页都不再是“说明书”。
+ * 练习的曲谱、要求与时间分配应该在同一页，而不是分两处。
+ * 视觉重设计时每个工具配一个图标：工具间不再靠一行行文字辨认。
  */
-export const TOOL_PAGES = [
+export const TOOL_PAGES: readonly {
+  href: string;
+  name: string;
+  detail: string;
+  icon: IconName;
+}[] = [
   {
     href: "/tools/cheatsheet",
     name: "速查表",
     detail: "调弦、音级指位、推弦目标、CAGED 与和弦指法，一页查完。",
+    icon: "cheatsheet",
   },
   {
     href: "/tools/chords",
     name: "和弦库",
     detail: "12 个根音 × 9 种性质，按法全部由调弦与音程推导。",
+    icon: "chords",
   },
   {
     href: "/tools/rhythms",
     name: "节奏型",
     detail: "八种节奏型的网格与击弦统计，按拍号重音切组。",
+    icon: "rhythms",
   },
   {
     href: "/tools/metronome",
     name: "节拍器",
     detail: "六种拍号、30–240 BPM、三种音色。",
+    icon: "metronome",
   },
-] as const;
+];
 
-export function ToolPages() {
+/** 工具间（/tools）的卡片墙：图标 + 名称 + 一句用途 */
+export function ToolTiles() {
   return (
-    <section className="mt-12" aria-labelledby="tools-heading">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2
-          id="tools-heading"
-          className="font-mono text-micro font-medium uppercase text-ink-500"
-        >
-          工具
-        </h2>
-        <Link
-          href="/tools"
-          className="flex min-h-11 items-center text-label text-accent-700 underline underline-offset-4"
-        >
-          工具间
-        </Link>
-      </div>
-      <ul className="mt-3 divide-y divide-rule border-y border-rule">
-        {TOOL_PAGES.map((tool) => (
-          <li key={tool.href}>
-            <Link href={tool.href} className="row">
-              <span className="min-w-0 flex-1">
-                <span className="block text-title text-balance text-ink-950">
-                  {tool.name}
-                </span>
-                <span className="mt-1.5 block text-body text-ink-700 text-pretty">
-                  {tool.detail}
-                </span>
+    <ul className="mt-6 grid gap-3 sm:grid-cols-2 sm:gap-4">
+      {TOOL_PAGES.map((tool) => (
+        <li key={tool.href}>
+          <Link href={tool.href} className="tile group min-h-0 gap-3">
+            <span className="flex items-center gap-3">
+              <span className="flex size-10 flex-none items-center justify-center rounded-control bg-canvas text-ink-700 transition-colors duration-150 group-hover:text-accent-700">
+                <SiteIcon name={tool.icon} className="size-5" />
               </span>
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 7 12"
-                fill="none"
-                className="mt-2 size-3 shrink-0 self-start text-ink-100"
-              >
-                <path
-                  d="M1 1l5 5-5 5"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+              <span className="flex-1 text-body font-semibold text-ink-950">
+                {tool.name}
+              </span>
+              <SiteIcon
+                name="arrow"
+                className="size-4 flex-none text-ink-300 transition-transform duration-150 group-hover:translate-x-0.5"
+              />
+            </span>
+            <span className="text-meta text-pretty text-ink-500">{tool.detail}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -3,36 +3,29 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { SITE } from "@/content/site";
+import { HOME, SECTIONS, SITE, type Section } from "@/content/site";
+import { SiteIcon, SectionIcon } from "@/components/SiteIcons";
 
 /**
- * 站点导航（BLF-1452 Stage 1）。
+ * 站点导航（BLF-1452 Stage 1 + 视觉重设计）。
  *
- * 分类顺序就是首页的顺序：练习 → 知识 → 工具 → 节拍器。练习是第一分类，
- * 打开就能进；节拍器是全站最高频的工具，保留直达。
- * 移动端：顶部只留站点名，导航整体下沉为底部 dock，带底部安全区避让。
+ * 分类顺序就是首页的顺序：练习 → 知识 → 工具 → 节拍器，全部读
+ * `content/site.ts` 的 SECTIONS。图标与名称成对出现，当前项靠强调色 +
+ * `aria-current` 标记，不靠下划线。
+ *
+ * 两种外壳：
+ * - 宽屏：粘性半透明导航，左边站名（回首页），右边四个分类。
+ * - 窄屏 / PWA：顶部完全不占位——安装后这里是状态栏，再顶着一条站名栏
+ *   只是把内容往下推（BLF-1452 评论拍板）。分类全部沉到底部 dock，
+ *   五项：首页 + 四个分类，图标在上、名称在下。
  *
  * /tools 子树套 .zone-tools：暗色仪器区里导航跟着换皮（globals.css）。
- * 结构照 iOS 导航栏：滚动模糊交给合成层，分隔线交给容器边框，不用 JS 监听。
  */
+const DOCK_ITEMS: readonly (Section | typeof HOME)[] = [HOME, ...SECTIONS];
 
-const DESKTOP_ITEMS = [
-  { href: "/practice", label: "练习", exact: false },
-  { href: "/library", label: "知识", exact: false },
-  { href: "/tools", label: "工具", exact: true },
-  { href: "/tools/metronome", label: "节拍器", exact: false },
-] as const;
-
-const DOCK_ITEMS = [
-  { href: "/practice", label: "练习", exact: false },
-  { href: "/library", label: "知识", exact: false },
-  { href: "/tools", label: "工具", exact: true },
-  { href: "/tools/metronome", label: "节拍器", exact: false },
-] as const;
-
-function isActive(pathname: string, item: { href: string; exact: boolean }) {
-  if (item.exact) return pathname === item.href;
+function isActive(pathname: string, item: { href: string; exact?: boolean }) {
   if (item.href === "/") return pathname === "/";
+  if (item.exact) return pathname === item.href;
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
@@ -42,8 +35,16 @@ export function SiteNav() {
 
   return (
     <>
+      {/* 窄屏没有顶部导航栏，但 PWA 全屏时状态栏仍然压在内容上：
+          用一段纯安全区的留白接管它，内容从状态栏下方开始。
+          宽屏不需要（导航栏自己带 padding）。 */}
+      <div
+        aria-hidden="true"
+        className="h-[env(safe-area-inset-top)] shrink-0 sm:hidden"
+      />
+
       <header
-        className={`sticky top-0 z-30 border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas ${
+        className={`sticky top-0 z-30 hidden border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas sm:block ${
           dark ? "zone-tools" : ""
         }`}
       >
@@ -51,31 +52,34 @@ export function SiteNav() {
             viewport-fit=cover 让我们自己接管这块留白，否则站点名会被时间 / 刘海盖住。
             安全区随屏幕旋转变化，只能用 env() 现算，不能写死像素。 */}
         <div className="shell shell-nav pt-[env(safe-area-inset-top)]">
-          {/* 站点名就是回首页的入口。窄屏的 dock 上不再单设「书桌」，
-              所以首页的当前位置由这里表达。 */}
           <Link
-            href="/"
-            aria-current={pathname === "/" ? "page" : undefined}
+            href={HOME.href}
+            aria-current={pathname === HOME.href ? "page" : undefined}
             className="flex min-h-11 items-center font-display text-label font-semibold tracking-tight text-ink-950"
           >
             {SITE.name}
           </Link>
-          {/* 桌面导航；移动端下沉到底部 dock，这里只留站点名 */}
-          <nav aria-label="主导航" className="hidden sm:block">
+
+          <nav aria-label="主导航">
             <ul className="flex items-center gap-1">
-              {DESKTOP_ITEMS.map((item) => {
+              {SECTIONS.map((item) => {
                 const active = isActive(pathname, item);
                 return (
-                  <li key={item.href}>
+                  <li key={item.id}>
                     <Link
                       href={item.href}
                       aria-current={active ? "page" : undefined}
-                      className={`flex min-h-11 items-center rounded-control px-3 text-label transition-colors duration-150 ${
+                      className={`flex min-h-11 items-center gap-2 rounded-control px-3 text-label transition-colors duration-150 ${
                         active
                           ? "font-semibold text-ink-950"
                           : "text-ink-700 hover:text-ink-950"
                       }`}
                     >
+                      <SectionIcon
+                        id={item.id}
+                        weight={active ? 2 : 1.6}
+                        className={`size-[18px] ${active ? "text-accent-700" : "text-ink-500"}`}
+                      />
                       {item.label}
                     </Link>
                   </li>
@@ -94,21 +98,32 @@ export function SiteNav() {
           dark ? "zone-tools" : ""
         }`}
       >
-        <ul className="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
+        <ul className="grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
           {DOCK_ITEMS.map((item) => {
             const active = isActive(pathname, item);
+            const icon =
+              "id" in item ? (
+                <SectionIcon
+                  id={item.id}
+                  weight={active ? 2.1 : 1.6}
+                  className="size-5"
+                />
+              ) : (
+                <SiteIcon name="home" weight={active ? 2.1 : 1.6} className="size-5" />
+              );
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex min-h-[var(--dock-h)] flex-col items-center justify-center px-1 text-meta transition-colors duration-150 ${
+                  className={`flex min-h-[var(--dock-h)] flex-col items-center justify-center gap-1 text-meta transition-colors duration-150 ${
                     active
-                      ? "font-semibold text-ink-950"
+                      ? "font-semibold text-accent-700"
                       : "text-ink-500 hover:text-ink-950"
                   }`}
                 >
-                  {item.label}
+                  {icon}
+                  <span>{item.label}</span>
                 </Link>
               </li>
             );

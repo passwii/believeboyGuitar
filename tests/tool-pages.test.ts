@@ -1,7 +1,11 @@
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { TOOL_PAGES } from "@/components/ToolPages";
+import { SECTIONS } from "@/content/site";
+import { SiteIcon } from "@/components/SiteIcons";
 
 /**
  * 工具页清单的守护。
@@ -55,9 +59,21 @@ describe("工具页清单", () => {
   });
 
   it("工具间入口页把清单里的每个工具都列出来", () => {
+    // 视觉重设计后卡片墙收进 ToolTiles（同一个文件、同一份 TOOL_PAGES）
     const index = readFileSync(path.join(appDir, "tools", "page.tsx"), "utf8");
-    expect(index).toContain("TOOL_PAGES");
-    expect(index).toContain("map(");
+    expect(index).toContain("ToolTiles");
+    const tiles = readFileSync(path.join(root, "components", "ToolPages.tsx"), "utf8");
+    expect(tiles).toContain("TOOL_PAGES");
+    expect(tiles).toContain("map(");
+  });
+
+  it("每个工具都有图标，且图标真的画得出来", () => {
+    for (const tool of TOOL_PAGES) {
+      expect(tool.icon.trim()).not.toBe("");
+      const markup = renderToStaticMarkup(createElement(SiteIcon, { name: tool.icon }));
+      // 名字写错时 GLYPHS 取不到形状，只剩一个空 svg
+      expect(markup, `SiteIcons 缺少 ${tool.icon} 的形状`).toMatch(/<(path|circle|rect)/);
+    }
   });
 
   it("工具页不重复", () => {
@@ -80,15 +96,21 @@ describe("工具页清单", () => {
     }
   });
 
-  it("导航上有练习、知识、工具间与节拍器，移动端 dock 四项齐全（BLF-1452）", () => {
+  it("导航与首页共用 content/site.ts 的分类清单（BLF-1452）", () => {
+    expect(SECTIONS.map((section) => section.href)).toEqual([
+      "/practice",
+      "/library",
+      "/tools",
+      "/tools/metronome",
+    ]);
     const nav = readFileSync(path.join(root, "components", "SiteNav.tsx"), "utf8");
-    expect(nav).toContain('href: "/practice"');
-    expect(nav).toContain('href: "/library"');
-    expect(nav).toContain('href: "/tools"');
-    expect(nav).toContain('href: "/tools/metronome"');
-    // 站点名回到首页；dock 上不再单设「书桌」
-    expect(nav).toContain('href="/"');
+    expect(nav).toContain("SECTIONS");
+    expect(nav).toContain("HOME");
     expect(nav).toContain('aria-label="移动端导航"');
+    expect(nav).toContain("grid-cols-5");
+
+    const home = readFileSync(path.join(root, "app", "page.tsx"), "utf8");
+    expect(home).toContain("SECTIONS");
   });
 
   it("工具页不登记进 manifest（它们不是资料）", () => {

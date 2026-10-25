@@ -299,4 +299,3 @@ export function planStatus(plan: PracticePlan): string {
     plan.techniqueLabels.length > 0 ? plan.techniqueLabels.join("、") : "未指定";
   return `共 ${plan.totalMinutes} 分钟 · 技术：${techniques}`;
 }
-
