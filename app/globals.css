@@ -56,8 +56,11 @@
   --color-board-800: oklch(0.32 0.018 58);
   --color-board-900: oklch(0.24 0.016 58);
 
-  /* ---- 字体：依赖本机字体栈，不引外部请求 ---- */
-  --font-display: Georgia, "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  /* ---- 字体：依赖本机字体栈，不引外部请求。
+     展示字 2026-10-25 从衬线改为无衬线：这是一台仪器，不是一本读物。
+     令牌保留独立名称，将来换自托管字面时只动这一处。 ---- */
+  --font-display: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui,
+    -apple-system, "Segoe UI", sans-serif;
   --font-sans: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui,
     -apple-system, "Segoe UI", sans-serif;
   --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, ui-monospace,

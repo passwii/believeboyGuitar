@@ -64,16 +64,19 @@
 ### 排版
 
 ```css
---font-display: Georgia, "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+--font-display: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
 --font-sans: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
 --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, ui-monospace, monospace;
 ```
+
+2026-10-25：展示字从衬线改为无衬线。这是一台仪器，不是一本读物；衬线不再用于标题。
+`--font-display` 保留独立名称，将来换自托管字面时只动这一处。
 
 六档字号，界面文字只允许用这六档（守护测试会拒绝任意字号如 `text-[13px]`）：
 
 | 档位 | 规格 | 用途 |
 | --- | --- | --- |
-| `text-display` | clamp(28→34px) / 1.16 / 600 / -0.022em | 页面主标题（衬线） |
+| `text-display` | clamp(28→34px) / 1.16 / 600 / -0.022em | 页面主标题（无衬线） |
 | `text-title` | 21px / 1.4 / 600 | 资料条目标题、面板标题 |
 | `text-body` | 16px / 1.75 / 400 | 正文、摘要 |
 | `text-label` | 14px / 1.45 / 500 | 控件、导航、行内链接 |
@@ -116,18 +119,21 @@
 
 ### 全站导航
 
-桌面保留站点名与「资料 / 工具 / 节拍器」三个入口；当前页用 `aria-current="page"` 与字重标记，
-不用下划线或色块。窄屏整体下沉为底部 dock（书桌 / 资料 / 工具 / 节拍器）。
+桌面保留站点标记与「资料 / 工具 / 节拍器」三个入口，图标 + 文字；当前页用 `aria-current="page"`
+与浅底标记。窄屏整体下沉为底部 dock（首页 / 资料 / 工具 / 节拍），图标在上、文字在下。
 单独的工具页不进导航——dock 上放的是工具间入口，不是五个工具各自的路由。
 
 ### 首页 `/`
 
-当前结构（D3 会重排为「练习台」，本节届时应同步改写）：
+2026-10-25（D3）起，首页是**练习台**：左列「现在要做的」，右列「接着读的」。
 
-1. 一个小号区块标注 + 衬线主标题 + 一句说明，不使用营销式 Hero、统计或课程 CTA。
-2. 「近期学习目标」：区块标注 + 编号条目，`home.goals` 是唯一来源。
-3. 「最近整理」：按 `updatedAt` 取前 4 条，条目式列表。
-4. 「工具」区块列出全部工具页，标题右侧给「工具间」入口。
+1. 标题「今天练什么」+ 一句说明，不使用营销式 Hero、统计或课程 CTA。
+2. 左列顶部是**节拍器快捷条**（`QuickPractice`）：速度 ±1、4/4 · 3/4 · 6/8、开始 / 暂停、
+   拍点条。它真的会发声，不是跳转按钮；页面隐藏即停，不承担后台续航。
+   完整控制仍在 `/tools/metronome`。
+3. 左列其下是「现在要练的」：编号条目，`home.goals` 是唯一来源。
+4. 右列是「最近整理」：按 `updatedAt` 取前 4 条，条目式列表。
+5. 页面底部是「工具」：节拍器单独占一行（最常用），其余四个两列排；标题右侧给「工具间」入口。
 - 资料为空时显示简洁说明与资料库入口，不使用虚线占位框或虚构推荐。
 
 ### 资料库 `/library`
