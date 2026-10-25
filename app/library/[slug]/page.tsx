@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { lessons } from "@/content/manifest";
 import { DifficultyMeter } from "@/components/DifficultyMeter";
 import { LessonWidget } from "@/components/LessonWidget";
+import { LessonSeriesTabs } from "@/components/LessonSeriesTabs";
 import { LessonTableOfContents } from "@/components/LessonTableOfContents";
 import { splitContentSections } from "@/lib/content-sections";
 import { addLessonHeadingIds, shouldShowLessonToc } from "@/lib/content-toc";
@@ -35,24 +36,30 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const content = addLessonHeadingIds(sanitizeContentHtml(html));
   const sections = splitContentSections(content.html);
   const showToc = shouldShowLessonToc(content.headings);
+  const seriesLessons = lesson.series
+    ? lessons.filter((item) => item.series?.id === lesson.series?.id)
+    : [];
 
   return (
     <main className="shell flex-1 py-8 sm:py-12">
-      <Link
-        href="/library"
-        className="-ml-3 inline-flex min-h-11 items-center rounded-control px-3 text-label text-ink-700 transition-colors duration-150 hover:text-ink-950"
-      >
-        <svg aria-hidden="true" viewBox="0 0 7 12" fill="none" className="mr-1.5 size-3">
-          <path
-            d="M6 1L1 6l5 5"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        资料库
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href="/library"
+          className="-ml-3 inline-flex min-h-11 items-center rounded-control px-3 text-label text-ink-700 transition-colors duration-150 hover:text-ink-950"
+        >
+          <svg aria-hidden="true" viewBox="0 0 7 12" fill="none" className="mr-1.5 size-3">
+            <path
+              d="M6 1L1 6l5 5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          资料库
+        </Link>
+        <LessonSeriesTabs items={seriesLessons} currentSlug={lesson.slug} />
+      </div>
 
       <header className="mt-4 max-w-3xl">
         <h1 className="text-display font-display text-ink-950 text-balance">{lesson.title}</h1>

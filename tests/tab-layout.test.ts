@@ -4,6 +4,7 @@ import {
   tabBeamRowY,
   tabBeamYs,
   tabFretBaselineY,
+  tabMeasureWidth,
   tabNoteFontSize,
   tabNoteX,
   tabStemSpan,
@@ -39,8 +40,8 @@ describe("TAB 谱面几何", () => {
     const first = tabNoteX(measureX, 0, count);
     const last = tabNoteX(measureX, count - 1, count);
 
-    // 数字半宽按 11px 字号估，左右都留在小节线以内
-    const halfDigit = 11 * 0.62 * 0.5;
+    // 数字半宽按密集字号估，左右都留在小节线以内
+    const halfDigit = TAB_LAYOUT.denseNoteFontSize * 0.62 * 0.5;
     expect(first - halfDigit).toBeGreaterThan(measureX);
     expect(last + halfDigit).toBeLessThan(measureX + TAB_LAYOUT.measureWidth);
   });
@@ -99,6 +100,22 @@ describe("TAB 谱面几何", () => {
   it("谱表宽度按小节数与留白算出来", () => {
     expect(tabSystemWidth()).toBe(
       TAB_LAYOUT.systemPadX * 2 + TAB_LAYOUT.measureWidth * TAB_LAYOUT.measuresPerSystem,
+    );
+  });
+
+  it("密集小节自动加宽，十六分音符有足够的横向间距", () => {
+    const eighthWidth = tabMeasureWidth(8);
+    const tripletWidth = tabMeasureWidth(12);
+    const sixteenthWidth = tabMeasureWidth(16);
+
+    expect(eighthWidth).toBe(TAB_LAYOUT.measureWidth);
+    expect(tripletWidth).toBeGreaterThan(eighthWidth);
+    expect(sixteenthWidth).toBeGreaterThan(tripletWidth);
+    expect(
+      sixteenthWidth - TAB_LAYOUT.measurePadX * 2,
+    ).toBe(16 * TAB_LAYOUT.minNoteSpacing);
+    expect(tabSystemWidth([sixteenthWidth, sixteenthWidth, sixteenthWidth, sixteenthWidth])).toBe(
+      TAB_LAYOUT.systemPadX * 2 + sixteenthWidth * 4,
     );
   });
 });

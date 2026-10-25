@@ -29,6 +29,14 @@ export interface Lesson {
   source: string;
   /** 最近整理时间，YYYY-MM-DD */
   updatedAt: string;
+  /** 可选：同一套连续训练中的周次信息。 */
+  series?: LessonSeries;
+}
+
+/** 同一训练序列里的周次，用于资料页右上角的切换。 */
+export interface LessonSeries {
+  id: string;
+  label: string;
 }
 
 export interface HomeGoal {
@@ -163,13 +171,48 @@ export const lessons: Lesson[] = [
     slug: "week-1-finger-independence",
     title: "第 1 周：锻炼各手指的独立运动能力",
     summary:
-      "《电吉他手的养成计划 365日》第 1 周的四条左手练习：每日必弹、周一换指、周二固定基准指、周三三连音，附 TAB 谱与练习要点。",
+      "《电吉他手的养成计划 365日》第 1 周完整计划：每日热身加周一至周六，共七段 TAB 谱，覆盖换指、固定基准指、三连音、三音循环与把位移动。",
     stage: "入门",
     topics: ["技巧", "曲谱"],
-    tags: ["左手", "手指独立", "指法", "TAB", "交替拨弦", "教材整理"],
+    tags: [
+      "左手",
+      "手指独立",
+      "运指",
+      "指法",
+      "TAB",
+      "交替拨弦",
+      "三连音",
+      "十六分音符",
+      "把位移动",
+    ],
     difficulty: 2,
     source:
-      "依据《电吉他手的养成计划 365日》第 1 周（原书第 6 页）整理。曲谱与练习要点为个人学习改写，未转载原书扫描图；品位与指法请在琴上核对。",
-    updatedAt: "2026-10-22",
+      "依据《电吉他手的养成计划 365日》第 1 周（原书第 6 页）与用户提供的完整练习明细整理。曲谱与练习要点为个人学习改写，未转载原书扫描图；品位、指法、把位与速度请在琴上核对。",
+    updatedAt: "2026-10-25",
+    series: { id: "finger-training-weeks", label: "第 1 周" },
+  },
+  {
+    slug: "week-2-alternate-picking",
+    title: "第 2 周：右手强化与交替拨弦",
+    summary:
+      "《电吉他手的养成计划 365日》第 2 周完整计划：每日右手节奏控制加周一至周六，覆盖交替拨弦、空拨、切分、延音、击弦与 Q.C.，共七段 TAB 谱。",
+    stage: "入门",
+    topics: ["技巧", "曲谱"],
+    tags: [
+      "右手",
+      "交替拨弦",
+      "拨片",
+      "空拨",
+      "切分音",
+      "延音",
+      "击弦",
+      "Quarter Choke",
+      "TAB",
+    ],
+    difficulty: 3,
+    source:
+      "依据《电吉他手的养成计划 365日》第 2 周与用户提供的完整练习明细整理。曲谱与练习要点为个人学习改写，未转载原书扫描图；拨片方向、延音、击弦、Q.C.、把位与速度请在琴上核对。",
+    updatedAt: "2026-10-25",
+    series: { id: "finger-training-weeks", label: "第 2 周" },
   },
 ];
