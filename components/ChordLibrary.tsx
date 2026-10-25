@@ -631,7 +631,7 @@ function ChordExplanation() {
           弹之前先在琴上核对根音在哪根弦的第几品，再开始练。
         </p>
         <p className="text-pretty">
-          原理部分可以看资料库里的
+          原理部分可以看
           <Link
             href="/library/harmony-chords-and-modes"
             className="ml-1 inline-flex min-h-11 items-center text-accent-700 underline underline-offset-4"

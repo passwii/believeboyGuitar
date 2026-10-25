@@ -16,7 +16,7 @@ export default function NotFound() {
             href="/library"
             className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label text-on-accent transition-colors duration-150 hover:bg-accent-600"
           >
-            去资料库
+            去知识
           </Link>
           <Link
             href="/"

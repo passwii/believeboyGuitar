@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BpmDial } from "@/components/BpmDial";
+import { SITE } from "@/content/site";
 import { useScreenWakeLock } from "@/components/useScreenWakeLock";
 import {
   preferPlaybackAudioSession,
@@ -461,7 +462,7 @@ export function Metronome() {
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: "节拍器",
-        artist: "电吉他学习资料库",
+        artist: SITE.name,
       });
     } catch {
       // 没有 MediaMetadata 的旧实现：没有锁屏信息，不影响播放

@@ -73,7 +73,11 @@ describe("调速交互不触发页面滚动（BLF-1448）", () => {
 });
 
 describe("安全区（BLF-1448）", () => {
-  it("导航顶部留出安全区，PWA 全屏时站点名不被状态栏压住", () => {
+  it("窄屏没有顶部标题栏，只用一段安全区留白接管状态栏（BLF-1452）", () => {
+    // 安装成 PWA 后顶部那条站名栏只是把内容往下推：窄屏整条不渲染，
+    // 改成一段纯安全区留白；宽屏继续用粘性导航。
+    expect(nav).toContain("h-[env(safe-area-inset-top)]");
+    expect(nav).toMatch(/sticky top-0 z-30 hidden[^"]*sm:block/);
     expect(nav).toContain("pt-[env(safe-area-inset-top)]");
   });
 
@@ -87,16 +91,25 @@ describe("安全区（BLF-1448）", () => {
   });
 
   it("640px 断点重新取 max()，否则横屏 iPhone 的刘海会被 2rem 覆盖", () => {
-    const media = globals.slice(globals.indexOf("@media (min-width: 640px)"));
-    const shellBlock = media.slice(media.indexOf(".shell"), media.indexOf("}", media.indexOf(".shell")));
+    // 文件里不止一个 640px 媒体查询（导航高度也在这里切换），
+    // 按「这个块里有 .shell」挑出外壳那一段。
+    const blocks = [...globals.matchAll(/@media \(min-width: 640px\)\s*\{([\s\S]*?)\n  \}/g)]
+      .map(([, block]) => block);
+    const shellBlock = blocks.find((block) => block.includes(".shell"));
+    expect(shellBlock, "找不到 640px 的 .shell 重排块").toBeDefined();
     expect(shellBlock).toContain("max(2rem, env(safe-area-inset-left))");
     expect(shellBlock).toContain("max(2rem, env(safe-area-inset-right))");
   });
 
-  it("--nav-h 按导航真实高度（44px 触控行 + 安全区）校准，不是 56 + 安全区", () => {
+  it("--nav-h 窄屏为 0（顶部不占位），宽屏才按导航真实高度校准", () => {
+    // 窄屏 / PWA 顶部没有导航栏，锚点与粘性目录不该再空出 56px。
+    expect(globals).toContain("--nav-h: 0px;");
     // .shell-nav 是 border-box：59px 安全区下真实高度是 44 + 59 = 103px，
     // 写 56 + 59 会多出 12px，粘性目录 top 与锚点 scroll-mt 都会跟着偏。
-    expect(globals).toContain("--nav-h: max(56px, calc(44px + env(safe-area-inset-top)));");
+    const navBlock = globals.match(/@media \(min-width: 640px\)\s*\{([\s\S]*?)\n  \}/g)
+      ?.find((block) => block.includes("--nav-h"));
+    expect(navBlock).toBeDefined();
+    expect(navBlock).toContain("--nav-h: max(56px, calc(44px + env(safe-area-inset-top)));");
   });
 
   it("页脚底部安全区仍然保留（不被这轮改动带走）", () => {

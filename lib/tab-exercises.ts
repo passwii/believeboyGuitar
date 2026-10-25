@@ -106,3 +106,56 @@ export const WEEK1_SECTIONS: readonly TabSection[] = [
     tip: "运指时，从小指换到其他手指容易出错。请使用拨片上下交替拨弦。",
   },
 ];
+
+/** 一组曲谱的可读摘要，全部从谱面数据推出来 */
+export interface TabSummary {
+  /** 练习条数 */
+  count: number;
+  /** 同一个速度给数字，几条练习速度不同则给 null */
+  bpm: number | null;
+  /** 涉及第几弦，如 "6" 或 "1–6"；没有音符时为 null */
+  strings: string | null;
+  /** 品位区间，如 "5–8"；没有音符时为 null */
+  frets: string | null;
+}
+
+/**
+ * 曲谱摘要（BLF-1452 复核）。
+ *
+ * 首页与曲谱卡上那句「四条练习都在 6 弦 5–8 品，速度 ♩=100」原来是手写文案：
+ * 周次、条数、品位、速度全写死，换一周练习就会说谎。这里只从 `sections`
+ * 的谱面音符与速度算，页面里不再出现任何格位字面量。
+ */
+export function summarizeTabSections(sections: readonly TabSection[]): TabSummary {
+  const notes = sections.flatMap((section) =>
+    section.measures.flatMap((measure) => measure.notes),
+  );
+  const bpms = [...new Set(sections.map((section) => section.bpm))];
+
+  const range = (values: readonly number[]): string | null => {
+    if (values.length === 0) return null;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    return min === max ? `${min}` : `${min}–${max}`;
+  };
+
+  return {
+    count: sections.length,
+    bpm: bpms.length === 1 ? bpms[0] : null,
+    strings: range(notes.map((note) => note.string)),
+    frets: range(notes.map((note) => note.fret)),
+  };
+}
+
+/** 摘要的一行文案：`4 条练习 · ♩=100 · 6 弦 5–8 品` */
+export function tabSummaryText(summary: TabSummary): string {
+  return [
+    `${summary.count} 条练习`,
+    summary.bpm === null ? null : `♩=${summary.bpm}`,
+    summary.strings === null || summary.frets === null
+      ? null
+      : `${summary.strings} 弦 ${summary.frets} 品`,
+  ]
+    .filter((part): part is string => part !== null)
+    .join(" · ");
+}

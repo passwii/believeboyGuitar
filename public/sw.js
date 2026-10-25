@@ -27,7 +27,7 @@
  * 命中。只缓存 HTML 的话，装完直接断网启动会拿到一张没有 JS 的页面。
  */
 
-const VERSION = "2026-10-24-2";
+const VERSION = "2026-10-25-1";
 const SHELL_CACHE = `shell-${VERSION}`;
 const STATIC_CACHE = `static-${VERSION}`;
 
@@ -36,19 +36,23 @@ const STATIC_CACHE = `static-${VERSION}`;
 const REQUIRED_SHELL = ["/tools/metronome"];
 
 /**
- * 旧地址 → 现住地址（BLF-1451：五个工具迁入 /tools）。
+ * 旧地址 → 现住地址（BLF-1451：工具迁入 /tools；BLF-1452：练习计划搬进
+ * /practice，四个工具留下）。
  *
  * 只在离线兜底时用：在线时 networkFirst 照常回源，跳转壳照常工作并
  * 被缓存；断网时旧地址不在新版壳缓存里，直接拿已缓存的规范页顶上——
  * 比先回跳转壳、再靠 meta refresh 走第二次导航更快，也不依赖 JS。
  * 不预缓存旧地址：install 省几次抓取，规范页本来就在必需壳里。
+ *
+ * 注意 /practice 现在是规范页，不能再出现在左边；反方向的旧地址是
+ * /tools/practice（练习计划在工具间里的旧住址）。
  */
 const LEGACY_ROUTES = {
   "/metronome": "/tools/metronome",
   "/cheatsheet": "/tools/cheatsheet",
   "/chords": "/tools/chords",
-  "/practice": "/tools/practice",
   "/rhythms": "/tools/rhythms",
+  "/tools/practice": "/practice",
 };
 
 /**

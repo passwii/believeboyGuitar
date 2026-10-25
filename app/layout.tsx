@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { SITE } from "@/content/site";
 import { INSTALL_CAPTURE_SCRIPT } from "@/lib/install-prompt";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -9,18 +10,17 @@ import "@/content/content.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "电吉他学习资料库",
-    template: "%s · 电吉他学习资料库",
+    default: SITE.name,
+    template: `%s · ${SITE.name}`,
   },
-  description: "个人电吉他学习资料的整理与长期积累",
-  applicationName: "电吉他学习资料库",
-  // PWA（BLF-1443 / BLF-1451）：清单在 app/manifest.ts。装到桌面的名字
-  // 曾是「节拍器」，站点长出工具间后改回站名——装的是整个资料库，
-  // 不只是一个工具。
+  description: SITE.description,
+  applicationName: SITE.name,
+  // PWA（BLF-1443 / BLF-1451 / BLF-1452）：清单在 app/manifest.ts。
+  // 名字只写在 content/site.ts，站点改名时这里跟着走。
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "电吉他资料库",
+    title: SITE.shortName,
   },
   // Next 只自动输出 android 侧的 mobile-web-app-capable；iOS 16.4 之前
   // 靠这行才从主屏幕全屏启动
