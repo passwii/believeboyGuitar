@@ -17,9 +17,8 @@ export const dynamic = "force-static";
  * 名字在 BLF-1451 从「节拍器」改回站名：装到桌面的是整个资料库，
  * 不只是一个工具；long-press 快捷方式补齐了工具间的四个入口。
  *
- * 颜色与 `app/globals.css` 的 `--color-canvas`（冷白工作台）一致；
- * `tests/pwa.test.ts` 会核对两者没有走散。工具区的舞台黑是子树换皮，
- * 不进清单。
+ * 颜色与 `app/globals.css` 的 `--color-canvas`（冷灰绿信号台）一致；
+ * `tests/pwa.test.ts` 会核对两者没有走散。
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -33,8 +32,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/tools/metronome",
     scope: "/",
     display: "standalone",
-    background_color: "#f4f4f2",
-    theme_color: "#f4f4f2",
+    background_color: "#f1f2ec",
+    theme_color: "#f1f2ec",
     categories: ["music", "education"],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

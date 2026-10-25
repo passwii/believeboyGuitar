@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
  * 移动端：顶部只留站点名，导航整体下沉为底部 dock（书桌 / 资料 / 工具 /
  * 节拍器），带底部安全区避让——这是 PWA 应用感最大的一步。
  *
- * /tools 子树套 .zone-tools：暗色仪器区里导航跟着换皮（globals.css）。
+ * 全站一个世界（2026-10-25）：不再有暗色工具区，导航只有一套外观。
  * 结构照 iOS 导航栏：滚动模糊交给合成层，分隔线交给容器边框，不用 JS 监听。
  */
 
@@ -36,14 +36,11 @@ function isActive(pathname: string, item: { href: string; exact: boolean }) {
 
 export function SiteNav() {
   const pathname = usePathname();
-  const dark = pathname.startsWith("/tools");
 
   return (
     <>
       <header
-        className={`sticky top-0 z-30 border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas ${
-          dark ? "zone-tools" : ""
-        }`}
+        className="sticky top-0 z-30 border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas"
       >
         {/* 顶部安全区（BLF-1448）：PWA 全屏启动后状态栏压在导航上，
             viewport-fit=cover 让我们自己接管这块留白，否则站点名会被时间 / 刘海盖住。
@@ -85,9 +82,7 @@ export function SiteNav() {
           桌面（sm+）不渲染。footer 的底部留白为它让位（见 SiteFooter）。 */}
       <nav
         aria-label="移动端导航"
-        className={`fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-canvas/92 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas sm:hidden ${
-          dark ? "zone-tools" : ""
-        }`}
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-canvas/92 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas sm:hidden"
       >
         <ul className="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
           {DOCK_ITEMS.map((item) => {
