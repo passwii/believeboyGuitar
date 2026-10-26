@@ -193,7 +193,8 @@ export function Fretboard({
             onPointerLeave={() => onHoverPitchClass?.(null)}
             onClick={() => onTogglePitchClass?.(note.pitchClass)}
           >
-            <title>{note.title}</title>
+            {/* 用 desc 而不是 title：title 会被 React 19 提升到 head，留下空节点 */}
+            <desc>{note.title}</desc>
             <circle
               cx={cx}
               cy={cy}

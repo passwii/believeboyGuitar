@@ -82,9 +82,11 @@ export function TabStaff({
           width={SYSTEM_WIDTH}
           height={height}
           role="img"
+          aria-label={`${title}：${measures.length} 小节，速度每分钟 ${bpm} 拍`}
           className="block h-auto w-full min-w-[39.5rem] text-ink-950"
         >
-          <title>{`${title}：${measures.length} 小节，速度每分钟 ${bpm} 拍`}</title>
+          {/* 不在 SVG 里用 <title>：React 19 会把 title 的内容提升到 head，
+              SSR 留下空 <title>，客户端却有内容，水合直接不一致。 */}
           <desc>{`六线吉他 TAB，${timeSignatureLabel} 拍。${description}`}</desc>
 
           {systems.map((systemMeasures, systemIndex) => {
