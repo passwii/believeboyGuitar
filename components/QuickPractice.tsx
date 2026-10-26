@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { TempoWave } from "@/components/TempoWave";
 import { BPM_DEFAULT, METERS, clampBpm, tempoName, type Meter } from "@/lib/metronome";
 import { createMetronomeAudio, type MetronomeAudio } from "@/lib/metronome-audio";
 
@@ -206,20 +207,14 @@ export function QuickPractice() {
             );
           })}
         </div>
-        <div className="ml-auto flex items-center gap-2" aria-hidden="true">
-          {Array.from({ length: meter.beatsPerBar }, (_, index) => {
-            const active = index === beat;
-            return (
-              <span
-                key={index}
-                className={`size-2 rounded-full transition-transform duration-100 ${
-                  active ? "bg-accent-700" : "bg-ink-200"
-                } ${active && meter.accents.includes(index) ? "scale-150" : ""}`}
-              />
-            );
-          })}
-        </div>
       </div>
+
+      <TempoWave
+        meter={meter}
+        activeBeat={beat < 0 ? 0 : beat}
+        running={running}
+        className="mt-4 h-6"
+      />
 
       <button
         type="button"

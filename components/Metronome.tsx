@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BpmDial } from "@/components/BpmDial";
+import { TempoWave } from "@/components/TempoWave";
 import { useScreenWakeLock } from "@/components/useScreenWakeLock";
 import {
   preferPlaybackAudioSession,
@@ -604,6 +605,13 @@ export function Metronome() {
             +
           </button>
         </div>
+      </section>
+
+      {/* 拍点波形：峰值落在每拍，重音拍更高；播放时当前拍整组换成强调色。
+          高亮来自同一个调度循环（activeBeat），不是另一套计时器。 */}
+      <section className="flex flex-col gap-2">
+        <TempoWave meter={meter} activeBeat={activeBeat} running={phase === "running"} className="h-12" />
+        <p className="sr-only">波形：每拍四个细分，亮色是当前拍。</p>
       </section>
 
       <section className="flex flex-col items-center gap-1">
