@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main className="shell flex-1 py-16 sm:py-24">
       <div className="measure">
-        <p className="text-micro font-medium uppercase text-ink-500">404</p>
+        <p className="text-meta font-medium text-ink-500">404</p>
         <h1 className="mt-3 text-display font-display text-ink-950 text-balance">
           这个页面不存在
         </h1>

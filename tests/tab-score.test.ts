@@ -95,7 +95,10 @@ describe("TAB 谱面", () => {
   );
 
   it("有曲谱标题、速度、拍号与 CD 时间", () => {
-    expect(html).toContain("<title>每日必弹 TAB 谱：4 小节，速度每分钟 100 拍</title>");
+    // 可访问名称放在 aria-label 上，而不是 SVG 里的 <title>：
+    // React 19 会把 title 的内容提升到 head，SSR 里只剩空 <title>，水合会不一致。
+    expect(html).toContain('aria-label="每日必弹 TAB 谱：4 小节，速度每分钟 100 拍"');
+    expect(html).not.toContain("<title>");
     expect(html).toContain("CD 0:00~");
     expect(html).toContain("♩ = 100");
     expect(html).toContain("4/4 拍");

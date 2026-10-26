@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Icon } from "@/components/icons";
 import { TOOL_PAGES } from "@/components/ToolPages";
 
 export const metadata: Metadata = {
@@ -7,62 +8,69 @@ export const metadata: Metadata = {
 };
 
 /**
- * 工具间（/tools，BLF-1451）：五个工具一律平等的入口页。
+ * 工具间（/tools）。
  *
  * 工具页清单的唯一事实来源仍是 components/ToolPages.tsx 的 TOOL_PAGES；
- * 这里与首页的「工具」区块、桌面导航、移动端 dock 都只读它，不另立清单。
+ * 这里与首页的「工具」区块、桌面导航、移动端 dock 都只读它。
+ *
+ * 版式是一块面板里的行，不是卡片墙：节拍器单独占一整行（最常用），
+ * 其余四个两列排，全部只用发丝线分隔。
  */
 export default function ToolsIndexPage() {
+  const featured = TOOL_PAGES.find((tool) => tool.href === "/tools/metronome");
+  const others = TOOL_PAGES.filter((tool) => tool.href !== "/tools/metronome");
+
   return (
-    <main className="shell flex-1 py-10 sm:py-14">
-      <header className="measure">
-        <p className="font-mono text-micro font-medium uppercase text-ink-500">
-          Tool room
-        </p>
-        <h1 className="mt-3 text-display font-display text-balance text-ink-950">
-          工具间
-        </h1>
-        <p className="mt-4 text-body text-pretty text-ink-700">
-          拿来就用的工具，一律平等：打开页面就能用，不需要账号，不挑设备。
+    <main className="shell flex-1 pb-16 pt-8 sm:pt-12">
+      <header>
+        <h1 className="text-display font-display text-balance text-ink-950">工具间</h1>
+        <p className="mt-2 max-w-[38ch] text-body text-pretty text-ink-700">
+          打开就能用。不需要账号，不挑设备。
         </p>
       </header>
 
-      <ol className="mt-10 border-t border-rule">
-        {TOOL_PAGES.map((tool, index) => (
-          <li key={tool.href}>
-            <Link href={tool.href} className="row">
-              <span
-                aria-hidden="true"
-                className="w-7 flex-none pt-1.5 text-right font-mono text-meta leading-6 text-ink-500"
-              >
-                {String(index + 1).padStart(2, "0")}
+      <div className="mt-8 overflow-hidden rounded-card border border-rule bg-surface">
+        {featured ? (
+          <Link
+            href={featured.href}
+            className="flex items-center gap-5 border-b border-rule p-5 transition-colors duration-150 hover:bg-surface-muted/50 sm:p-6"
+          >
+            <span className="grid size-12 flex-none place-items-center rounded-control bg-accent-700 text-on-accent">
+              <Icon name={featured.icon} className="size-6" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline gap-2">
+                <span className="text-title text-ink-950">{featured.name}</span>
+                <span className="text-meta text-ink-500">最常用</span>
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-balance text-title text-ink-950">
-                  {tool.name}
-                </span>
-                <span className="mt-1.5 block text-body text-pretty text-ink-700">
-                  {tool.detail}
-                </span>
-              </span>
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 7 12"
-                fill="none"
-                className="mt-2 size-3 shrink-0 self-start text-ink-200"
+              <span className="mt-1 block text-body text-pretty text-ink-700">{featured.detail}</span>
+            </span>
+            <Icon name="chevron-right" className="size-4 flex-none text-ink-300" />
+          </Link>
+        ) : null}
+
+        <ul className="grid sm:grid-cols-2">
+          {others.map((tool) => (
+            <li
+              key={tool.href}
+              className="border-b border-rule last:border-b-0 sm:[&:nth-last-child(2)]:border-b-0 sm:[&:nth-child(odd)]:border-r"
+            >
+              <Link
+                href={tool.href}
+                className="flex h-full items-start gap-4 p-5 transition-colors duration-150 hover:bg-surface-muted/50"
               >
-                <path
-                  d="M1 1l5 5-5 5"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
-          </li>
-        ))}
-      </ol>
+                <span className="grid size-10 flex-none place-items-center rounded-control bg-surface-muted text-ink-700">
+                  <Icon name={tool.icon} className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-label font-semibold text-ink-950">{tool.name}</span>
+                  <span className="mt-1 block text-meta text-pretty text-ink-500">{tool.detail}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
     </main>
   );
 }

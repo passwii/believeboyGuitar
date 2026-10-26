@@ -6,6 +6,7 @@ import { lessons } from "@/content/manifest";
 import { DifficultyMeter } from "@/components/DifficultyMeter";
 import { LessonWidget } from "@/components/LessonWidget";
 import { LessonTableOfContents } from "@/components/LessonTableOfContents";
+import { Icon } from "@/components/icons";
 import { splitContentSections } from "@/lib/content-sections";
 import { addLessonHeadingIds, shouldShowLessonToc } from "@/lib/content-toc";
 import { sanitizeContentHtml } from "@/lib/sanitize-content";
@@ -42,22 +43,14 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         href="/library"
         className="-ml-3 inline-flex min-h-11 items-center rounded-control px-3 text-label text-ink-700 transition-colors duration-150 hover:text-ink-950"
       >
-        <svg aria-hidden="true" viewBox="0 0 7 12" fill="none" className="mr-1.5 size-3">
-          <path
-            d="M6 1L1 6l5 5"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Icon name="back" className="mr-1 size-3.5" />
         资料库
       </Link>
 
       <header className="mt-4 max-w-3xl">
         <h1 className="text-display font-display text-ink-950 text-balance">{lesson.title}</h1>
         <p className="mt-4 measure text-body text-ink-700 text-pretty">{lesson.summary}</p>
-        <dl className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-meta text-ink-500">
+        <dl className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule pt-4 text-meta text-ink-500">
           <div className="flex items-center gap-1.5">
             <dt>阶段</dt>
             <dd className="text-ink-950">{lesson.stage}</dd>
@@ -79,7 +72,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         </dl>
       </header>
 
-      <div className="mt-8 border-t border-rule pt-8">
+      <div className="mt-8">
         <div
           className={`grid gap-10 ${
             showToc

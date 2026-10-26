@@ -34,9 +34,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // 与 globals.css 的 --color-canvas（冷白工作台）一致，
-  // tests/pwa.test.ts 会核对两者没有走散；工具区的舞台黑不进清单。
-  themeColor: "#f4f4f2",
+  // 与 globals.css 的 --color-canvas（冷灰绿信号台）一致，
+  // tests/pwa.test.ts 会核对两者没有走散。
+  themeColor: "#f1f2ec",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,

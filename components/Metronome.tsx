@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BpmDial } from "@/components/BpmDial";
+import { TempoWave } from "@/components/TempoWave";
 import { useScreenWakeLock } from "@/components/useScreenWakeLock";
 import {
   preferPlaybackAudioSession,
@@ -553,13 +554,13 @@ export function Metronome() {
   return (
     <div className="flex flex-col gap-7">
       <section>
-        <p id="metronome-meter-label" className="text-sm font-medium text-ink-700">
+        <p id="metronome-meter-label" className="text-label font-medium text-ink-700">
           拍号
         </p>
         <div
           role="group"
           aria-labelledby="metronome-meter-label"
-          className="mt-2 flex rounded-sm border border-control-edge p-0.5"
+          className="mt-2 flex rounded-control border border-control-edge p-0.5"
         >
           {METERS.map((option) => {
             const selected = option.label === meter.label;
@@ -569,7 +570,7 @@ export function Metronome() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => changeMeter(option)}
-                className={`min-h-11 flex-1 rounded-sm px-1 text-sm font-medium ${
+                className={`min-h-11 flex-1 rounded-control px-1 text-label font-medium ${
                   selected ? "bg-accent-700 text-on-accent" : "text-ink-700 hover:text-ink-950"
                 }`}
               >
@@ -578,7 +579,7 @@ export function Metronome() {
             );
           })}
         </div>
-        <p className="mt-1.5 text-xs text-ink-500">{meter.description}</p>
+        <p className="mt-1.5 text-meta text-ink-500">{meter.description}</p>
       </section>
 
       <section className="flex flex-col items-center">
@@ -590,7 +591,7 @@ export function Metronome() {
             aria-label="减速 1 BPM"
             onClick={() => changeBpm(bpm - 1)}
             disabled={bpm <= BPM_MIN}
-            className="size-11 shrink-0 rounded-md border border-control-edge text-lg leading-none text-ink-700 hover:text-ink-950 disabled:text-ink-300"
+            className="size-11 shrink-0 rounded-control border border-control-edge text-lg leading-none text-ink-700 hover:text-ink-950 disabled:text-ink-300"
           >
             −
           </button>
@@ -599,11 +600,18 @@ export function Metronome() {
             aria-label="加速 1 BPM"
             onClick={() => changeBpm(bpm + 1)}
             disabled={bpm >= BPM_MAX}
-            className="size-11 shrink-0 rounded-md border border-control-edge text-lg leading-none text-ink-700 hover:text-ink-950 disabled:text-ink-300"
+            className="size-11 shrink-0 rounded-control border border-control-edge text-lg leading-none text-ink-700 hover:text-ink-950 disabled:text-ink-300"
           >
             +
           </button>
         </div>
+      </section>
+
+      {/* 拍点波形：峰值落在每拍，重音拍更高；播放时当前拍整组换成强调色。
+          高亮来自同一个调度循环（activeBeat），不是另一套计时器。 */}
+      <section className="flex flex-col gap-2">
+        <TempoWave meter={meter} activeBeat={activeBeat} running={phase === "running"} className="h-12" />
+        <p className="sr-only">波形：每拍四个细分，亮色是当前拍。</p>
       </section>
 
       <section className="flex flex-col items-center gap-1">
@@ -635,7 +643,7 @@ export function Metronome() {
         <button
           type="button"
           onClick={toggle}
-          className="h-16 w-full rounded-md bg-accent-700 text-lg font-medium text-on-accent"
+          className="h-16 w-full rounded-control bg-accent-700 text-lg font-medium text-on-accent"
         >
           {PHASE_LABEL[phase]}
         </button>
@@ -643,7 +651,7 @@ export function Metronome() {
           type="button"
           onClick={() => void stop()}
           disabled={isIdle}
-          className="min-h-11 text-sm text-ink-700 disabled:text-ink-300"
+          className="min-h-11 text-label text-ink-700 disabled:text-ink-300"
         >
           结束
         </button>
@@ -652,13 +660,13 @@ export function Metronome() {
       </section>
 
       <section>
-        <p id="metronome-timbre-label" className="text-sm font-medium text-ink-700">
+        <p id="metronome-timbre-label" className="text-label font-medium text-ink-700">
           音色
         </p>
         <div
           role="group"
           aria-labelledby="metronome-timbre-label"
-          className="mt-2 flex rounded-sm border border-control-edge p-0.5"
+          className="mt-2 flex rounded-control border border-control-edge p-0.5"
         >
           {TIMBRES.map((option) => {
             const selected = option.id === timbre;
@@ -669,7 +677,7 @@ export function Metronome() {
                 aria-pressed={selected}
                 title={option.hint}
                 onClick={() => changeTimbre(option.id)}
-                className={`min-h-11 flex-1 rounded-sm px-1 text-sm font-medium ${
+                className={`min-h-11 flex-1 rounded-control px-1 text-label font-medium ${
                   selected ? "bg-accent-700 text-on-accent" : "text-ink-700 hover:text-ink-950"
                 }`}
               >

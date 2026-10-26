@@ -9,7 +9,6 @@ export default function ChordsPage() {
   return (
     <main className="shell flex-1 py-10 sm:py-14">
       <header className="measure">
-        <p className="font-mono text-micro font-medium uppercase text-ink-500">Chord library</p>
         <h1 className="mt-3 text-display font-display text-ink-950 text-balance">
           和弦库
         </h1>

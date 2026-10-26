@@ -16,6 +16,8 @@ import {
 export type TabStaffProps = {
   measures: readonly TabMeasure[];
   bpm: number;
+  /** 当前拍位落在哪个音符上（全局序号，按 measures 顺序）；播放时由上层给出 */
+  activeNoteIndex?: number | null;
   /** 拍号，默认 4/4。 */
   timeSignature?: readonly [number, number];
   cdStart?: string;
@@ -36,6 +38,7 @@ function chunkMeasures(measures: readonly TabMeasure[]): TabMeasure[][] {
 export function TabStaff({
   measures,
   bpm,
+  activeNoteIndex = null,
   timeSignature = [4, 4],
   cdStart,
   title = "TAB 谱",
@@ -45,6 +48,13 @@ export function TabStaff({
   }
 
   const systems = chunkMeasures(measures);
+  // 每个小节第一个音符在整段里的序号：小节内序号 + 前面的音符总数
+  const measureOffsets: number[] = [];
+  let noteCount = 0;
+  for (const measure of measures) {
+    measureOffsets.push(noteCount);
+    noteCount += measure.notes.length;
+  }
   const height = systems.length * TAB_LAYOUT.systemHeight;
   const [beatsPerBar, beatUnit] = timeSignature;
   const timeSignatureLabel = `${beatsPerBar}/${beatUnit}`;
@@ -72,9 +82,11 @@ export function TabStaff({
           width={SYSTEM_WIDTH}
           height={height}
           role="img"
+          aria-label={`${title}：${measures.length} 小节，速度每分钟 ${bpm} 拍`}
           className="block h-auto w-full min-w-[39.5rem] text-ink-950"
         >
-          <title>{`${title}：${measures.length} 小节，速度每分钟 ${bpm} 拍`}</title>
+          {/* 不在 SVG 里用 <title>：React 19 会把 title 的内容提升到 head，
+              SSR 留下空 <title>，客户端却有内容，水合直接不一致。 */}
           <desc>{`六线吉他 TAB，${timeSignatureLabel} 拍。${description}`}</desc>
 
           {systems.map((systemMeasures, systemIndex) => {
@@ -205,6 +217,10 @@ export function TabStaff({
                       })}
 
                       {measure.notes.map((note, noteIndex) => {
+                        const globalNoteIndex =
+                          measureOffsets[systemIndex * TAB_LAYOUT.measuresPerSystem + measureIndex] +
+                          noteIndex;
+                        const highlighted = globalNoteIndex === activeNoteIndex;
                         const x = tabNoteX(measureX, noteIndex, count);
                         const stringY = tabStringY(rowTop, note.string);
                         const fretLabel = String(note.fret);
@@ -212,6 +228,16 @@ export function TabStaff({
 
                         return (
                           <g key={`note-${noteIndex}`}>
+                            {highlighted ? (
+                              <rect
+                                x={x - noteFontSize * 0.78}
+                                y={stringY - noteFontSize * 1.05}
+                                width={noteFontSize * 1.56}
+                                height={noteFontSize * 1.4}
+                                rx={noteFontSize * 0.32}
+                                className="fill-accent-100"
+                              />
+                            ) : null}
                             <rect
                               x={x - maskWidth / 2}
                               y={stringY - noteFontSize * TAB_LAYOUT.fretGlyphTop}
