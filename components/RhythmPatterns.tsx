@@ -278,7 +278,7 @@ function PatternPicker({
     <section aria-labelledby="rhythm-pattern-label">
       <h2
         id="rhythm-pattern-label"
-        className="text-micro font-medium uppercase text-ink-500"
+        className="text-label font-medium text-ink-700"
       >
         选一个节奏型
       </h2>
@@ -311,7 +311,7 @@ function MeterPicker({
     <section aria-labelledby="rhythm-meter-label">
       <h2
         id="rhythm-meter-label"
-        className="text-micro font-medium uppercase text-ink-500"
+        className="text-label font-medium text-ink-700"
       >
         拍号
       </h2>

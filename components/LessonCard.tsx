@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Lesson } from "@/content/manifest";
 import { DifficultyMeter } from "@/components/DifficultyMeter";
+import { Icon } from "@/components/icons";
 
 /**
  * 资料条目。
@@ -28,20 +29,7 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
           <span>{lesson.topics.join(" / ")}</span>
         </span>
       </span>
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 7 12"
-        fill="none"
-        className="mt-2 size-3 shrink-0 self-start text-ink-100"
-      >
-        <path
-          d="M1 1l5 5-5 5"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <Icon name="chevron-right" className="mt-1.5 size-3.5 shrink-0 self-start text-ink-300" />
     </Link>
   );
 }

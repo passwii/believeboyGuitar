@@ -4,14 +4,27 @@ import { WEEK1_SECTIONS, type TabSection } from "@/lib/tab-exercises";
 export type TabExerciseProps = {
   /** 默认展示 lib/tab-exercises.ts 中的第 1 周练习。 */
   sections?: readonly TabSection[];
+  /** 由上层节拍器给出的当前音符：段 id → 音符序号。为空表示未播放 */
+  activeNotes?: Record<string, number | null> | null;
+  /** 上层节拍器的速度；不给时用曲谱自带的速度 */
+  bpm?: number;
+  /** 嵌在带播放条的面板里时，隐藏自己的标题与外壳 */
+  embedded?: boolean;
 };
 
-export function TabExercise({ sections = WEEK1_SECTIONS }: TabExerciseProps) {
+export function TabExercise({
+  sections = WEEK1_SECTIONS,
+  activeNotes = null,
+  bpm,
+  embedded = false,
+}: TabExerciseProps) {
+  const exerciseBpm = bpm ?? sections[0]?.bpm ?? 100;
+
   return (
-    <section className="rounded-card border border-rule bg-surface p-4 sm:p-6">
-      <h2 className="text-title text-ink-950">第 1 周曲谱</h2>
-      <p className="mt-2 text-meta text-ink-500">
-        原书第 6 页 · CD TRACK 01 · 四条练习都在 6 弦 5–8 品，速度 ♩=100
+    <div className={embedded ? "" : "rounded-card border border-rule bg-surface p-4 sm:p-6"}>
+      {embedded ? null : <h2 className="text-title text-ink-950">第 1 周曲谱</h2>}
+      <p className={embedded ? "text-meta text-ink-500" : "mt-2 text-meta text-ink-500"}>
+        原书第 6 页 · CD TRACK 01 · 四条练习都在 6 弦 5–8 品，速度 ♩={exerciseBpm}
       </p>
 
       <div className="mt-4 divide-y divide-rule">
@@ -22,7 +35,8 @@ export function TabExercise({ sections = WEEK1_SECTIONS }: TabExerciseProps) {
             <div className="mt-3">
               <TabStaff
                 measures={section.measures}
-                bpm={section.bpm}
+                bpm={exerciseBpm}
+                activeNoteIndex={activeNotes?.[section.id] ?? null}
                 cdStart={section.cdStart}
                 title={`${section.title} TAB 谱`}
               />
@@ -34,6 +48,6 @@ export function TabExercise({ sections = WEEK1_SECTIONS }: TabExerciseProps) {
           </section>
         ))}
       </div>
-    </section>
+    </div>
   );
 }

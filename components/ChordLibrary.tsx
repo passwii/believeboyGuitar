@@ -57,7 +57,7 @@ export function ChordLibrary() {
       <section aria-labelledby="chord-picker-heading" className="measure">
         <h2
           id="chord-picker-heading"
-          className="text-micro font-medium uppercase text-ink-500"
+          className="text-label font-medium text-ink-700"
         >
           选一个和弦
         </h2>

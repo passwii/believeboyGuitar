@@ -28,7 +28,6 @@ export default function CheatsheetPage() {
   return (
     <main className="shell flex-1 py-10 sm:py-14">
       <header className="measure">
-        <p className="font-mono text-micro font-medium uppercase text-ink-500">Quick reference</p>
         <h1 className="mt-3 text-display font-display text-ink-950 text-balance">速查表</h1>
         <p className="mt-4 text-body text-ink-700 text-pretty">
           散落在各篇资料里的常用数据，集中在一页。音位与音高都由标准调弦算出，

@@ -248,7 +248,7 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
       {/* 读数压在圆心：纯视觉，不接管指针 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <p className="text-6xl font-semibold tabular-nums leading-none">{value}</p>
-        <p className="mt-2 text-sm text-ink-700">{tempoName(value)}</p>
+        <p className="mt-2 text-label text-ink-700">{tempoName(value)}</p>
       </div>
     </div>
   );

@@ -10,7 +10,6 @@ export default function RhythmsPage() {
   return (
     <main className="shell flex-1 py-10 sm:py-14">
       <header className="measure">
-        <p className="font-mono text-micro font-medium uppercase text-ink-500">Rhythm patterns</p>
         <h1 className="mt-3 text-display font-display text-ink-950 text-balance">节奏型</h1>
         <p className="mt-4 text-body text-ink-700 text-pretty">
           把十六分音符的网格摊开：哪些格子要出声，哪些格子只让手保持运动。

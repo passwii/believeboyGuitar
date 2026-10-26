@@ -3,7 +3,7 @@ import { ThreeNotesPerString } from "@/components/ThreeNotesPerString";
 import { CagedSystem } from "@/components/CagedSystem";
 import { TwelveBarBlues } from "@/components/TwelveBarBlues";
 import { BendPitchMeter } from "@/components/BendPitchMeter";
-import { TabExercise } from "@/components/TabExercise";
+import { TabPractice } from "@/components/TabPractice";
 import type { WidgetName } from "@/content/widgets";
 
 /**
@@ -15,7 +15,7 @@ const WIDGETS: Record<WidgetName, ComponentType> = {
   "caged-system": CagedSystem,
   "twelve-bar-blues": TwelveBarBlues,
   "bend-pitch-meter": BendPitchMeter,
-  "week1-tab-drill": TabExercise,
+  "week1-tab-drill": TabPractice,
 };
 
 export function LessonWidget({ name }: { name: WidgetName }) {

@@ -50,7 +50,7 @@ export function PracticePlanner() {
       <section className="mt-10" aria-labelledby="planner-settings-heading">
         <h2
           id="planner-settings-heading"
-          className="text-micro font-medium uppercase text-ink-500"
+          className="text-label font-medium text-ink-700"
         >
           计划设定
         </h2>
@@ -124,7 +124,7 @@ export function PracticePlanner() {
       <section className="mt-12" aria-labelledby="planner-plan-heading">
         <h2
           id="planner-plan-heading"
-          className="text-micro font-medium uppercase text-ink-500"
+          className="text-label font-medium text-ink-700"
         >
           今天的安排
         </h2>
