@@ -24,6 +24,8 @@ export type TabStaffProps = {
   title?: string;
   /** 额外显示在谱面上方信息栏中的标签。 */
   meta?: readonly string[];
+  /** 当前拍位落在哪个音符上（按 measures 顺序的全局序号）；播放时由上层给出 */
+  activeNoteIndex?: number | null;
 };
 
 const STRING_LABELS = ["E", "B", "G", "D", "A", "E"] as const;
@@ -49,12 +51,20 @@ export function TabStaff({
   cdStart,
   title = "TAB 谱",
   meta = [],
+  activeNoteIndex = null,
 }: TabStaffProps) {
   if (measures.length === 0) {
     return <p className="text-meta text-ink-500">这份谱面还没有音符。</p>;
   }
 
   const systems = chunkMeasures(measures);
+  // 每个小节第一个音符在整段里的序号：小节内序号 + 前面的音符总数
+  const measureOffsets: number[] = [];
+  let noteTotal = 0;
+  for (const measure of measures) {
+    measureOffsets.push(noteTotal);
+    noteTotal += measure.notes.length;
+  }
   const systemLayouts = systems.map((systemMeasures) => {
     const measureWidths = systemMeasures.map((measure) =>
       tabMeasureWidth(Math.max(measure.notes.length, measure.picking?.length ?? 0)),
@@ -105,9 +115,11 @@ export function TabStaff({
           width={systemWidth}
           height={height}
           role="img"
+          aria-label={`${title}：${measures.length} 小节，速度每分钟 ${bpm} 拍`}
           className={`block h-auto w-full text-ink-950 ${minWidthClass}`}
         >
-          <title>{`${title}：${measures.length} 小节，速度每分钟 ${bpm} 拍`}</title>
+          {/* 不在 SVG 里用 title：React 19 会把内容提升到 head，
+              SSR 只剩空 title，客户端却有内容，水合直接不一致。 */}
           <desc>{`六线吉他 TAB，${timeSignatureLabel} 拍。${description}`}</desc>
 
           {systemLayouts.map((system, systemIndex) => {
@@ -333,8 +345,23 @@ export function TabStaff({
                             ? noteXAt(noteIndex - 1)
                             : x;
 
+                        const globalNoteIndex =
+                          measureOffsets[systemIndex * TAB_LAYOUT.measuresPerSystem + measureIndex] +
+                          noteIndex;
+                        const highlighted = globalNoteIndex === activeNoteIndex;
+
                         return (
                           <g key={`note-${noteIndex}`}>
+                            {highlighted ? (
+                              <rect
+                                x={x - noteFontSize * 0.78}
+                                y={stringY - noteFontSize * 1.05}
+                                width={noteFontSize * 1.56}
+                                height={noteFontSize * 1.4}
+                                rx={noteFontSize * 0.32}
+                                className="fill-accent-100"
+                              />
+                            ) : null}
                             <rect
                               x={x - maskWidth / 2}
                               y={stringY - noteFontSize * TAB_LAYOUT.fretGlyphTop}

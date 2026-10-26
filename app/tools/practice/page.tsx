@@ -11,7 +11,6 @@ export default function PracticePage() {
   return (
     <main className="shell flex-1 py-10 sm:py-14">
       <header className="measure">
-        <p className="font-mono text-micro font-medium uppercase text-ink-500">Practice plan</p>
         <h1 className="mt-3 text-display font-display text-ink-950 text-balance">练习计划</h1>
         <p className="mt-4 text-body text-ink-700 text-pretty">
           选好总时长、今天要练的技术和曲目，生成一份照着做就能练的安排。

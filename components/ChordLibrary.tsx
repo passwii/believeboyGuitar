@@ -57,7 +57,7 @@ export function ChordLibrary() {
       <section aria-labelledby="chord-picker-heading" className="measure">
         <h2
           id="chord-picker-heading"
-          className="text-micro font-medium uppercase text-ink-500"
+          className="text-label font-medium text-ink-700"
         >
           选一个和弦
         </h2>
@@ -544,10 +544,10 @@ function ChordNeck({ voicings }: { voicings: ChordVoicing[] }) {
                 className="fill-surface stroke-ink-700"
                 strokeWidth={1.5}
               />
-              <title>
+              <desc>
                 {note.stringNumber} 弦空弦 · {note.name}
                 {note.isRoot ? "（根音）" : ""}
-              </title>
+              </desc>
             </g>
           ))}
 
@@ -570,10 +570,10 @@ function ChordNeck({ voicings }: { voicings: ChordVoicing[] }) {
               >
                 {note.name}
               </text>
-              <title>
+              <desc>
                 {note.stringNumber} 弦 {note.fret} 品 · {note.name}
                 {note.isRoot ? "（根音）" : ""}
-              </title>
+              </desc>
             </g>
           ))}
         </svg>
