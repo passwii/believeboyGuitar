@@ -28,6 +28,7 @@ npm run build    # 静态导出到 out/
 | `app/` | 页面外壳：主页、资料库、内容页、工具页 |
 | `components/` | 导航、卡片、筛选、空状态、指板图等组件 |
 | `lib/` | 纯函数：音位推导、查询筛选、一致性校验 |
+| [DEVELOPMENT.md](./DEVELOPMENT.md) | 开发流程：启动前同步代码、验证、提交与交付规则 |
 | `inbox/` | 原始资料投放处（不纳入版本库） |
 | `archive/` | 整理完成后的原始资料归档（不纳入版本库） |
 | `research/` | 调研资料：抓取的来源正文与报告（不纳入版本库） |
@@ -80,6 +81,17 @@ npm run build    # 静态导出到 out/
 3. 在正文里写上标记
 
 名字写错会在 `npm test` 和构建时报错。正文依然只有语义标签，不带样式也不带脚本。
+
+### 可复用的六线谱组件
+
+`components/TabStaff.tsx` 只负责画 TAB：六线、品位、指法、符杠、三连音、
+重音、拨片方向、空拨、延音、击弦与把位移位标记都由 `TabMeasure` / `TabNote`
+数据驱动。谱面数据与类型在 `lib/tab.ts`，音符较密时会按密度自动加宽小节，
+不做字号缩到看不清的处理。
+
+新的曲谱页面可以直接传入 `TabMeasure` 数据复用它；`components/WeekOneTabDrill.tsx`
+与 `components/WeekTwoTabDrill.tsx` 只是各周计划的内容外壳，负责标题、速度、
+练习提示和每日分组。
 
 ## 人工核对
 

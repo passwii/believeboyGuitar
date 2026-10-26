@@ -19,6 +19,7 @@ export type IconName =
   | "search"
   | "filter"
   | "back"
+  | "repeat"
   | "chevron-right"
   | "cheatsheet"
   | "chords"
@@ -58,6 +59,14 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   filter: <path d="M4 6h16M7 12h10M10 18h4" />,
   back: <path d="m14 6-6 6 6 6" />,
+  repeat: (
+    <>
+      <path d="M4 9a8 8 0 0 1 13.6-3.6L20 8" />
+      <path d="M20 4v4h-4" />
+      <path d="M20 15a8 8 0 0 1-13.6 3.6L4 16" />
+      <path d="M4 20v-4h4" />
+    </>
+  ),
   "chevron-right": <path d="m10 6 6 6-6 6" />,
   cheatsheet: (
     <>

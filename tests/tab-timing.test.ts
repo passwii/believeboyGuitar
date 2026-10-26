@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { activeNoteIndex, noteTimings, totalBeats } from "@/lib/tab-timing";
-import { WEEK1_SECTIONS } from "@/lib/tab-exercises";
+import { WEEK1_SECTIONS } from "@/lib/week-1-tab-exercises";
 import type { TabMeasure } from "@/lib/tab";
 
 const quarters = (count: number): TabMeasure => ({

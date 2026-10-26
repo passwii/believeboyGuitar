@@ -16,17 +16,51 @@ export type TabString = 1 | 2 | 3 | 4 | 5 | 6;
  */
 export type TabDuration = "q" | "8" | "8t" | "16";
 
+/** 拨片方向。 */
+export type TabStroke = "down" | "up";
+
+/** 拨片轨迹里的一个动作。ghost 表示手挥动但不触弦。 */
+export type TabPick = {
+  stroke: TabStroke;
+  ghost?: boolean;
+};
+
 export interface TabNote {
   string: TabString;
   fret: number;
   duration: TabDuration;
   /** 左手手指；不标指法时可以省略。 */
   finger?: TabFinger;
+  /** 这个音需要把左手整体移动到新把位时标记。 */
+  shift?: boolean;
+  /** 在三音一组等跨拍乐句里，这个音是重音。 */
+  accent?: boolean;
+  /** 替代品位显示，例如微推弦记作 3.5。 */
+  fretLabel?: string;
+  /** 连音线；当前格显示为延音而不是重新起音。 */
+  tie?: boolean;
+  /** 只占节奏位置，不显示品位和指法。 */
+  silent?: boolean;
+  /** 当前音由左手击弦得到。 */
+  hammerOn?: boolean;
+  /** 当前音带 Quarter Choke 微推弦。 */
+  quarterChoke?: boolean;
+  /**
+   * 在拨片轨迹里的格子下标，从 0 开始。
+   * 不填时按 notes 的顺序均分小节；填写后可与更细的 picking 轨迹对齐。
+   */
+  slot?: number;
 }
 
 /** 一个小节。小节内的音符按时间顺序排列。 */
 export interface TabMeasure {
   notes: readonly TabNote[];
+  /**
+   * 独立的右手拨片轨迹。
+   * 可以和 notes 等长，也可以更细（例如八分音符上做十六分空拨）。
+   * 它共用同一个小节的横向空间，但不能拿来替代音高数据。
+   */
+  picking?: readonly TabPick[];
 }
 
 /** 一份 TAB 曲谱的完整数据。 */
@@ -180,16 +214,33 @@ export function groupNotesForRhythm(notes: readonly TabNote[]): RhythmGroup[] {
  * 连续在同一根弦上的音会合并，避免把「6 弦」重复几十遍。
  */
 export function describeMeasureNotes(measure: TabMeasure): string {
-  const runs: { string: number; frets: number[] }[] = [];
+  const runs: { string: number; frets: string[] }[] = [];
 
   for (const note of measure.notes) {
+    if (note.silent) continue;
     const last = runs[runs.length - 1];
+    const pitchLabel = note.tie ? "延音" : (note.fretLabel ?? String(note.fret));
+    const fretLabel = `${pitchLabel}${note.shift ? "（移位）" : ""}${
+      note.accent ? "（重音）" : ""
+    }`;
     if (last && last.string === note.string) {
-      last.frets.push(note.fret);
+      last.frets.push(fretLabel);
     } else {
-      runs.push({ string: note.string, frets: [note.fret] });
+      runs.push({ string: note.string, frets: [fretLabel] });
     }
   }
 
   return runs.map((run) => `${run.string} 弦 ${run.frets.join("、")} 品`).join("；");
+}
+
+/** 给读屏使用的拨片轨迹说明。 */
+export function describePicking(measure: TabMeasure): string {
+  if (!measure.picking?.length) return "";
+
+  return measure.picking
+    .map((pick) => {
+      const direction = pick.stroke === "down" ? "下拨" : "上拨";
+      return pick.ghost ? `${direction}空挥` : direction;
+    })
+    .join("、");
 }

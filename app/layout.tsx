@@ -4,6 +4,8 @@ import { INSTALL_CAPTURE_SCRIPT } from "@/lib/install-prompt";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteNav } from "@/components/SiteNav";
+import { lessons } from "@/content/manifest";
+import { weeklyHref, weeklyLessons } from "@/lib/weekly";
 import "./globals.css";
 import "@/content/content.css";
 
@@ -44,6 +46,8 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const practicePaths = weeklyLessons(lessons).map((lesson) => `/library/${lesson.slug}`);
+
   return (
     <html lang="zh-CN">
       <head>
@@ -55,7 +59,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className="flex min-h-svh flex-col">
-        <SiteNav />
+        <SiteNav practiceHref={weeklyHref(lessons)} practicePaths={practicePaths} />
         {children}
         <SiteFooter />
         <ServiceWorkerRegistration />

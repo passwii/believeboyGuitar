@@ -13,22 +13,38 @@ import { Icon, type IconName } from "@/components/icons";
  *
  * 结构照 iOS 导航栏：滚动模糊交给合成层，分隔线交给容器边框，不用 JS 监听。
  */
-type NavItem = { href: string; label: string; icon: IconName; exact: boolean };
+type NavKey = "home" | "library" | "practice" | "tools" | "metronome";
+type NavItem = { key: NavKey; href: string; label: string; icon: IconName; exact: boolean };
 
-const DESKTOP_ITEMS: NavItem[] = [
-  { href: "/library", label: "资料", icon: "library", exact: false },
-  { href: "/tools", label: "工具", icon: "tools", exact: true },
-  { href: "/tools/metronome", label: "节拍器", icon: "metronome", exact: false },
-];
+function navItems(practiceHref: string): { desktop: NavItem[]; dock: NavItem[] } {
+  return {
+    desktop: [
+      { key: "library", href: "/library", label: "资料", icon: "library", exact: false },
+      { key: "practice", href: practiceHref, label: "练习", icon: "repeat", exact: false },
+      { key: "tools", href: "/tools", label: "工具", icon: "tools", exact: true },
+      { key: "metronome", href: "/tools/metronome", label: "节拍器", icon: "metronome", exact: false },
+    ],
+    dock: [
+      { key: "home", href: "/", label: "首页", icon: "home", exact: true },
+      { key: "library", href: "/library", label: "资料", icon: "library", exact: false },
+      { key: "practice", href: practiceHref, label: "练习", icon: "repeat", exact: false },
+      { key: "tools", href: "/tools", label: "工具", icon: "tools", exact: true },
+      { key: "metronome", href: "/tools/metronome", label: "节拍", icon: "metronome", exact: false },
+    ],
+  };
+}
 
-const DOCK_ITEMS: NavItem[] = [
-  { href: "/", label: "首页", icon: "home", exact: true },
-  { href: "/library", label: "资料", icon: "library", exact: false },
-  { href: "/tools", label: "工具", icon: "tools", exact: true },
-  { href: "/tools/metronome", label: "节拍", icon: "metronome", exact: false },
-];
-
-function isActive(pathname: string, item: NavItem) {
+function isActive(pathname: string, item: NavItem, weeklyPaths: ReadonlySet<string>) {
+  // 练习只看「是不是某一周的练习页」，不看 href 前缀：
+  // 否则停在更早的一周时，练习入口不会亮。
+  if (item.key === "practice") return weeklyPaths.has(pathname);
+  // 资料与练习都在 /library 下：练习页不再同时点亮「资料」
+  if (item.key === "library") {
+    return (
+      (pathname === "/library" || pathname.startsWith("/library/")) &&
+      !weeklyPaths.has(pathname)
+    );
+  }
   if (item.exact) return pathname === item.href;
   if (item.href === "/") return pathname === "/";
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -48,8 +64,16 @@ function SiteMark() {
   );
 }
 
-export function SiteNav() {
+export function SiteNav({
+  practiceHref,
+  practicePaths,
+}: {
+  practiceHref: string;
+  practicePaths: readonly string[];
+}) {
   const pathname = usePathname();
+  const { desktop, dock } = navItems(practiceHref);
+  const weeklyPaths = new Set(practicePaths);
 
   return (
     <>
@@ -67,8 +91,8 @@ export function SiteNav() {
           {/* 桌面导航；移动端下沉到底部 dock，这里只留站点名 */}
           <nav aria-label="主导航" className="hidden sm:block">
             <ul className="flex items-center gap-1">
-              {DESKTOP_ITEMS.map((item) => {
-                const active = isActive(pathname, item);
+              {desktop.map((item) => {
+                const active = isActive(pathname, item, weeklyPaths);
                 return (
                   <li key={item.href}>
                     <Link
@@ -100,9 +124,9 @@ export function SiteNav() {
         aria-label="移动端导航"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-canvas/92 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas sm:hidden"
       >
-        <ul className="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
-          {DOCK_ITEMS.map((item) => {
-            const active = isActive(pathname, item);
+        <ul className="grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
+          {dock.map((item) => {
+            const active = isActive(pathname, item, weeklyPaths);
             return (
               <li key={item.href}>
                 <Link

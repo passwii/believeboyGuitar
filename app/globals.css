@@ -224,6 +224,19 @@
     max-width: var(--container-measure);
   }
 
+  /* TAB 是横向谱面：窄屏在自己的容器里滚动，不把整个页面撑宽。 */
+  .tab-staff {
+    min-width: 39.5rem;
+  }
+
+  .tab-staff--triplet {
+    min-width: 48.5rem;
+  }
+
+  .tab-staff--wide {
+    min-width: 61.5rem;
+  }
+
   /* 选择型控件（筛选芯片、把位芯片）：44pt 触摸目标 + 填充式形态 */
   .chip {
     display: inline-flex;
