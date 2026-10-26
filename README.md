@@ -82,6 +82,17 @@ npm run build    # 静态导出到 out/
 
 名字写错会在 `npm test` 和构建时报错。正文依然只有语义标签，不带样式也不带脚本。
 
+### 可复用的六线谱组件
+
+`components/TabStaff.tsx` 只负责画 TAB：六线、品位、指法、符杠、三连音、
+重音、拨片方向、空拨、延音、击弦与把位移位标记都由 `TabMeasure` / `TabNote`
+数据驱动。谱面数据与类型在 `lib/tab.ts`，音符较密时会按密度自动加宽小节，
+不做字号缩到看不清的处理。
+
+新的曲谱页面可以直接传入 `TabMeasure` 数据复用它；`components/WeekOneTabDrill.tsx`
+与 `components/WeekTwoTabDrill.tsx` 只是各周计划的内容外壳，负责标题、速度、
+练习提示和每日分组。
+
 ## 人工核对
 
 改写是结构重组与语言重写，不是逐字翻译。涉及**指法、音阶图、和弦图**这类

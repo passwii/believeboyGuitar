@@ -9,11 +9,16 @@
 export const TAB_LAYOUT = {
   /** 每个谱表放几个小节。 */
   measuresPerSystem: 4,
+  /** 常规小节宽度；音符更密时会按 minNoteSpacing 自动加宽。 */
   measureWidth: 150,
+  /** 密集小节里每个音符至少占用的横向宽度。 */
+  minNoteSpacing: 13,
   systemPadX: 16,
   measurePadX: 15,
   /** 一弦（谱表最上面那条线）的 y。 */
   staffTop: 48,
+  /** 拨片方向行的基线；放在六线谱上方。 */
+  strokeY: 17,
   stringGap: 18,
   stringCount: 6,
   /** 符杠行不会高过这个 y，给三连音标记留出位置。 */
@@ -25,7 +30,7 @@ export const TAB_LAYOUT = {
   /** 一个谱表的高度，含符杠、六线与指法行。 */
   systemHeight: 176,
   noteFontSize: 15,
-  denseNoteFontSize: 11,
+  denseNoteFontSize: 10,
   /** 一小节音符数达到这个值就换小字号。 */
   denseNoteCount: 12,
   /** 双符杠之间的间距。 */
@@ -38,9 +43,25 @@ export const TAB_LAYOUT = {
   plainStemLength: 24,
 } as const;
 
-/** 一个谱表的宽度。 */
-export function tabSystemWidth(): number {
-  return TAB_LAYOUT.systemPadX * 2 + TAB_LAYOUT.measureWidth * TAB_LAYOUT.measuresPerSystem;
+/** 一小节的宽度：八分音符沿用常规宽度，三连音与十六分音符按密度加宽。 */
+export function tabMeasureWidth(noteCount: number): number {
+  return Math.max(
+    TAB_LAYOUT.measureWidth,
+    noteCount * TAB_LAYOUT.minNoteSpacing + TAB_LAYOUT.measurePadX * 2,
+  );
+}
+
+/** 一个谱表的宽度；传入各小节宽度时按实际排版计算。 */
+export function tabSystemWidth(
+  measureWidths: readonly number[] = Array.from(
+    { length: TAB_LAYOUT.measuresPerSystem },
+    () => TAB_LAYOUT.measureWidth,
+  ),
+): number {
+  return (
+    TAB_LAYOUT.systemPadX * 2 +
+    measureWidths.reduce((total, width) => total + width, 0)
+  );
 }
 
 /** 某根弦的 y。1 = 最细的高音弦，画在最上面。 */
@@ -49,8 +70,13 @@ export function tabStringY(rowTop: number, string: number): number {
 }
 
 /** 小节内第 index 个音符的 x；音符均分小节，落在每一格的中心。 */
-export function tabNoteX(measureX: number, index: number, count: number): number {
-  const usable = TAB_LAYOUT.measureWidth - TAB_LAYOUT.measurePadX * 2;
+export function tabNoteX(
+  measureX: number,
+  index: number,
+  count: number,
+  measureWidth: number = TAB_LAYOUT.measureWidth,
+): number {
+  const usable = measureWidth - TAB_LAYOUT.measurePadX * 2;
   return measureX + TAB_LAYOUT.measurePadX + ((index + 0.5) * usable) / count;
 }
 
