@@ -21,10 +21,12 @@ const footer = read("components/SiteFooter.tsx");
 
 describe("手机单屏节拍器", () => {
   it("窄屏隐藏站点顶部栏、底部 dock 与页脚", () => {
-    expect(nav).toContain('const focusMode = pathname === "/tools/metronome";');
+    expect(nav).toContain(
+      'const focusMode = pathname === "/tools/metronome" || weeklyPaths.has(pathname);',
+    );
     expect(nav).toContain('focusMode ? "hidden sm:block " : ""');
     expect(nav).toContain('aria-label="移动端导航"');
-    expect(footer).toContain('const focusMode = pathname === "/tools/metronome";');
+    expect(footer).toContain('pathname.startsWith("/library/week-")');
     expect(footer).toContain('focusMode ? "hidden sm:block " : ""');
   });
 

@@ -36,28 +36,39 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   // 正文来自仓库里的 content/lessons/*.html，不是用户输入；渲染前仍按内容约定清一遍。
   const content = addLessonHeadingIds(sanitizeContentHtml(html));
   const sections = splitContentSections(content.html);
-  const showToc = shouldShowLessonToc(content.headings);
+  const isWeeklyPractice = lesson.series?.id === "finger-training-weeks";
+  const showToc = shouldShowLessonToc(content.headings) && !isWeeklyPractice;
   const seriesLessons = lesson.series
     ? lessons.filter((item) => item.series?.id === lesson.series?.id)
     : [];
 
   return (
-    <main className="shell flex-1 py-8 sm:py-12">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <main
+      className={`lesson-focus shell flex-1 py-4 sm:py-12 ${
+        isWeeklyPractice ? "lesson-focus--weekly" : ""
+      }`}
+    >
+      <div className="lesson-focus__chrome flex flex-wrap items-center justify-between gap-3">
         <Link
-          href="/library"
-          className="-ml-3 inline-flex min-h-11 items-center rounded-control px-3 text-label text-ink-700 transition-colors duration-150 hover:text-ink-950"
+          href="/"
+          aria-label="返回首页"
+          title="返回首页"
+          className="grid size-11 place-items-center rounded-full border border-rule bg-surface text-ink-700"
         >
-          <Icon name="back" className="mr-1 size-3.5" />
-          资料库
+          <Icon name="home" className="size-4" />
         </Link>
         <LessonSeriesTabs items={seriesLessons} currentSlug={lesson.slug} />
       </div>
 
       <header className="mt-4 max-w-3xl">
-        <h1 className="text-display font-display text-ink-950 text-balance">{lesson.title}</h1>
-        <p className="mt-4 measure text-body text-ink-700 text-pretty">{lesson.summary}</p>
-        <dl className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule pt-4 text-meta text-ink-500">
+        <h1 className="text-display font-display text-ink-950 text-balance">
+          <span className="sm:hidden">{lesson.series?.label ?? lesson.title}</span>
+          <span className="max-sm:hidden">{lesson.title}</span>
+        </h1>
+        <p className="mt-4 measure text-body text-ink-700 text-pretty max-sm:hidden">
+          {lesson.summary}
+        </p>
+        <dl className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule pt-4 text-meta text-ink-500 max-sm:hidden">
           <div className="flex items-center gap-1.5">
             <dt>阶段</dt>
             <dd className="text-ink-950">{lesson.stage}</dd>
@@ -79,9 +90,9 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         </dl>
       </header>
 
-      <div className="mt-8 border-t border-rule pt-8">
+      <div className="mt-5 border-t-0 pt-0 sm:mt-8 sm:border-t sm:border-rule sm:pt-8">
         <div
-          className={`grid gap-10 ${
+          className={`grid gap-6 sm:gap-10 ${
             showToc
               ? "md:grid-cols-[var(--container-rail)_minmax(0,1fr)] md:gap-12"
               : "grid-cols-1"
@@ -89,7 +100,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         >
           {showToc && <LessonTableOfContents headings={content.headings} />}
           <article className="min-w-0">
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-8">
               {sections.map((section, index) =>
                 section.kind === "prose" ? (
                   <div
@@ -106,7 +117,11 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               )}
             </div>
 
-            <footer className="measure mt-14 border-t border-rule pt-5 text-meta text-ink-500">
+            <footer
+              className={`measure mt-14 border-t border-rule pt-5 text-meta text-ink-500 ${
+                isWeeklyPractice ? "max-sm:hidden" : ""
+              }`}
+            >
               <p className="text-pretty">来源：{lesson.source}</p>
               {lesson.tags.length > 0 && (
                 <p className="mt-1.5">标签：{lesson.tags.join(" · ")}</p>

@@ -219,6 +219,33 @@
     gap: 1rem;
   }
 
+  /* 每周练习页把手机空间让给 TAB：外壳更窄，正文说明收进折叠区。 */
+  @media (max-width: 639px) {
+    .lesson-focus.lesson-focus--weekly {
+      padding-left: max(0.75rem, env(safe-area-inset-left));
+      padding-right: max(0.75rem, env(safe-area-inset-right));
+    }
+  }
+
+  .lesson-focus__notes {
+    border-top: 1px solid var(--color-rule);
+    padding-top: 1rem;
+  }
+
+  .lesson-focus__notes > summary {
+    min-height: 44px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-ink-700);
+    list-style-position: inside;
+    padding-block: 0.75rem;
+  }
+
+  .lesson-focus__notes[open] > summary {
+    margin-bottom: 1rem;
+  }
+
   /* 阅读列 */
   .measure {
     max-width: var(--container-measure);

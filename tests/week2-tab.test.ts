@@ -132,7 +132,7 @@ describe("第 2 周 widget", () => {
     ]) {
       expect(html).toContain(`>${title}</h3>`);
     }
-    expect(html.match(/role="region"/g)).toHaveLength(7);
+    expect(html.match(/速度每分钟/g) ?? []).toHaveLength(7);
   });
 
   it("显示拨片、空拨、延音、击弦与 Q.C. 图例和谱面标记", () => {

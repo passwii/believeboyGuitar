@@ -160,8 +160,8 @@ export function TabDrill({
       aria-labelledby={headingId}
       className="min-w-0 scroll-mt-24 overflow-hidden rounded-card border border-rule bg-surface"
     >
-      <header className="border-b border-rule px-4 py-5 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <header className="border-b border-rule px-3 py-3 sm:px-6 sm:py-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 max-sm:hidden">
           <div>
             <p className="text-micro font-medium text-ink-500">{eyebrow}</p>
             <h2 id={headingId} className="mt-1 scroll-mt-24 text-title text-ink-950">
@@ -183,9 +183,9 @@ export function TabDrill({
             </div>
           </dl>
         </div>
-        <p className="mt-3 text-meta leading-relaxed text-ink-700">{summary}</p>
+        <p className="mt-3 text-meta leading-relaxed text-ink-700 max-sm:hidden">{summary}</p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:mt-4 sm:gap-2">
           <button
             type="button"
             onClick={() => setBpm((value) => clampBpm(value - 1))}
@@ -194,7 +194,7 @@ export function TabDrill({
           >
             <Icon name="minus" className="size-4" />
           </button>
-          <span className="w-16 text-center font-mono text-label text-ink-950 tabular-nums">
+          <span className="w-14 whitespace-nowrap text-center font-mono text-meta text-ink-950 tabular-nums sm:w-16">
             {bpm} BPM
           </span>
           <button
@@ -209,16 +209,21 @@ export function TabDrill({
             type="button"
             onClick={toggle}
             aria-pressed={running}
-            className="ml-1 flex h-11 items-center gap-2 rounded-control bg-accent-700 px-4 text-label font-semibold text-on-accent transition-[filter] duration-150 hover:brightness-110 active:scale-[0.99]"
+            className="flex h-11 items-center gap-2 rounded-control bg-accent-700 px-3 text-label font-semibold text-on-accent transition-[filter] duration-150 hover:brightness-110 active:scale-[0.99] sm:ml-1 sm:px-4"
           >
             <Icon name={running ? "pause" : "play"} className="size-4" />
             {running ? "暂停" : "开始"}
           </button>
-          <span className="text-meta text-ink-500">一个时钟驱动发声与谱面高亮</span>
+          <span className="text-meta text-ink-500 max-sm:hidden">
+            一个时钟驱动发声与谱面高亮
+          </span>
         </div>
 
         {legend.length > 0 ? (
-          <ul aria-label="谱面记号图例" className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+          <ul
+            aria-label="谱面记号图例"
+            className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 sm:flex sm:flex-wrap"
+          >
             {legend.map((item) => (
               <li key={`${item.symbol}-${item.label}`} className="flex items-center gap-1.5">
                 <span className="min-w-5 font-mono text-label font-semibold text-ink-700">
@@ -239,7 +244,7 @@ export function TabDrill({
             <section
               key={section.id}
               aria-labelledby={sectionHeadingId}
-              className="scroll-mt-24 px-4 py-6 sm:px-6"
+              className="scroll-mt-24 px-3 py-4 sm:px-6 sm:py-6"
             >
               <header className="flex items-start gap-3">
                 <span
@@ -252,7 +257,7 @@ export function TabDrill({
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <h3
                       id={sectionHeadingId}
-                      className="scroll-mt-24 text-title text-ink-950"
+                      className="scroll-mt-24 text-label font-semibold text-ink-950 sm:text-title"
                     >
                       {section.title}
                     </h3>
@@ -260,11 +265,13 @@ export function TabDrill({
                       ♩ = {section.bpm}
                     </span>
                   </div>
-                  <p className="mt-2 text-body text-ink-700 text-pretty">{section.focus}</p>
+                  <p className="mt-2 text-body text-ink-700 text-pretty max-sm:hidden">
+                    {section.focus}
+                  </p>
                 </div>
               </header>
 
-              <div className="mt-4 sm:ml-9">
+              <div className="mt-2 sm:mt-4 sm:ml-9">
                 <TabStaff
                   measures={section.measures}
                   bpm={running ? bpm : section.bpm}
@@ -273,7 +280,7 @@ export function TabDrill({
                   title={`${section.title} TAB 谱`}
                   meta={[section.rhythm, ...(section.labels ?? [])]}
                 />
-                <div className="mt-3 border-l-2 border-control-edge pl-3">
+                <div className="mt-3 hidden border-l-2 border-control-edge pl-3 sm:block">
                   <p className="text-meta leading-relaxed text-ink-500">
                     <strong className="font-medium text-ink-700">练习提示：</strong>
                     {section.tip}

@@ -218,7 +218,8 @@ describe("TAB 谱面", () => {
   });
 
   it("六线谱按四小节渲染，每小节六条弦线", () => {
-    expect(html.match(/opacity="0\.55"/g)).toHaveLength(24);
+    // 手机分行版与桌面横排版各画一遍。
+    expect(html.match(/opacity="0\.55"/g)).toHaveLength(48);
   });
 
   it("读屏能拿到逐小节的品位说明", () => {
@@ -263,7 +264,7 @@ describe("符杠与品位数字连成一体", () => {
   const stem = tabStemSpan({ stringY: lowE, fontSize: TAB_LAYOUT.noteFontSize, beamY: beamRow });
 
   it("每个音符都有一条符干，上端在符杠行", () => {
-    expect(stems).toHaveLength(32);
+    expect(stems).toHaveLength(64);
     expect(stems.every((line) => line.y1 === beamRow)).toBe(true);
   });
 
@@ -291,7 +292,7 @@ describe("跨弦的谱面", () => {
   const beamRow = tabBeamRowY(tabStringY(0, 1));
 
   it("每根弦上的音符都有自己的符干，从符杠落到各自的数字", () => {
-    expect(stems).toHaveLength(6);
+    expect(stems).toHaveLength(12);
     expect(stems.every((line) => line.y1 === beamRow)).toBe(true);
 
     const bottoms = stems.map((line) => line.y2).sort((a, b) => a - b);
@@ -334,7 +335,7 @@ describe("第 1 周 widget", () => {
 
   it("七段练习各有一份 TAB 谱，三连音与重音都有谱面标记", () => {
     expect(html.match(/class="[^"]*rounded-card/g)).toHaveLength(1);
-    expect(html.match(/role="region"/g)).toHaveLength(7);
+    expect(html.match(/速度每分钟/g) ?? []).toHaveLength(7);
     // 周三第一小节有 4 组三连音
     const tripletMeasure = renderToStaticMarkup(
       createElement(TabStaff, {
@@ -342,11 +343,11 @@ describe("第 1 周 widget", () => {
         bpm: 100,
       }),
     );
-    expect(tripletMeasure.match(/>3<\/text>/g)).toHaveLength(4);
+    expect(tripletMeasure.match(/>3<\/text>/g)).toHaveLength(8);
 
     // 周四每小节六个重音，最后一小节另有“移”标记
-    expect(html.match(/&gt;<\/text>/g)).toHaveLength(24);
-    expect(html.match(/>移<\/text>/g)).toHaveLength(1);
+    expect(html.match(/&gt;<\/text>/g)).toHaveLength(48);
+    expect(html.match(/>移<\/text>/g)).toHaveLength(2);
   });
 });
 

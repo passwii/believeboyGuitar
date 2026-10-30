@@ -9,6 +9,8 @@
 export const TAB_LAYOUT = {
   /** 每个谱表放几个小节。 */
   measuresPerSystem: 4,
+  /** 手机每个谱表允许的最大宽度；普通八分音符可并排两小节。 */
+  mobileSystemMaxWidth: 340,
   /** 常规小节宽度；音符更密时会按 minNoteSpacing 自动加宽。 */
   measureWidth: 150,
   /** 密集小节里每个音符至少占用的横向宽度。 */
@@ -62,6 +64,41 @@ export function tabSystemWidth(
     TAB_LAYOUT.systemPadX * 2 +
     measureWidths.reduce((total, width) => total + width, 0)
   );
+}
+
+/**
+ * 手机谱表按实际宽度分行。
+ *
+ * 普通八分音符小节宽 150，两小节加左右留白是 332，落在 340 以内；
+ * 三连音和十六分音符会因密度变宽，因此自然退成一小节一行。
+ */
+export function tabMeasureGroupsByWidth(
+  measureWidths: readonly number[],
+  maxWidth: number = TAB_LAYOUT.mobileSystemMaxWidth,
+): number[][] {
+  const groups: number[][] = [];
+  let current: number[] = [];
+  let currentWidth = TAB_LAYOUT.systemPadX * 2;
+
+  measureWidths.forEach((width, index) => {
+    const nextWidth =
+      current.length === 0
+        ? TAB_LAYOUT.systemPadX * 2 + width
+        : currentWidth + width;
+
+    if (current.length > 0 && nextWidth > maxWidth) {
+      groups.push(current);
+      current = [index];
+      currentWidth = TAB_LAYOUT.systemPadX * 2 + width;
+      return;
+    }
+
+    current.push(index);
+    currentWidth = nextWidth;
+  });
+
+  if (current.length > 0) groups.push(current);
+  return groups;
 }
 
 /** 某根弦的 y。1 = 最细的高音弦，画在最上面。 */
