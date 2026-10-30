@@ -14,6 +14,7 @@ export type IconName =
   | "metronome"
   | "play"
   | "pause"
+  | "stop"
   | "plus"
   | "minus"
   | "search"
@@ -21,6 +22,8 @@ export type IconName =
   | "back"
   | "repeat"
   | "chevron-right"
+  | "sliders"
+  | "music"
   | "cheatsheet"
   | "chords"
   | "plan"
@@ -49,6 +52,7 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   play: <path d="M8 5v14l11-7z" fill="currentColor" stroke="none" />,
   pause: <path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" stroke="none" />,
+  stop: <rect x="7" y="7" width="10" height="10" rx="1.2" fill="currentColor" stroke="none" />,
   plus: <path d="M12 5v14M5 12h14" />,
   minus: <path d="M5 12h14" />,
   search: (
@@ -68,6 +72,19 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   "chevron-right": <path d="m10 6 6 6-6 6" />,
+  sliders: (
+    <>
+      <path d="M4 7h16M4 12h10M4 17h16" />
+      <circle cx="17" cy="12" r="2" />
+    </>
+  ),
+  music: (
+    <>
+      <path d="M9 18V6l9-2v12" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <circle cx="15.5" cy="16" r="2.5" />
+    </>
+  ),
   cheatsheet: (
     <>
       <rect x="3.5" y="4" width="17" height="16" rx="1.5" />
