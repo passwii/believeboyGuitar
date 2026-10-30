@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BpmDial } from "@/components/BpmDial";
 import { TempoWave } from "@/components/TempoWave";
@@ -123,19 +124,30 @@ function MobileMetronomeView({
     <div className="mobile-metronome flex h-full min-h-0 flex-col sm:hidden">
       <h1 className="sr-only">节拍器</h1>
       <section aria-labelledby="mobile-metronome-meter-label" className="flex-none">
-        <div className="flex items-center justify-between gap-3">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
           <span
             id="mobile-metronome-meter-label"
             className="inline-flex min-h-7 items-center rounded-pill border border-rule bg-surface/80 px-2.5 font-mono text-meta text-ink-700 tabular-nums"
           >
             {meter.label}
           </span>
-          <p className="flex items-center gap-1.5 text-meta text-ink-500" aria-hidden="true">
+          <p
+            className="flex items-center justify-self-center gap-1.5 text-meta text-ink-500"
+            aria-hidden="true"
+          >
             <span
               className={`size-1.5 rounded-full ${running ? "bg-accent-700" : "bg-ink-200"}`}
             />
             {status}
           </p>
+          <Link
+            href="/"
+            aria-label="返回首页"
+            title="返回首页"
+            className="grid size-11 place-items-center rounded-full border border-rule/80 bg-surface/70 text-ink-700"
+          >
+            <Icon name="home" className="size-4" />
+          </Link>
         </div>
 
         <ol className="mt-2 flex gap-1.5" aria-hidden="true">

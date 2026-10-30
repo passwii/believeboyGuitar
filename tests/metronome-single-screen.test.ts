@@ -50,6 +50,8 @@ describe("手机单屏节拍器", () => {
     expect(metronome).toContain('aria-label={running ? "停止" : "开始"}');
     expect(metronome).toContain("切换拍号");
     expect(metronome).toContain("切换音色");
+    expect(metronome).toContain('href="/"');
+    expect(metronome).toContain('aria-label="返回首页"');
   });
 
   it("单屏版圆盘包含读数、BPM 标签和圆内微调按钮", () => {
