@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, type KeyboardEvent, type PointerEvent } from "react";
+import { Icon } from "@/components/icons";
 import {
   BPM_MAX,
   BPM_MIN,
@@ -16,13 +17,13 @@ import {
  * 圆环速度控件。
  *
  * 几何与角度换算都在 `lib/metronome.ts`（纯函数、可在 node 下单测），
- * 这里只负责画弧、换算指针位置、以及键盘/指针事件。
+ * 这里只负责画刻度、换算指针位置、以及键盘/指针事件。
  *
  * 交互是「指针落在环上就对齐到那个角度」：圆环没有一条可以随手按住的长轨道，
  * 绝对定位才是它自然的手感。
  *
  * 命中区只做在环体那一圈：圆心是读数，点它不该改速度，页面滚动也不该被这块
- * 240px 的圆盘吃掉。
+ * 圆盘吃掉。
  *
  * 防滚动是这块控件最容易写错的地方（BLF-1448）。`touch-action: none` 必须落在
  * **HTML** 元素上：写在 SVG 的 `<circle>` 子元素上会被浏览器忽略（实测在环上
@@ -41,42 +42,37 @@ import {
 
 const VIEW = 200;
 const CENTER = VIEW / 2;
-const RADIUS = 82;
-const STROKE = 9;
+const DIAL_RADIUS = 88;
+const TICK_COUNT = 64;
 
 type Point = { x: number; y: number };
 
 /** 圆环角度（12 点钟为 0°、顺时针为正）→ SVG 坐标 */
-function polar(angleDeg: number, radius = RADIUS): Point {
+function polar(angleDeg: number, radius = DIAL_RADIUS): Point {
   const rad = (angleDeg * Math.PI) / 180;
   return {
-    x: CENTER + radius * Math.sin(rad),
-    y: CENTER - radius * Math.cos(rad),
+    // 固定两位小数，避免 Node 与浏览器的浮点序列化差异触发 hydration mismatch。
+    x: Number((CENTER + radius * Math.sin(rad)).toFixed(2)),
+    y: Number((CENTER - radius * Math.cos(rad)).toFixed(2)),
   };
 }
 
-/** 圆环角度区间 → SVG 圆弧路径（顺时针） */
-function arcPath(fromDeg: number, toDeg: number, radius = RADIUS): string {
-  const from = polar(fromDeg, radius);
-  const to = polar(toDeg, radius);
-  const largeArc = Math.abs(toDeg - fromDeg) > 180 ? 1 : 0;
-  return [
-    `M ${from.x.toFixed(2)} ${from.y.toFixed(2)}`,
-    `A ${radius} ${radius} 0 ${largeArc} 1 ${to.x.toFixed(2)} ${to.y.toFixed(2)}`,
-  ].join(" ");
-}
-
-const TRACK_PATH = arcPath(DIAL_START_DEG, DIAL_START_DEG + DIAL_SWEEP_DEG);
-/** 端点数字放在环外侧，既不被旋钮压住，也不挤进中间的速度术语（靠 overflow-visible 出界） */
-const MIN_LABEL = polar(DIAL_START_DEG, 112);
-const MAX_LABEL = polar(DIAL_START_DEG + DIAL_SWEEP_DEG, 112);
+const TICKS = Array.from({ length: TICK_COUNT }, (_, index) => {
+  const ratio = index / (TICK_COUNT - 1);
+  const angle = DIAL_START_DEG + ratio * DIAL_SWEEP_DEG;
+  const inner = polar(angle, 83);
+  const outer = polar(angle, index % 8 === 0 ? 97 : 93);
+  return { ratio, inner, outer, major: index % 8 === 0 };
+});
 
 type BpmDialProps = {
   value: number;
   onChange: (next: number) => void;
+  /** 手机单屏版：更大的刻度盘，BPM 标签与微调按钮收进圆心。 */
+  instrument?: boolean;
 };
 
-export function BpmDial({ value, onChange }: BpmDialProps) {
+export function BpmDial({ value, onChange, instrument = false }: BpmDialProps) {
   const draggingRef = useRef(false);
   /** 指针相对 SVG 中心的位置 → BPM */
   const bpmAt = useCallback((event: PointerEvent<HTMLDivElement>): number | null => {
@@ -159,8 +155,8 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
   );
 
   const angle = bpmToDialAngle(value);
-  const knob = polar(angle);
-  const progressPath = angle > DIAL_START_DEG ? arcPath(DIAL_START_DEG, angle) : null;
+  const knob = polar(angle, DIAL_RADIUS);
+  const activeRatio = (value - BPM_MIN) / (BPM_MAX - BPM_MIN);
 
   return (
     <div
@@ -172,53 +168,41 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
       aria-valuenow={value}
       aria-valuetext={`每分钟 ${value} 拍`}
       onKeyDown={onKeyDown}
-      className="relative size-60 cursor-pointer rounded-full sm:size-64"
+      className={`bpm-dial relative cursor-pointer rounded-full ${
+        instrument ? "metronome-dial" : "size-60 sm:size-64"
+      }`}
     >
       <svg
         viewBox={`0 0 ${VIEW} ${VIEW}`}
         className="size-full overflow-visible"
         aria-hidden="true"
       >
-        <path
-          d={TRACK_PATH}
-          className="fill-none stroke-ink-200"
-          strokeWidth={STROKE}
-          strokeLinecap="round"
+        <circle
+          cx={CENTER}
+          cy={CENTER}
+          r={98}
+          className="fill-none stroke-ink-100"
+          strokeWidth={1}
         />
-        {progressPath ? (
-          <path
-            d={progressPath}
-            className="fill-none stroke-accent-700"
-            strokeWidth={STROKE}
+        {TICKS.map((tick, index) => (
+          <line
+            key={index}
+            x1={tick.inner.x}
+            y1={tick.inner.y}
+            x2={tick.outer.x}
+            y2={tick.outer.y}
+            className={tick.ratio <= activeRatio + 0.001 ? "stroke-accent-700" : "stroke-ink-200"}
+            strokeWidth={tick.major ? 2.4 : 1.5}
             strokeLinecap="round"
           />
-        ) : null}
+        ))}
         <circle
           cx={knob.x}
           cy={knob.y}
-          r={STROKE}
-          className="fill-surface stroke-accent-700"
+          r={5}
+          className="fill-ink-950 stroke-surface"
           strokeWidth={3}
         />
-        {/* 端点数字画在环外侧，靠 overflow-visible 出界 */}
-        <text
-          x={MIN_LABEL.x}
-          y={MIN_LABEL.y}
-          textAnchor="middle"
-          fontSize={11}
-          className="fill-ink-500 tabular-nums"
-        >
-          {BPM_MIN}
-        </text>
-        <text
-          x={MAX_LABEL.x}
-          y={MAX_LABEL.y}
-          textAnchor="middle"
-          fontSize={11}
-          className="fill-ink-500 tabular-nums"
-        >
-          {BPM_MAX}
-        </text>
       </svg>
 
       {/*
@@ -230,9 +214,7 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
         挪到 SVG 根上能挡住滚动，但会把圆心一起锁死，读数区就不能用来翻页了。
 
         所以拆成两层 HTML：这一层是整圆、`touch-action: none`，负责接收拖拽；
-        上面的圆心盘盖住中间 60%，它没有 `touch-action: none`，拖它页面照常滚。
-        60% 这个数沿用旧命中区的内边界（82 - 44/2 = 60，盘面 200 宽即 60%），
-        圆心留白和以前一样大，只是现在由 HTML 元素承担 touch-action。
+        上面的圆心盘盖住中间 76%，它没有 `touch-action: none`，拖它页面照常滚。
       */}
       <div
         className="absolute inset-0 rounded-full touch-none"
@@ -242,13 +224,56 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
         onPointerCancel={endDrag}
       />
 
-      {/* 圆心：盖住环体的中间部分，不接管拖拽也不带 touch-action:none */}
-      <div className="absolute left-1/2 top-1/2 size-[60%] -translate-x-1/2 -translate-y-1/2 rounded-full" />
+      {/* 圆心：盖住环体的中间部分，不接管拖拽也不带 touch-action:none。
+          桌面保留原来的 60% 环带；手机单屏版放大读数，环带收到 76% 内圈。 */}
+      <div
+        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-rule bg-surface ${
+          instrument ? "size-[76%]" : "size-[60%]"
+        }`}
+      />
+
+      {instrument ? (
+        <>
+          <button
+            type="button"
+            aria-label="减速 1 BPM"
+            disabled={value <= BPM_MIN}
+            onClick={() => onChange(clampBpm(value - 1))}
+            className="absolute left-[8%] top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-control-edge/20 bg-surface-muted/70 text-ink-700 disabled:text-ink-300"
+          >
+            <Icon name="minus" className="size-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="加速 1 BPM"
+            disabled={value >= BPM_MAX}
+            onClick={() => onChange(clampBpm(value + 1))}
+            className="absolute right-[8%] top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-control-edge/20 bg-surface-muted/70 text-ink-700 disabled:text-ink-300"
+          >
+            <Icon name="plus" className="size-4" />
+          </button>
+        </>
+      ) : null}
 
       {/* 读数压在圆心：纯视觉，不接管指针 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <p className="text-6xl font-semibold tabular-nums leading-none">{value}</p>
-        <p className="mt-2 text-label text-ink-700">{tempoName(value)}</p>
+        {instrument ? (
+          <p className="mb-1 font-mono text-micro font-semibold text-ink-500">BPM</p>
+        ) : null}
+        <p
+          className={`font-mono font-semibold tabular-nums leading-none ${
+            instrument ? "text-7xl" : "text-6xl"
+          }`}
+        >
+          {value}
+        </p>
+        <p
+          className={`mt-2 text-label ${
+            instrument ? "text-accent-700" : "text-ink-700"
+          }`}
+        >
+          {tempoName(value)}
+        </p>
       </div>
     </div>
   );

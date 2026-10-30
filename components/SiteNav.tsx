@@ -74,10 +74,13 @@ export function SiteNav({
   const pathname = usePathname();
   const { desktop, dock } = navItems(practiceHref);
   const weeklyPaths = new Set(practicePaths);
+  const focusMode = pathname === "/tools/metronome";
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas">
+      <header
+        className={`${focusMode ? "hidden sm:block " : ""}sticky top-0 z-30 border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas`}
+      >
         {/* 顶部安全区（BLF-1448）：PWA 全屏启动后状态栏压在导航上，
             viewport-fit=cover 让我们自己接管这块留白。 */}
         <div className="shell shell-nav pt-[env(safe-area-inset-top)]">
@@ -122,7 +125,11 @@ export function SiteNav({
           桌面（sm+）不渲染。footer 的底部留白为它让位（见 SiteFooter）。 */}
       <nav
         aria-label="移动端导航"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-canvas/92 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas sm:hidden"
+        className={
+          focusMode
+            ? "hidden"
+            : "fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-canvas/92 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas sm:hidden"
+        }
       >
         <ul className="grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
           {dock.map((item) => {

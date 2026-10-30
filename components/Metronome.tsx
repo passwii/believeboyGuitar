@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BpmDial } from "@/components/BpmDial";
 import { TempoWave } from "@/components/TempoWave";
+import { Icon } from "@/components/icons";
 import { useScreenWakeLock } from "@/components/useScreenWakeLock";
 import {
   preferPlaybackAudioSession,
@@ -77,6 +79,161 @@ function usePrefersReducedMotion(): boolean {
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     // 静态导出时在服务端预渲染，没有 matchMedia
     () => false,
+  );
+}
+
+function MobileMetronomeView({
+  phase,
+  meter,
+  bpm,
+  activeBeat,
+  reducedMotion,
+  wakeLockHint,
+  onMeterChange,
+  onBpmChange,
+  onTimbreChange,
+  onStart,
+  onStop,
+  timbre,
+}: {
+  phase: Phase;
+  meter: Meter;
+  bpm: number;
+  activeBeat: number;
+  reducedMotion: boolean;
+  wakeLockHint: string;
+  onMeterChange: (next: Meter) => void;
+  onBpmChange: (next: number) => void;
+  onTimbreChange: (next: Timbre) => void;
+  onStart: () => void;
+  onStop: () => void;
+  timbre: Timbre;
+}) {
+  const running = phase === "running";
+  const beats = meter.beatsPerBar;
+  const active = Math.min(activeBeat, beats - 1);
+  const meterIndex = METERS.findIndex((option) => option.label === meter.label);
+  const nextMeter = METERS[(meterIndex + 1) % METERS.length] ?? DEFAULT_METER;
+  const timbreIndex = TIMBRES.findIndex((option) => option.id === timbre);
+  const nextTimbre = TIMBRES[(timbreIndex + 1) % TIMBRES.length] ?? TIMBRES[0];
+  const timbreLabel = TIMBRES.find((option) => option.id === timbre)?.label ?? "木质";
+  const status =
+    phase === "running" ? `第 ${active + 1} 拍` : phase === "paused" ? "已暂停" : "准备开始";
+
+  return (
+    <div className="mobile-metronome flex h-full min-h-0 flex-col sm:hidden">
+      <h1 className="sr-only">节拍器</h1>
+      <section aria-labelledby="mobile-metronome-meter-label" className="flex-none">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+          <span
+            id="mobile-metronome-meter-label"
+            className="inline-flex min-h-7 items-center rounded-pill border border-rule bg-surface/80 px-2.5 font-mono text-meta text-ink-700 tabular-nums"
+          >
+            {meter.label}
+          </span>
+          <p
+            className="flex items-center justify-self-center gap-1.5 text-meta text-ink-500"
+            aria-hidden="true"
+          >
+            <span
+              className={`size-1.5 rounded-full ${running ? "bg-accent-700" : "bg-ink-200"}`}
+            />
+            {status}
+          </p>
+          <Link
+            href="/"
+            aria-label="返回首页"
+            title="返回首页"
+            className="grid size-11 place-items-center rounded-full border border-rule/80 bg-surface/70 text-ink-700"
+          >
+            <Icon name="home" className="size-4" />
+          </Link>
+        </div>
+
+        <ol className="mt-2 flex gap-1.5" aria-hidden="true">
+          {Array.from({ length: beats }, (_, index) => {
+            const isActive = index === active;
+            const isAccent = meter.accents.includes(index);
+            const bars = isActive
+              ? ["bg-on-accent opacity-80", "bg-on-accent opacity-50", "bg-on-accent opacity-25"]
+              : isAccent
+                ? ["bg-accent-100", "bg-ink-100", "bg-ink-200"]
+                : ["bg-ink-100/60", "bg-ink-100/60", "bg-ink-200"];
+
+            return (
+              <li
+                key={index}
+                className={`relative flex h-20 min-w-0 flex-1 flex-col gap-1 rounded-control border p-1.5 ${
+                  reducedMotion ? "" : "transition-colors duration-150"
+                } ${
+                  isActive
+                    ? "border-accent-700 bg-accent-700"
+                    : isAccent
+                      ? "border-accent-100 bg-accent-50"
+                      : "border-rule/70 bg-surface-muted"
+                }`}
+              >
+                <span className="absolute right-1.5 top-1 font-mono text-micro tabular-nums text-ink-500">
+                  {index + 1}
+                </span>
+                {bars.map((tone, barIndex) => (
+                  <span key={barIndex} className={`flex-1 rounded-sm ${tone}`} />
+                ))}
+              </li>
+            );
+          })}
+        </ol>
+        <p className="sr-only">
+          {meter.label} 节奏型，第 {active + 1} 拍，共 {beats} 拍
+        </p>
+      </section>
+
+      <section className="flex min-h-0 flex-1 items-center justify-center py-1">
+        <BpmDial value={bpm} onChange={onBpmChange} instrument />
+      </section>
+
+      <footer className="grid flex-none grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <button
+          type="button"
+          aria-label={`切换拍号，当前 ${meter.label}`}
+          onClick={() => onMeterChange(nextMeter)}
+          className="flex h-14 min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-rule/80 bg-surface/70 px-1 text-ink-700"
+        >
+          <Icon name="sliders" className="size-4" />
+          <span className="text-micro text-ink-500">拍号</span>
+          <strong className="font-mono text-label font-semibold text-ink-950 tabular-nums">
+            {meter.label}
+          </strong>
+        </button>
+
+        <button
+          type="button"
+          aria-label={running ? "停止" : "开始"}
+          onClick={running ? onStop : onStart}
+          className={`grid size-20 min-h-11 place-items-center rounded-full ${
+            running
+              ? "bg-ink-950 text-on-accent shadow-segment"
+              : "bg-accent-700 text-on-accent shadow-segment"
+          }`}
+        >
+          <Icon name={running ? "stop" : "play"} className="size-8" />
+        </button>
+
+        <button
+          type="button"
+          aria-label={`切换音色，当前 ${timbreLabel}`}
+          onClick={() => onTimbreChange(nextTimbre.id)}
+          className="flex h-14 min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-rule/80 bg-surface/70 px-1 text-ink-700"
+        >
+          <Icon name="music" className="size-4" />
+          <span className="text-micro text-ink-500">音色</span>
+          <strong className="overflow-hidden text-label font-semibold text-ink-950 text-ellipsis whitespace-nowrap">
+            {timbreLabel}
+          </strong>
+        </button>
+      </footer>
+      <p className="sr-only">{wakeLockHint}</p>
+    </div>
   );
 }
 
@@ -552,7 +709,22 @@ export function Metronome() {
   const isIdle = phase === "idle";
 
   return (
-    <div className="flex flex-col gap-7">
+    <>
+      <MobileMetronomeView
+        phase={phase}
+        meter={meter}
+        bpm={bpm}
+        activeBeat={activeBeat}
+        reducedMotion={reducedMotion}
+        wakeLockHint={wakeLockHint}
+        onMeterChange={changeMeter}
+        onBpmChange={changeBpm}
+        onTimbreChange={changeTimbre}
+        onStart={() => void start()}
+        onStop={() => void stop()}
+        timbre={timbre}
+      />
+      <div className="hidden flex-col gap-7 sm:flex">
       <section>
         <p id="metronome-meter-label" className="text-label font-medium text-ink-700">
           拍号
@@ -688,12 +860,13 @@ export function Metronome() {
         </div>
       </section>
 
+      </div>
       <p role="status" className="sr-only">
         {status}
       </p>
       <p aria-live="polite" className="sr-only">
         {announcedBpm} 拍每分钟
       </p>
-    </div>
+    </>
   );
 }

@@ -210,13 +210,16 @@ describe("触摸目标与颜色来源（方案 §1 / §9.1）", () => {
       expect(className).toMatch(/\b(h-16|min-h-11|size-11)\b/);
     }
     expect(html).toContain("h-16 w-full");
-    // 圆环本身是整块命中区（size-60 = 240px），远大于 44px；
+    // 桌面圆环是整块命中区（size-60 = 240px），远大于 44px；
     // 原生 range 已换成自定义控件，不能再指望 input 自带 44px
-    expect(html).toMatch(/class="relative size-60[^"]*sm:size-64"/);
+    expect(html).toMatch(
+      /class="bpm-dial relative cursor-pointer rounded-full size-60 sm:size-64"/,
+    );
     // 命中区是整圆的 HTML 拖拽层（touch-action:none 在 HTML 上才生效），
-    // 圆心由上面那层 60% 的圆盘盖住，留给页面滚动
+    // 圆心盘盖住中间区域，留给页面滚动
     expect(html).toContain("absolute inset-0 rounded-full touch-none");
     expect(html).toContain("size-[60%]");
+    expect(html).toContain("size-[76%]");
     expect(source).not.toMatch(/<input/);
   });
 

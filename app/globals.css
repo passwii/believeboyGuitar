@@ -224,6 +224,92 @@
     max-width: var(--container-measure);
   }
 
+  /* 手机单屏节拍器：圆盘吃掉中间剩余高度，不产生页面滚动。 */
+  .metronome-focus {
+    width: 100%;
+    max-width: var(--container-page);
+    flex: 1;
+    margin-inline: auto;
+    padding:
+      2.5rem
+      max(1.25rem, env(safe-area-inset-right))
+      2.5rem
+      max(1.25rem, env(safe-area-inset-left));
+  }
+
+  .metronome-focus__inner {
+    width: 100%;
+    max-width: var(--container-measure);
+    margin-inline: auto;
+  }
+
+  .metronome-focus__panel {
+    margin-top: 2rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    padding: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .metronome-focus {
+      padding:
+        3.5rem
+        max(2rem, env(safe-area-inset-right))
+        3.5rem
+        max(2rem, env(safe-area-inset-left));
+    }
+
+    .metronome-focus__panel {
+      padding: 1.75rem;
+    }
+  }
+
+  .metronome-dial,
+  .mobile-metronome .bpm-dial {
+    width: min(90vw, 50svh, 22.5rem);
+    height: auto;
+    max-width: 100%;
+    aspect-ratio: 1;
+  }
+
+  @media (max-width: 639px) {
+    .metronome-focus {
+      height: 100svh;
+      min-height: 100svh;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .metronome-focus__inner {
+      display: flex;
+      width: 100%;
+      max-width: none;
+      height: 100svh;
+      min-height: 100svh;
+      flex-direction: column;
+      margin-inline: 0;
+    }
+
+    .metronome-focus__panel {
+      flex: 1;
+      min-height: 0;
+      margin-top: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      padding:
+        max(1rem, calc(env(safe-area-inset-top) + 0.625rem))
+        max(1.125rem, env(safe-area-inset-right))
+        max(1rem, calc(env(safe-area-inset-bottom) + 0.625rem))
+        max(1.125rem, env(safe-area-inset-left));
+    }
+
+    .metronome-focus__desktop-only {
+      display: none;
+    }
+  }
+
   /* TAB 是横向谱面：窄屏在自己的容器里滚动，不把整个页面撑宽。 */
   .tab-staff {
     min-width: 39.5rem;
