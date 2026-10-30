@@ -4,6 +4,7 @@ import {
   tabBeamRowY,
   tabBeamYs,
   tabFretBaselineY,
+  tabMeasureGroupsByWidth,
   tabMeasureWidth,
   tabNoteFontSize,
   tabNoteX,
@@ -101,6 +102,29 @@ describe("TAB 谱面几何", () => {
     expect(tabSystemWidth()).toBe(
       TAB_LAYOUT.systemPadX * 2 + TAB_LAYOUT.measureWidth * TAB_LAYOUT.measuresPerSystem,
     );
+  });
+
+  it("手机谱表优先两小节一行，密集小节自然退成一节一行", () => {
+    const normal = tabMeasureWidth(8);
+    const triplet = tabMeasureWidth(12);
+    const sixteenth = tabMeasureWidth(16);
+
+    expect(tabMeasureGroupsByWidth([normal, normal, normal, normal])).toEqual([
+      [0, 1],
+      [2, 3],
+    ]);
+    expect(tabMeasureGroupsByWidth([triplet, triplet, triplet, triplet])).toEqual([
+      [0],
+      [1],
+      [2],
+      [3],
+    ]);
+    expect(tabMeasureGroupsByWidth([normal, triplet, normal, normal])).toEqual([
+      [0],
+      [1],
+      [2, 3],
+    ]);
+    expect(tabMeasureGroupsByWidth([sixteenth])).toEqual([[0]]);
   });
 
   it("密集小节自动加宽，十六分音符有足够的横向间距", () => {

@@ -6,8 +6,8 @@ export function WeekTwoTabDrill() {
     <TabDrill
       idPrefix="week2-tab"
       eyebrow="WEEK 02 · TAB"
-      title="第二周右手强化谱例"
-      summary="核心是拨片上下交替、空拨保持节奏，以及切分与击弦中的方向控制。先按谱面方向慢弹，再逐步提到标注速度。"
+      title="第 2 周交替拨弦"
+      summary="下拨、上拨、空拨保持连续。"
       sections={WEEK2_SECTIONS}
       legend={[
         { symbol: "⊓", label: "下拨" },

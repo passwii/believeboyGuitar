@@ -6,15 +6,16 @@ import { usePathname } from "next/navigation";
  * 页脚。
  *
  * 2026-10-25 起全站是一个世界，页脚不按路径换皮。
- * 手机单屏节拍器需要让全屏控件独占视口，所以只在 /tools/metronome
- * 的窄屏隐藏页脚；桌面仍保留正常站点外壳。
+ * 手机上的节拍器与每周练习需要专注模式，所以这些页面的窄屏隐藏页脚；
+ * 桌面仍保留正常站点外壳。
  *
  * 底部留白做两件事：安全区避让（BLF-1448）+ 为移动端底部 dock 让位
  * （dock 高度是 --dock-h 3.5rem，只在窄屏存在）。
  */
 export function SiteFooter() {
   const pathname = usePathname();
-  const focusMode = pathname === "/tools/metronome";
+  const focusMode =
+    pathname === "/tools/metronome" || pathname.startsWith("/library/week-");
 
   return (
     <footer

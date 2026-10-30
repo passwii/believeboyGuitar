@@ -74,7 +74,7 @@ export function SiteNav({
   const pathname = usePathname();
   const { desktop, dock } = navItems(practiceHref);
   const weeklyPaths = new Set(practicePaths);
-  const focusMode = pathname === "/tools/metronome";
+  const focusMode = pathname === "/tools/metronome" || weeklyPaths.has(pathname);
 
   return (
     <>
