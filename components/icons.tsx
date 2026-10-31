@@ -27,7 +27,8 @@ export type IconName =
   | "cheatsheet"
   | "chords"
   | "plan"
-  | "rhythm";
+  | "rhythm"
+  | "orientation";
 
 const PATHS: Record<IconName, ReactNode> = {
   home: <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -106,6 +107,12 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   rhythm: <path d="M3 12h3l2.5-7 3.5 14 2.5-9 2 4h4.5" />,
+  orientation: (
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2" />
+      <path d="M3 11a9 9 0 0 1 3-6M21 13a9 9 0 0 1-3 6" />
+    </>
+  ),
 };
 
 export function Icon({

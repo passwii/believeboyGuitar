@@ -5,13 +5,13 @@ import {
   widgetMarkerNames,
 } from "@/lib/content-sections";
 
-const MARKER = '<lesson-widget name="c-major-three-notes-per-string"></lesson-widget>';
+const MARKER = '<lesson-widget name="week1-tab-drill"></lesson-widget>';
 
 describe("widgetMarkerNames", () => {
   it("按出现顺序取出组件名", () => {
     expect(widgetMarkerNames(`<p>a</p>${MARKER}<p>b</p>${MARKER}`)).toEqual([
-      "c-major-three-notes-per-string",
-      "c-major-three-notes-per-string",
+      "week1-tab-drill",
+      "week1-tab-drill",
     ]);
   });
 
@@ -44,14 +44,14 @@ describe("splitContentSections", () => {
   it("按标记切成正文、组件、正文三段", () => {
     expect(splitContentSections(`<article><p>a</p>${MARKER}<p>b</p></article>`)).toEqual([
       { kind: "prose", html: "<p>a</p>" },
-      { kind: "widget", name: "c-major-three-notes-per-string" },
+      { kind: "widget", name: "week1-tab-drill" },
       { kind: "prose", html: "<p>b</p>" },
     ]);
   });
 
   it("跳过空白的正文片段", () => {
     expect(splitContentSections(`  ${MARKER}  `)).toEqual([
-      { kind: "widget", name: "c-major-three-notes-per-string" },
+      { kind: "widget", name: "week1-tab-drill" },
     ]);
   });
 

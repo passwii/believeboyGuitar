@@ -4,53 +4,35 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 
-/**
- * 站点导航（2026-10-25 图标化）。
- *
- * 桌面：站点标记 +「资料 / 工具 / 节拍器」，图标 + 文字。
- * 窄屏：顶部只留站点标记，导航下沉为底部 dock（首页 / 资料 / 工具 / 节拍器）。
- * 全站一个世界（信号台），不再按路由换皮。
- *
- * 结构照 iOS 导航栏：滚动模糊交给合成层，分隔线交给容器边框，不用 JS 监听。
- */
-type NavKey = "home" | "library" | "practice" | "tools" | "metronome";
-type NavItem = { key: NavKey; href: string; label: string; icon: IconName; exact: boolean };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: IconName;
+  match: (pathname: string) => boolean;
+};
 
-function navItems(practiceHref: string): { desktop: NavItem[]; dock: NavItem[] } {
-  return {
-    desktop: [
-      { key: "library", href: "/library", label: "资料", icon: "library", exact: false },
-      { key: "practice", href: practiceHref, label: "练习", icon: "repeat", exact: false },
-      { key: "tools", href: "/tools", label: "工具", icon: "tools", exact: true },
-      { key: "metronome", href: "/tools/metronome", label: "节拍器", icon: "metronome", exact: false },
-    ],
-    dock: [
-      { key: "home", href: "/", label: "首页", icon: "home", exact: true },
-      { key: "library", href: "/library", label: "资料", icon: "library", exact: false },
-      { key: "practice", href: practiceHref, label: "练习", icon: "repeat", exact: false },
-      { key: "tools", href: "/tools", label: "工具", icon: "tools", exact: true },
-      { key: "metronome", href: "/tools/metronome", label: "节拍", icon: "metronome", exact: false },
-    ],
-  };
-}
+const NAV_ITEMS: readonly NavItem[] = [
+  { href: "/", label: "首页", icon: "home", match: (path) => path === "/" },
+  {
+    href: "/practice",
+    label: "练习",
+    icon: "repeat",
+    match: (path) => path === "/practice" || path.startsWith("/practice/"),
+  },
+  {
+    href: "/library",
+    label: "资料库",
+    icon: "library",
+    match: (path) => path === "/library" || path.startsWith("/library/"),
+  },
+  {
+    href: "/metronome",
+    label: "节拍器",
+    icon: "metronome",
+    match: (path) => path === "/metronome",
+  },
+];
 
-function isActive(pathname: string, item: NavItem, weeklyPaths: ReadonlySet<string>) {
-  // 练习只看「是不是某一周的练习页」，不看 href 前缀：
-  // 否则停在更早的一周时，练习入口不会亮。
-  if (item.key === "practice") return weeklyPaths.has(pathname);
-  // 资料与练习都在 /library 下：练习页不再同时点亮「资料」
-  if (item.key === "library") {
-    return (
-      (pathname === "/library" || pathname.startsWith("/library/")) &&
-      !weeklyPaths.has(pathname)
-    );
-  }
-  if (item.exact) return pathname === item.href;
-  if (item.href === "/") return pathname === "/";
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
-}
-
-/** 站点标记：三根电平条，读作一个正在跳的拍 */
 function SiteMark() {
   return (
     <span
@@ -64,38 +46,30 @@ function SiteMark() {
   );
 }
 
-export function SiteNav({
-  practiceHref,
-  practicePaths,
-}: {
-  practiceHref: string;
-  practicePaths: readonly string[];
-}) {
+export function SiteNav() {
   const pathname = usePathname();
-  const { desktop, dock } = navItems(practiceHref);
-  const weeklyPaths = new Set(practicePaths);
-  const focusMode = pathname === "/tools/metronome" || weeklyPaths.has(pathname);
+  const focusMode =
+    pathname === "/metronome" || pathname.startsWith("/practice/week-");
 
   return (
     <>
       <header
         className={`${focusMode ? "hidden sm:block " : ""}sticky top-0 z-30 border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas`}
       >
-        {/* 顶部安全区（BLF-1448）：PWA 全屏启动后状态栏压在导航上，
-            viewport-fit=cover 让我们自己接管这块留白。 */}
         <div className="shell shell-nav pt-[env(safe-area-inset-top)]">
           <Link
             href="/"
+            aria-label="练习站首页"
             className="flex min-h-11 items-center gap-2.5 text-label font-semibold tracking-tight text-ink-950"
           >
             <SiteMark />
-            电吉他资料库
+            练习站
           </Link>
-          {/* 桌面导航；移动端下沉到底部 dock，这里只留站点名 */}
+
           <nav aria-label="主导航" className="hidden sm:block">
             <ul className="flex items-center gap-1">
-              {desktop.map((item) => {
-                const active = isActive(pathname, item, weeklyPaths);
+              {NAV_ITEMS.map((item) => {
+                const active = item.match(pathname);
                 return (
                   <li key={item.href}>
                     <Link
@@ -121,8 +95,6 @@ export function SiteNav({
         </div>
       </header>
 
-      {/* 移动端底部 dock：固定、半透明模糊、避让底部安全区。
-          桌面（sm+）不渲染。footer 的底部留白为它让位（见 SiteFooter）。 */}
       <nav
         aria-label="移动端导航"
         className={
@@ -131,9 +103,9 @@ export function SiteNav({
             : "fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-canvas/92 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas sm:hidden"
         }
       >
-        <ul className="grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
-          {dock.map((item) => {
-            const active = isActive(pathname, item, weeklyPaths);
+        <ul className="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
+          {NAV_ITEMS.map((item) => {
+            const active = item.match(pathname);
             return (
               <li key={item.href}>
                 <Link

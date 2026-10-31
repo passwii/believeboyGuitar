@@ -4,25 +4,23 @@ import { INSTALL_CAPTURE_SCRIPT } from "@/lib/install-prompt";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteNav } from "@/components/SiteNav";
-import { lessons } from "@/content/manifest";
-import { weeklyHref, weeklyLessons } from "@/lib/weekly";
 import "./globals.css";
 import "@/content/content.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "电吉他学习资料库",
-    template: "%s · 电吉他学习资料库",
+    default: "电吉他练习站",
+    template: "%s · 电吉他练习站",
   },
-  description: "个人电吉他学习资料的整理与长期积累",
-  applicationName: "电吉他学习资料库",
+  description: "个人电吉他练习站：周练、指板音阶与节拍器。",
+  applicationName: "电吉他练习站",
   // PWA（BLF-1443 / BLF-1451）：清单在 app/manifest.ts。装到桌面的名字
   // 曾是「节拍器」，站点长出工具间后改回站名——装的是整个资料库，
   // 不只是一个工具。
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "电吉他资料库",
+    title: "练习站",
   },
   // Next 只自动输出 android 侧的 mobile-web-app-capable；iOS 16.4 之前
   // 靠这行才从主屏幕全屏启动
@@ -46,8 +44,6 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const practicePaths = weeklyLessons(lessons).map((lesson) => `/library/${lesson.slug}`);
-
   return (
     <html lang="zh-CN">
       <head>
@@ -59,7 +55,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className="flex min-h-svh flex-col">
-        <SiteNav practiceHref={weeklyHref(lessons)} practicePaths={practicePaths} />
+        <SiteNav />
         {children}
         <SiteFooter />
         <ServiceWorkerRegistration />
