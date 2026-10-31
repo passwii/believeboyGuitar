@@ -1,1 +1,41 @@
-<view class="page"><view class="title">节拍器</view></view>
+<view class="page metronome">
+  <view class="metronome__status">
+    <text class="metronome__meter">{{meter.label}}</text>
+    <text class="metronome__phase">{{status}}</text>
+  </view>
+
+  <beat-strip
+    beats="{{meter.beatsPerBar}}"
+    accents="{{meter.accents}}"
+    active="{{activeBeat}}"
+    running="{{phase === 'running'}}"
+  />
+
+  <view class="metronome__dial">
+    <bpm-dial value="{{bpm}}" bind:change="onDialChange" />
+    <view class="metronome__steps">
+      <button class="step" bindtap="decrementBpm" aria-label="减速 1 BPM">−</button>
+      <button class="step" bindtap="incrementBpm" aria-label="加速 1 BPM">+</button>
+    </view>
+  </view>
+
+  <view class="metronome__transport">
+    <button class="tool-button" bindtap="cycleMeter">
+      <text class="tool-button__label">拍号</text>
+      <text class="tool-button__value">{{meter.label}}</text>
+    </button>
+    <button
+      class="play-button {{phase === 'running' ? 'play-button--stop' : ''}}"
+      bindtap="toggle"
+      aria-label="{{phase === 'running' ? '停止' : '开始'}}"
+    >
+      {{phase === 'running' ? '停止' : '开始'}}
+    </button>
+    <button class="tool-button" bindtap="cycleTimbre">
+      <text class="tool-button__label">音色</text>
+      <text class="tool-button__value">{{timbre.label}}</text>
+    </button>
+  </view>
+
+  <text class="metronome__hint">{{wakeHint}}</text>
+</view>

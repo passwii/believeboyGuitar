@@ -1,1 +1,142 @@
 
+.metronome {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 36rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.metronome__status {
+  display: flex;
+  min-height: 64rpx;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+
+.metronome__meter {
+  color: var(--color-ink-950);
+  font-size: 36rpx;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.metronome__phase {
+  color: var(--color-ink-500);
+  font-size: 26rpx;
+}
+
+beat-strip {
+  display: block;
+  flex: 0 0 auto;
+  margin-top: 24rpx;
+}
+
+.metronome__dial {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 28rpx 0;
+}
+
+bpm-dial {
+  display: block;
+  width: 100%;
+  max-width: 560rpx;
+}
+
+.metronome__steps {
+  position: absolute;
+  right: 0;
+  bottom: 18rpx;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+}
+
+.step,
+.tool-button {
+  display: flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 20rpx;
+  border: 2rpx solid var(--color-rule);
+  border-radius: 999rpx;
+  background: var(--color-surface);
+  color: var(--color-ink-700);
+  line-height: 1;
+}
+
+.step::after,
+.tool-button::after,
+.play-button::after {
+  border: 0;
+}
+
+.step {
+  width: 44px;
+  height: 44px;
+  font-size: 36rpx;
+}
+
+.metronome__transport {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.tool-button {
+  min-width: 120rpx;
+  min-height: 44px;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.tool-button__label {
+  color: var(--color-ink-500);
+  font-size: 20rpx;
+}
+
+.tool-button__value {
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.play-button {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-accent-700);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 64px;
+}
+
+.play-button--stop {
+  background: var(--color-ink-700);
+}
+
+.metronome__hint {
+  min-height: 32rpx;
+  flex: 0 0 auto;
+  margin-top: 12rpx;
+  color: var(--color-ink-500);
+  font-size: 22rpx;
+  text-align: center;
+}
