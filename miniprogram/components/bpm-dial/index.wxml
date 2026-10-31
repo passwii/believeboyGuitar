@@ -10,6 +10,7 @@
   bindtouchmove="onTouchMove"
   bindtouchend="onTouchEnd"
 >
+  <view class="dial__ratio" aria-hidden="true"></view>
   <canvas type="2d" id="dial" class="dial"></canvas>
   <view class="dial__readout" aria-hidden="true">
     <text class="dial__bpm">{{value}}</text>
