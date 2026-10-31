@@ -81,7 +81,10 @@ Page({
         this.setData(controller.handleFrame(samples, sampleRate));
       },
       onError: () => {
-        if (generation !== runtime.generation) return;
+        if (
+          generation !== runtime.generation ||
+          runtime.recorder !== recorder
+        ) return;
         if (runtime.recorder === recorder) runtime.recorder = null;
         recorder?.dispose();
         this.setData(controller.recorderFailed());
@@ -90,8 +93,17 @@ Page({
         if (generation !== runtime.generation) return;
         if (state === "listening") {
           this.setData(controller.recorderStarted());
-        } else if (state === "stopped" && this.data.state === "starting") {
-          this.setData(controller.recorderFailed("录音启动失败，请重试"));
+        } else if (state === "stopped") {
+          const tunerState = controller.getState().state;
+          if (tunerState === "starting") {
+            this.setData(controller.recorderFailed("录音启动失败，请重试"));
+          } else if (tunerState === "listening") {
+            runtime.recorder = null;
+            recorder?.dispose();
+            this.setData(
+              controller.recorderFailed("录音意外停止，请重新开始调音"),
+            );
+          }
         }
       },
     });

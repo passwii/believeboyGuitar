@@ -43,6 +43,13 @@ describe("PitchDetector", () => {
     expect(1200 * Math.log2(reading!.frequency / frequency)).toBeCloseTo(0, 0);
   });
 
+  it.each([54.99, 400.01])(
+    "rejects estimates just outside the %d Hz range",
+    (frequency) => {
+      expect(detector.detect(sine(frequency), SAMPLE_RATE)).toBeNull();
+    },
+  );
+
   it("handles a harmonic-rich guitar-like wave", () => {
     const reading = detector.detect(harmonic(82.4069), SAMPLE_RATE);
     expect(reading).not.toBeNull();

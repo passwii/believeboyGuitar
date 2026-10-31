@@ -1,5 +1,7 @@
 import { removeDc, rms } from "./pcm";
 
+const RANGE_EPSILON_HZ = 1e-6;
+
 export type PitchReading = {
   frequency: number;
   clarity: number;
@@ -95,12 +97,16 @@ export class PitchDetector {
     const denominator = left - 2 * center + right;
     const offset = denominator === 0 ? 0 : (0.5 * (left - right)) / denominator;
     const estimatedFrequency = sampleRate / (lag + offset);
-    if (!Number.isFinite(estimatedFrequency)) return null;
+    if (
+      !Number.isFinite(estimatedFrequency) ||
+      estimatedFrequency < this.minFrequency - RANGE_EPSILON_HZ ||
+      estimatedFrequency > this.maxFrequency + RANGE_EPSILON_HZ
+    ) return null;
+
     const frequency = Math.min(
       this.maxFrequency,
       Math.max(this.minFrequency, estimatedFrequency),
     );
-
     return { frequency, clarity: center, rms: level };
   }
 }

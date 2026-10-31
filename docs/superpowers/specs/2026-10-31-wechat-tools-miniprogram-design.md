@@ -45,7 +45,7 @@
 - 调音器只在小程序前台录音；页面隐藏时停止录音并结束本次调音。
 - A4 固定为 440 Hz，第一版不提供参考频率调节。
 - 不把小程序 UI 代码与 Web React 组件强行共享；共享规则、算法、调弦数据和视觉令牌。
-- 所有微信 API 只出现在 `miniprogram/adapters/`，纯逻辑不得引用 `wx`、DOM、React 或 Next。
+- 媒体采集、音频播放和设备会话等底层 API 放在 `miniprogram/adapters/`；页面可以直接调用权限与设置、提示弹窗、屏幕常亮和页面生命周期相关的微信 API。共享纯逻辑不得引用 `wx`、DOM、React 或 Next。
 
 ## 4. 工程结构
 
@@ -256,9 +256,10 @@ type TuningPreset = {
 
 ### 8.3 录音与 PCM 管线
 
-`adapters/recorder-pcm.ts` 使用 `wx.getRecorderManager()`：
+页面使用 `wx.getSetting()`、`wx.authorize()`、`wx.showModal()` 和 `wx.openSetting()` 完成麦克风权限提示与设置跳转。它们属于页面交互，可直接留在页面层。
 
-- 首次开始调音时请求麦克风权限；用户拒绝后显示“需要麦克风权限”和“打开设置”按钮。
+`adapters/recorder-pcm.ts` 使用 `wx.getRecorderManager()` 处理底层录音与 PCM 数据：
+
 - 优先 `sampleRate: 48000`、`numberOfChannels: 1`、`format: "PCM"`、`frameSize: 8` KB。
 - 48kHz 不可用时退回 44100、32000；实际采样率必须传入检测器。
 - `onFrameRecorded` 的 ArrayBuffer 按 little-endian PCM16 转成 Float32，并归一化到 -1..1。

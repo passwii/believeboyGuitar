@@ -198,21 +198,30 @@ Page({
     const audio = runtime.audio;
     if (runtime.phase !== "running" || !audio) return;
 
-    const now = audio.currentTime;
-    while (runtime.nextBeatTime < now + SCHEDULE_AHEAD_S) {
-      const beat = runtime.nextBeatIndex;
-      const time = runtime.nextBeatTime;
-      audio.schedule(beat, time, runtime.meter);
-      runtime.pending.push({ beat, time });
-      runtime.nextBeatIndex = nextBeat(beat, runtime.meter);
-      runtime.nextBeatTime = time + bpmToIntervalMs(runtime.bpm) / 1000;
-    }
+    try {
+      if (audio.state !== "running") {
+        this.stop(true);
+        return;
+      }
 
-    const due = runtime.pending.filter((click) => click.time <= now);
-    runtime.pending = runtime.pending.filter((click) => click.time > now);
-    const latestDue = due[due.length - 1];
-    if (latestDue && this.data.activeBeat !== latestDue.beat) {
-      this.setData({ activeBeat: latestDue.beat });
+      const now = audio.currentTime;
+      while (runtime.nextBeatTime < now + SCHEDULE_AHEAD_S) {
+        const beat = runtime.nextBeatIndex;
+        const time = runtime.nextBeatTime;
+        audio.schedule(beat, time, runtime.meter);
+        runtime.pending.push({ beat, time });
+        runtime.nextBeatIndex = nextBeat(beat, runtime.meter);
+        runtime.nextBeatTime = time + bpmToIntervalMs(runtime.bpm) / 1000;
+      }
+
+      const due = runtime.pending.filter((click) => click.time <= now);
+      runtime.pending = runtime.pending.filter((click) => click.time > now);
+      const latestDue = due[due.length - 1];
+      if (latestDue && this.data.activeBeat !== latestDue.beat) {
+        this.setData({ activeBeat: latestDue.beat });
+      }
+    } catch {
+      this.stop(true);
     }
   },
 
@@ -234,14 +243,18 @@ Page({
     runtime.nextBeatTime = anchor.time;
   },
 
-  stop() {
+  stop(interrupted = false) {
     startGeneration += 1;
     if (runtime.timer !== null) clearInterval(runtime.timer);
     runtime.timer = null;
     const audio = runtime.audio;
+    runtime.audio = null;
     if (audio) {
-      audio.cancelFrom(audio.currentTime);
-      runtime.audio = null;
+      try {
+        audio.cancelFrom(audio.currentTime);
+      } catch {
+        // A failed context may no longer expose its clock or cancel scheduled nodes.
+      }
       void audio.dispose().catch(() => undefined);
     }
     runtime.pending = [];
@@ -249,6 +262,11 @@ Page({
     runtime.nextBeatTime = 0;
     runtime.phase = "idle";
     releaseWakeLock();
-    this.setData({ activeBeat: 0, phase: "idle", status: "准备开始", wakeHint: "" });
+    this.setData({
+      activeBeat: 0,
+      phase: "idle",
+      status: interrupted ? "播放中断，请重新开始" : "准备开始",
+      wakeHint: "",
+    });
   },
 });

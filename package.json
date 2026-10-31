@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "eslint",
-    "test": "vitest run",
+    "test": "npm run mini:core && vitest run",
     "typecheck": "npm run mini:core && tsc --noEmit && tsc -p miniprogram/tsconfig.json --noEmit",
     "mini:core": "tsc -p packages/guitar-core/tsconfig.build.json",
     "mini:check": "npm run mini:core && tsc -p miniprogram/tsconfig.json --noEmit",
