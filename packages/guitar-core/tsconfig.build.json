@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "ES2019",
+    "rootDir": "src",
+    "outDir": "../../miniprogram/generated/guitar-core",
+    "incremental": false,
+    "isolatedModules": false
+  },
+  "include": ["src/**/*.ts"]
+}
