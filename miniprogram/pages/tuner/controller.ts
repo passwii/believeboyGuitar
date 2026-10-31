@@ -131,6 +131,9 @@ export class TunerController {
       state: "error",
       statusText: message,
       listening: false,
+      noteText: "—",
+      cents: 0,
+      directionText: "等待声音",
       stable: false,
     };
     return this.getState();

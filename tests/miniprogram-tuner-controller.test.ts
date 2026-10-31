@@ -54,6 +54,29 @@ describe("tuner controller", () => {
     expect(controller.getState().stable).toBe(false);
   });
 
+  it("clears all reading fields when recording fails", () => {
+    const controller = listeningController();
+    controller.acceptFrequency(83, 1000);
+    expect(controller.getState().cents).not.toBe(0);
+
+    expect(controller.getState()).toMatchObject({
+      noteText: "E2",
+      directionText: "偏高",
+    });
+
+    controller.recorderFailed();
+
+    expect(controller.getState()).toMatchObject({
+      state: "error",
+      statusText: "录音启动失败，请检查麦克风后重试",
+      listening: false,
+      noteText: "—",
+      cents: 0,
+      directionText: "等待声音",
+      stable: false,
+    });
+  });
+
   it("invalidates the previous reading for quiet and unpitched frames", () => {
     const controller = listeningController();
     controller.acceptFrequency(82.4069, 1000);
