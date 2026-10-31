@@ -37,3 +37,15 @@ npm run build
 - 禁止 `<script>`、`<style>`、`<link>`、行内 `style=` 与自带导航。
 - 指法、把位和音阶位置属于高风险内容，必须按实琴核对。
 - 新增周练时只更新 `content/manifest.ts` 和对应的正文文件。
+
+## 微信小程序
+
+`miniprogram/` 是独立的微信原生小程序，只包含节拍器与调音器。
+
+```bash
+npm run mini:core
+npm run mini:check
+```
+
+用微信开发者工具打开 `miniprogram/`。本地测试可使用 `touristappid`，
+发布前在开发者工具中填入正式 AppID。
