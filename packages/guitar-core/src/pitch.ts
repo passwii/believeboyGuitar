@@ -34,7 +34,8 @@ export class PitchDetector {
       throw new RangeError("Pitch detector options must be finite");
     }
     if (
-      this.minFrequency <= 0 ||
+      this.minFrequency < 55 ||
+      this.maxFrequency > 400 ||
       this.maxFrequency <= this.minFrequency ||
       this.clarityThreshold < 0 ||
       this.clarityThreshold > 1 ||

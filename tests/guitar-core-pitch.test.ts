@@ -81,7 +81,9 @@ describe("PitchDetector", () => {
 
   it.each([
     { minFrequency: 0 },
+    { minFrequency: 54.99 },
     { maxFrequency: 0 },
+    { maxFrequency: 400.01 },
     { minFrequency: 400, maxFrequency: 400 },
     { minFrequency: 401, maxFrequency: 400 },
     { clarityThreshold: -0.01 },
@@ -90,5 +92,14 @@ describe("PitchDetector", () => {
     { rmsThreshold: 1.01 },
   ])("rejects out-of-range options: %o", (options) => {
     expect(() => new PitchDetector(options)).toThrow(RangeError);
+  });
+
+  it("allows custom ranges within 55–400 Hz", () => {
+    expect(
+      () => new PitchDetector({ minFrequency: 60, maxFrequency: 350 }),
+    ).not.toThrow();
+    expect(
+      () => new PitchDetector({ minFrequency: 55, maxFrequency: 400 }),
+    ).not.toThrow();
   });
 });
