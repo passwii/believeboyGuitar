@@ -92,8 +92,13 @@ export type ChromaticNote = {
 };
 
 export function centsBetween(frequency: number, reference: number): number {
-  if (frequency <= 0 || reference <= 0) {
-    throw new RangeError("frequency and reference must be positive");
+  if (
+    !Number.isFinite(frequency) ||
+    !Number.isFinite(reference) ||
+    frequency <= 0 ||
+    reference <= 0
+  ) {
+    throw new RangeError("frequency and reference must be finite and positive");
   }
   return 1200 * Math.log2(frequency / reference);
 }
@@ -104,6 +109,9 @@ export function nearestString(
 ): StringReading {
   if (strings.length === 0) {
     throw new RangeError("a tuning needs at least one string");
+  }
+  if (!Number.isFinite(frequency) || frequency <= 0) {
+    throw new RangeError("frequency must be finite and positive");
   }
   let chosen = strings[0];
   let difference = Math.abs(centsBetween(frequency, chosen.frequency));
@@ -121,6 +129,9 @@ export function nearestString(
 }
 
 export function noteAtFrequency(frequency: number): ChromaticNote {
+  if (!Number.isFinite(frequency) || frequency <= 0) {
+    throw new RangeError("frequency must be finite and positive");
+  }
   const exactMidi = 69 + 12 * Math.log2(frequency / 440);
   const midi = Math.round(exactMidi);
   const noteFrequency = 440 * 2 ** ((midi - 69) / 12);
@@ -137,6 +148,9 @@ export function describeCents(
   cents: number,
   tolerance = 3,
 ): "flat" | "in-tune" | "sharp" {
+  if (!Number.isFinite(cents) || !Number.isFinite(tolerance)) {
+    throw new RangeError("cents and tolerance must be finite");
+  }
   if (Math.abs(cents) <= tolerance) return "in-tune";
   return cents < 0 ? "flat" : "sharp";
 }

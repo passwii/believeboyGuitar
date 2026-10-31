@@ -8,6 +8,8 @@ import {
 } from "../packages/guitar-core/src/tuning";
 
 describe("tuning core", () => {
+  const nonFiniteValues = [NaN, Infinity, -Infinity];
+
   it("defines standard, drop D, half-step down and chromatic", () => {
     expect(TUNING_PRESETS.map((preset) => preset.id)).toEqual([
       "standard",
@@ -29,6 +31,17 @@ describe("tuning core", () => {
     expect(centsBetween(440, 440)).toBe(0);
     expect(centsBetween(443.65, 440)).toBeCloseTo(14.27, 1);
     expect(centsBetween(436.39, 440)).toBeCloseTo(-14.27, 1);
+  });
+
+  it.each(nonFiniteValues)("rejects non-finite input %s", (frequency) => {
+    expect(() => centsBetween(frequency, 440)).toThrow(RangeError);
+    expect(() => centsBetween(440, frequency)).toThrow(RangeError);
+    expect(() => nearestString(frequency, TUNING_PRESETS[0].strings)).toThrow(
+      RangeError,
+    );
+    expect(() => noteAtFrequency(frequency)).toThrow(RangeError);
+    expect(() => describeCents(frequency)).toThrow(RangeError);
+    expect(() => describeCents(1, frequency)).toThrow(RangeError);
   });
 
   it("selects the nearest string and describes direction", () => {
