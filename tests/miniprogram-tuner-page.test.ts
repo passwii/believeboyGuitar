@@ -10,41 +10,44 @@ const gaugeWxml = existsSync(gaugeWxmlPath)
   ? readFileSync(gaugeWxmlPath, "utf8")
   : "";
 
-describe("tuner page", () => {
-  it("requests microphone permission and stops on hide and unload", () => {
-    expect(ts).toContain("scope.record");
-    expect(ts).toContain("onHide()");
-    expect(ts).toContain("onUnload()");
-    expect(ts).toContain("stopTuning()");
+describe("tuner page platform wiring", () => {
+  it("requests microphone permission and handles denial through settings", () => {
+    expect(ts).toContain('scope: "scope.record"');
+    expect(ts).toContain('wx.getSetting');
+    expect(ts).toContain("wx.authorize");
+    expect(ts).toContain("wx.showModal");
+    expect(ts).toContain("controller.setPermissionResult(permitted)");
     expect(ts).toContain("wx.openSetting");
   });
 
-  it("uses 4096-sample pitch detection and median smoothing", () => {
-    expect(ts).toContain("new PitchDetector");
-    expect(ts).toContain("medianFrequency");
-    expect(ts).toContain("frameSize: 8");
-    expect(ts).toContain("minFrequency: 55");
-    expect(ts).toContain("maxFrequency: 400");
+  it("stops and releases recording on hide and unload", () => {
+    expect(ts).toContain("onHide()");
+    expect(ts).toContain("onUnload()");
+    expect(ts).toContain("this.stopTuning()");
+    expect(ts).toContain("runtime.recorder?.dispose()");
+    expect(ts).toContain("this.setData(controller.stop())");
   });
 
-  it("renders automatic, manual and chromatic states", () => {
+  it("delegates PCM frames and user actions to the controller", () => {
+    expect(ts).toContain("frameSize: 8");
+    expect(ts).toContain("controller.handleFrame(samples, sampleRate)");
+    expect(ts).toContain("controller.cyclePreset()");
+    expect(ts).toContain("controller.resetMode()");
+    expect(ts).toContain("controller.selectString(");
+  });
+
+  it("renders automatic, manual and chromatic controls", () => {
     expect(wxml).toContain("自动");
     expect(wxml).toContain("手动锁弦");
     expect(wxml).toContain("半音阶");
     expect(wxml).toContain("tuner-gauge");
   });
 
-  it("keeps spoken direction and note cues available in the gauge", () => {
+  it("keeps direction and stable cues accessible in the gauge", () => {
     expect(gaugeWxml).toContain("aria-label=");
     expect(gaugeWxml).toContain("directionText");
     expect(gaugeWxml).toContain("已调准");
     expect(gaugeTs).toContain("Math.max(-50, Math.min(50, cents))");
     expect(gaugeTs).toContain("needlePercent");
-  });
-
-  it("exposes the stable state only after an in-tune interval", () => {
-    expect(ts).toContain("200");
-    expect(ts).toContain("Math.abs(cents) <= 3");
-    expect(ts).toContain("medianFrequency");
   });
 });
