@@ -1,12 +1,12 @@
 /**
- * 节拍器 PWA 的 Service Worker（BLF-1443）。
+ * 练习站 PWA 的 Service Worker。
  *
- * 目标只有一个：装到主屏幕之后，断网也能打开节拍器。所以策略刻意保守——
+ * 安装后从首页启动，同时保留节拍器的离线能力。策略刻意保守——
  *
  * - `_next/static/*` 是带内容哈希的不可变资源，缓存优先；
  * - 页面导航走网络优先，在线时永远拿最新构建，断网才落回缓存；
- * - 旧地址（BLF-1451 工具迁入 /tools）在导航兜底里映射到已缓存的规范页：
- *   已安装实例的 start_url 还是 /metronome 这类旧地址，而 activate 会删掉
+ * - 旧节拍器地址在导航兜底里映射到已缓存的规范页：
+ *   已安装实例的 start_url 可能还是 /tools/metronome，而 activate 会删掉
  *   存着旧地址的旧版本缓存——不映射的话，装过的 PWA 断网启动会打不开。
  * - 图标与清单走 stale-while-revalidate；
  * - 只处理同源 GET，不碰 POST、跨域和浏览器扩展请求。
@@ -16,7 +16,7 @@
  *
  * 安装阶段有两类预缓存，失败语义不同：
  *
- * - **必需壳**（`REQUIRED_SHELL`）：节拍器的 HTML 加它引用的 `_next/static/*`。
+ * - **必需壳**（`REQUIRED_SHELL`）：首页与节拍器的 HTML 加它们引用的 `_next/static/*`。
  *   任何一个拿不到就让 install 失败，旧 worker 与旧缓存继续服务——用户最多晚
  *   一次更新，不会出现「HTML 回来了、JS 却 404」的半截离线壳。
  * - **可选壳**（`OPTIONAL_SHELL`）：清单与图标，404 只影响安装外观，不该让整次
@@ -27,16 +27,15 @@
  * 命中。只缓存 HTML 的话，装完直接断网启动会拿到一张没有 JS 的页面。
  */
 
-const VERSION = "2026-10-24-2";
+const VERSION = "2026-10-31-1";
 const SHELL_CACHE = `shell-${VERSION}`;
 const STATIC_CACHE = `static-${VERSION}`;
 
-/** 拿不到就等于离线打不开节拍器，失败必须让 install 失败
- *  （BLF-1451：节拍器迁到 /tools/metronome，旧地址有跳转壳） */
-const REQUIRED_SHELL = ["/tools/metronome"];
+/** 拿不到就等于离线打不开首页或节拍器，失败必须让 install 失败 */
+const REQUIRED_SHELL = ["/", "/metronome"];
 
 /**
- * 旧地址 → 现住地址（BLF-1451：五个工具迁入 /tools）。
+ * 旧地址 → 现住地址。
  *
  * 只在离线兜底时用：在线时 networkFirst 照常回源，跳转壳照常工作并
  * 被缓存；断网时旧地址不在新版壳缓存里，直接拿已缓存的规范页顶上——
@@ -44,11 +43,7 @@ const REQUIRED_SHELL = ["/tools/metronome"];
  * 不预缓存旧地址：install 省几次抓取，规范页本来就在必需壳里。
  */
 const LEGACY_ROUTES = {
-  "/metronome": "/tools/metronome",
-  "/cheatsheet": "/tools/cheatsheet",
-  "/chords": "/tools/chords",
-  "/practice": "/tools/practice",
-  "/rhythms": "/tools/rhythms",
+  "/tools/metronome": "/metronome",
 };
 
 /**

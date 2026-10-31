@@ -1,24 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { lessons } from "@/content/manifest";
-import { latestWeeklyLesson, weeklyHref, weeklyLessons } from "@/lib/weekly";
+import { practiceWeeks } from "@/content/manifest";
+import { latestPracticeWeek, practiceHref } from "@/lib/weekly";
 
-describe("每周练习入口", () => {
-  it("只收有 series 的资料", () => {
-    const weekly = weeklyLessons(lessons);
-    expect(weekly.length).toBeGreaterThanOrEqual(2);
-    for (const lesson of weekly) {
-      expect(lesson.series?.id).toBe("finger-training-weeks");
-    }
-  });
-
-  it("取最新一周，并把入口指向它的详情页", () => {
-    const latest = latestWeeklyLesson(lessons);
+describe("周练目录", () => {
+  it("最新周取目录最后一项，并生成练习路由", () => {
+    const latest = latestPracticeWeek(practiceWeeks);
     expect(latest?.slug).toBe("week-2-alternate-picking");
-    expect(weeklyHref(lessons)).toBe("/library/week-2-alternate-picking");
+    expect(practiceHref(latest)).toBe("/practice/week-2-alternate-picking");
   });
 
-  it("没有周次资料时回落到资料库", () => {
-    expect(latestWeeklyLesson([])).toBeUndefined();
-    expect(weeklyHref([], "/library")).toBe("/library");
+  it("没有周练时退回练习中心", () => {
+    expect(latestPracticeWeek([])).toBeUndefined();
+    expect(practiceHref(undefined)).toBe("/practice");
   });
 });

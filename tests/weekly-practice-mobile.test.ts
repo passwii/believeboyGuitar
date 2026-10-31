@@ -6,17 +6,16 @@ const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
 
 describe("每周练习手机阅读版", () => {
-  const page = read("app/library/[slug]/page.tsx");
+  const page = read("app/practice/[slug]/page.tsx");
   const drill = read("components/TabDrill.tsx");
   const staff = read("components/TabStaff.tsx");
   const weekOne = read("content/lessons/week-1-finger-independence.html");
   const weekTwo = read("content/lessons/week-2-alternate-picking.html");
 
   it("手机页头只保留周次，说明与元数据后置", () => {
-    expect(page).toContain('const isWeeklyPractice = lesson.series?.id === "finger-training-weeks";');
-    expect(page).toContain('<span className="sm:hidden">{lesson.series?.label ?? lesson.title}</span>');
-    expect(page).toContain('className="mt-4 measure text-body text-ink-700 text-pretty max-sm:hidden"');
-    expect(page).toContain("text-meta text-ink-500 max-sm:hidden");
+    expect(page).toContain('<span className="sm:hidden">{week.label}</span>');
+    expect(page).toContain("<PracticeWeekPicker");
+    expect(page).not.toContain("lesson.summary");
   });
 
   it("曲谱排在练习说明之前，说明在手机上默认折叠", () => {

@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import type { Lesson } from "@/content/manifest";
+import type { PracticeWeek } from "@/content/manifest";
 
-export function LessonSeriesPicker({
+export function PracticeWeekPicker({
   items,
   currentSlug,
 }: {
-  items: readonly Lesson[];
+  items: readonly PracticeWeek[];
   currentSlug: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -40,7 +40,7 @@ export function LessonSeriesPicker({
 
   if (!current || items.length < 2) return null;
 
-  const currentLabel = current.series?.label ?? current.title;
+  const currentLabel = current.label;
 
   return (
     <div ref={pickerRef} className="week-picker">
@@ -66,14 +66,14 @@ export function LessonSeriesPicker({
               return (
                 <li key={item.slug}>
                   <Link
-                    href={`/library/${item.slug}`}
+                    href={`/practice/${item.slug}`}
                     aria-current={isCurrent ? "page" : undefined}
                     onClick={() => setOpen(false)}
                     className={`week-picker__link ${
                       isCurrent ? "week-picker__link--current" : ""
                     }`}
                   >
-                    {item.series?.label ?? item.title}
+                    {item.label}
                   </Link>
                 </li>
               );

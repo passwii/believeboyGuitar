@@ -1,94 +1,109 @@
 import Link from "next/link";
-import { home, lessons } from "@/content/manifest";
-import { recentLessons } from "@/lib/lessons";
-import { LessonCard } from "@/components/LessonCard";
-import { EmptyLibrary } from "@/components/EmptyLibrary";
-import { QuickPractice } from "@/components/QuickPractice";
-import { ToolPages } from "@/components/ToolPages";
 import { Icon } from "@/components/icons";
+import { practiceWeeks } from "@/content/manifest";
+import { practiceSections, practiceSectionAnchor } from "@/lib/practice-sections";
+import { latestPracticeWeek, practiceHref } from "@/lib/weekly";
 
-/**
- * 首页 = 练习台（2026-10-25，D3）。
- *
- * 左列是「现在要做的」：先节拍器，再今天的目标。
- * 右列是「接着读的」：最近整理的资料。
- * 顺序仍来自 content/manifest.ts 的 home.goals（唯一事实来源）。
- */
 export default function HomePage() {
-  const recent = recentLessons(lessons, 4);
+  const latest = latestPracticeWeek(practiceWeeks);
+  const sections = latest ? practiceSections(latest.slug) : [];
+  const weekNumber = latest?.label.match(/\d+/)?.[0]?.padStart(2, "0") ?? "—";
 
   return (
-    <main className="shell flex-1 pb-16 pt-8 sm:pt-12">
-      <header className="flex flex-wrap items-end justify-between gap-6">
-        <div className="min-w-0">
-          <h1 className="text-display font-display text-balance text-ink-950">今天练什么</h1>
-          <p className="mt-2 max-w-[34ch] text-body text-pretty text-ink-700">
-            先定速度，再开始。练完再看资料。
-          </p>
+    <main className="shell flex-1 py-8 sm:py-12">
+      <section className="home-hero">
+        <div>
+          <p className="text-micro font-medium uppercase text-ink-500">练习台 · {latest?.label}</p>
+          <span className="home-week-number">{weekNumber}</span>
+          <h1 className="text-display font-display text-ink-950">{latest?.title ?? "开始练习"}</h1>
+          <p className="mt-3 text-body text-ink-700">{latest?.focus}</p>
+          <div className="mt-7 flex flex-wrap gap-2.5">
+            <Link
+              href={practiceHref(latest)}
+              className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-semibold text-on-accent"
+            >
+              开始练习
+            </Link>
+            <Link
+              href="/metronome"
+              className="inline-flex min-h-11 items-center rounded-control border border-rule bg-surface px-5 text-label font-medium text-ink-700"
+            >
+              打开节拍器
+            </Link>
+          </div>
         </div>
-        <Link
-          href="/library"
-          className="hidden min-h-11 items-center gap-1.5 text-label text-ink-700 transition-colors duration-150 hover:text-ink-950 sm:flex"
-        >
-          <Icon name="library" className="size-4 text-ink-500" />
-          全部资料
-        </Link>
-      </header>
+        <aside className="home-hero__aside">
+          <strong>{String(sections.length).padStart(2, "0")}</strong>
+          <span>本周练习段</span>
+          <div>
+            <b>{practiceWeeks.length}</b>
+            <small>个训练周</small>
+          </div>
+        </aside>
+      </section>
 
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14">
-        <div className="min-w-0">
-          <QuickPractice />
-
-          <section className="mt-10" aria-labelledby="goals-heading">
-            <h2 id="goals-heading" className="text-title text-ink-950">
-              现在要练的
+      <div className="home-grid">
+        <section aria-labelledby="week-sections-heading">
+          <div className="flex items-center justify-between gap-4">
+            <h2 id="week-sections-heading" className="text-title text-ink-950">
+              本周谱例
             </h2>
-            {home.goals.length === 0 ? (
-              <p className="measure mt-3 text-body text-ink-700">
-                还没有设定目标。在 content/manifest.ts 的 home.goals 里补充。
-              </p>
-            ) : (
-              <ol className="mt-3 border-t border-rule">
-                {home.goals.map((goal, index) => (
-                  <li key={goal.title} className="flex gap-4 border-b border-rule py-4">
-                    <span
-                      aria-hidden="true"
-                      className="w-6 flex-none pt-1 text-right font-mono text-meta leading-6 text-ink-500 tabular-nums"
-                    >
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-pretty text-title text-ink-950">{goal.title}</p>
-                      {goal.detail !== "" && (
-                        <p className="mt-1 text-pretty text-body text-ink-700">{goal.detail}</p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-        </div>
-
-        <section aria-labelledby="recent-heading" className="min-w-0">
-          <h2 id="recent-heading" className="text-title text-ink-950">
-            最近整理
-          </h2>
-          {recent.length === 0 ? (
-            <EmptyLibrary />
-          ) : (
-            <ul className="mt-3 divide-y divide-rule border-t border-rule">
-              {recent.map((lesson) => (
-                <li key={lesson.slug}>
-                  <LessonCard lesson={lesson} />
-                </li>
-              ))}
-            </ul>
-          )}
+            <Link href="/practice" className="text-label font-medium text-accent-700">
+              全部周次
+            </Link>
+          </div>
+          <ol className="mt-3 border-t border-rule">
+            {sections.map((section, index) => (
+              <li key={section.id} className="border-b border-rule">
+                <Link
+                  href={
+                    latest
+                      ? `${practiceHref(latest)}#${practiceSectionAnchor(latest.slug, section.id)}`
+                      : "/practice"
+                  }
+                  className="grid min-h-14 grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 px-1 text-ink-950"
+                >
+                  <span className="font-mono text-meta text-ink-300 tabular-nums">
+                    {String(index).padStart(2, "0")}
+                  </span>
+                  <span className="text-label font-semibold">{section.title}</span>
+                  <span className="font-mono text-meta text-ink-500 tabular-nums">
+                    {section.bpm}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
         </section>
-      </div>
 
-      <ToolPages />
+        <aside aria-labelledby="quick-links-heading">
+          <h2 id="quick-links-heading" className="text-title text-ink-950">
+            快捷入口
+          </h2>
+          <div className="mt-3 border-t border-rule">
+            <Link href="/library" className="home-quick-link">
+              <span className="home-quick-link__icon">
+                <Icon name="library" className="size-[18px]" />
+              </span>
+              <span>
+                <strong>资料库</strong>
+                <small>指板音阶 · 1 份</small>
+              </span>
+              <span aria-hidden="true">↗</span>
+            </Link>
+            <Link href="/metronome" className="home-quick-link">
+              <span className="home-quick-link__icon">
+                <Icon name="metronome" className="size-[18px]" />
+              </span>
+              <span>
+                <strong>节拍器</strong>
+                <small>专注单屏 · 可后台运行</small>
+              </span>
+              <span aria-hidden="true">↗</span>
+            </Link>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }

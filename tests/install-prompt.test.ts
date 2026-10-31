@@ -29,7 +29,7 @@ const dial = read("components/BpmDial.tsx");
 const nav = read("components/SiteNav.tsx");
 const globals = read("app/globals.css");
 const layout = read("app/layout.tsx");
-const metronomePage = read("app/tools/metronome/page.tsx");
+  const metronomePage = read("app/metronome/page.tsx");
 const installPrompt = read("components/InstallPrompt.tsx");
 
 describe("调速交互不触发页面滚动（BLF-1448）", () => {

@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
 
-const page = read("app/tools/metronome/page.tsx");
+const page = read("app/metronome/page.tsx");
 const globals = read("app/globals.css");
 const metronome = read("components/Metronome.tsx");
 const dial = read("components/BpmDial.tsx");
@@ -21,12 +21,10 @@ const footer = read("components/SiteFooter.tsx");
 
 describe("手机单屏节拍器", () => {
   it("窄屏隐藏站点顶部栏、底部 dock 与页脚", () => {
-    expect(nav).toContain(
-      'const focusMode = pathname === "/tools/metronome" || weeklyPaths.has(pathname);',
-    );
+    expect(nav).toContain('pathname === "/metronome"');
     expect(nav).toContain('focusMode ? "hidden sm:block " : ""');
     expect(nav).toContain('aria-label="移动端导航"');
-    expect(footer).toContain('pathname.startsWith("/library/week-")');
+    expect(footer).toContain('pathname.startsWith("/practice/week-")');
     expect(footer).toContain('focusMode ? "hidden sm:block " : ""');
   });
 

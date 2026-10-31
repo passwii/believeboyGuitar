@@ -1,37 +1,52 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import { Icon } from "@/components/icons";
+import { practiceWeeks } from "@/content/manifest";
+import { practiceSections } from "@/lib/practice-sections";
+import { latestPracticeWeek, practiceHref } from "@/lib/weekly";
 
-/**
- * 旧地址的静态跳转页（BLF-1451）。机制见 app/metronome/page.tsx 的说明：
- * 静态导出用不了 redirects()，React 19 把 <meta> 提升进 head 完成跳转。
- */
+export const metadata = { title: "练习" };
 
-export const metadata: Metadata = {
-  title: "练习计划已迁移",
-  alternates: { canonical: "/tools/practice" },
-};
-export default function PracticeRedirectPage() {
+export default function PracticePage() {
+  const latest = latestPracticeWeek(practiceWeeks);
+
   return (
-    <main className="shell flex-1 py-16 sm:py-24">
-      <div className="measure">
-        <p className="font-mono text-micro font-medium uppercase text-ink-500">已迁移</p>
-        <h1 className="mt-3 text-display font-display text-balance text-ink-950">
-          练习计划搬进了工具间
-        </h1>
-        <p className="mt-4 text-body text-pretty text-ink-700">
-          新地址是 /tools/practice，正在带你过去……
-        </p>
-        <p className="mt-6">
+    <main className="shell flex-1 py-8 sm:py-12">
+      <header className="flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <p className="text-micro font-medium uppercase text-ink-500">Practice</p>
+          <h1 className="mt-2 text-display font-display text-ink-950">练习</h1>
+          <p className="mt-2 text-body text-ink-700">按周练，每次只推进一段。</p>
+        </div>
+        {latest ? (
           <Link
-            href="/tools/practice"
-            className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-medium text-on-accent transition-colors duration-150 hover:bg-accent-600"
+            href={practiceHref(latest)}
+            className="inline-flex min-h-11 items-center gap-2 rounded-control bg-accent-700 px-4 text-label font-semibold text-on-accent"
           >
-            立即前往
+            继续 {latest.label}
+            <Icon name="chevron-right" className="size-3.5" />
           </Link>
-        </p>
-        {/* React 19 将 meta 提升进 head；content 只能是静态字符串 */}
-        <meta httpEquiv="refresh" content="0;url=/tools/practice" />
-      </div>
+        ) : null}
+      </header>
+
+      <ol className="mt-8 border-t border-rule">
+        {practiceWeeks.map((week, weekIndex) => {
+          const sections = practiceSections(week.slug);
+          return (
+            <li key={week.slug} className="border-b border-rule">
+              <Link href={`/practice/${week.slug}`} className="practice-week-row">
+                <span className="practice-week-row__number">
+                  {String(weekIndex + 1).padStart(2, "0")}
+                </span>
+                <span>
+                  <strong>{week.label} · {week.title}</strong>
+                  <small>{sections.length} 段谱例 · {week.focus}</small>
+                </span>
+                <Icon name="chevron-right" className="size-4 text-ink-300" />
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
     </main>
   );
 }

@@ -1,29 +1,27 @@
 import type { Metadata } from "next";
-import { InstallPrompt } from "@/components/InstallPrompt";
-import { Metronome } from "@/components/Metronome";
-import { MetronomeGuide } from "@/components/MetronomeGuide";
+import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "节拍器",
+  title: "节拍器已迁移",
+  alternates: { canonical: "/metronome" },
 };
 
-export default function MetronomePage() {
+export default function MetronomeRedirectPage() {
   return (
-    <main className="metronome-focus">
-      <div className="metronome-focus__inner">
-        <h1 className="metronome-focus__desktop-only text-display font-display text-ink-950 text-balance">
-          节拍器
-        </h1>
-        <div className="metronome-focus__panel">
-          <Metronome />
-        </div>
-        {/* 安装入口放在控件下方：先让用户用起来，再谈安装（BLF-1448） */}
-        <div className="metronome-focus__desktop-only mt-8 empty:hidden">
-          <InstallPrompt />
-        </div>
-        <div className="metronome-focus__desktop-only">
-          <MetronomeGuide />
-        </div>
+    <main className="shell flex-1 py-16 sm:py-24">
+      <div className="measure">
+        <p className="text-micro font-medium uppercase text-ink-500">已迁移</p>
+        <h1 className="mt-3 text-display font-display text-ink-950">节拍器已移到主入口</h1>
+        <p className="mt-4 text-body text-ink-700">正在前往 /metronome。</p>
+        <p className="mt-6">
+          <Link
+            href="/metronome"
+            className="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-medium text-on-accent"
+          >
+            立即前往
+          </Link>
+        </p>
+        <meta httpEquiv="refresh" content="0;url=/metronome" />
       </div>
     </main>
   );

@@ -15,7 +15,9 @@ import { usePathname } from "next/navigation";
 export function SiteFooter() {
   const pathname = usePathname();
   const focusMode =
-    pathname === "/tools/metronome" || pathname.startsWith("/library/week-");
+    pathname === "/metronome" ||
+    pathname.startsWith("/practice/week-") ||
+    pathname === "/library/fretboard-scale";
 
   return (
     <footer
@@ -23,7 +25,7 @@ export function SiteFooter() {
     >
       <div className="shell">
         <div className="border-t border-rule pt-6 text-meta text-ink-500">
-          个人学习资料库 · 内容为原始资料的整理改写
+          个人练习站 · TAB / 音阶 / 节拍器
         </div>
       </div>
     </footer>

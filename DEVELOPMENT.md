@@ -29,9 +29,9 @@
 | `content/lessons/*.html` | 每篇正文，只写语义标签，不带样式与脚本 |
 | `content/content.css` | 内容区排版样式（正文样式的唯一出口） |
 | `content/widgets.ts` | 正文可嵌入的交互组件名清单 |
-| `app/` | 页面外壳：主页、资料库、正文页、`/tools` 工具子树 |
-| `components/` | 导航、卡片、筛选、空状态、指板图、节拍器等组件 |
-| `lib/` | 纯函数：音位推导、查询筛选、图表数据、内容一致性校验 |
+| `app/` | 页面外壳：首页、练习、资料库、节拍器 |
+| `components/` | 导航、TAB、指板音阶、节拍器等组件 |
+| `lib/` | 纯函数：周练目录、音位、TAB、节拍与内容一致性校验 |
 | `tests/` | vitest 用例，含一批**文档守护测试**（令牌、清单、正文约定、模块边界） |
 | `docs/superpowers/` | 设计与实现文档：`plans/` 实施方案、`specs/` 设计规格 |
 | `scripts/` | 少量脚本（当前只有 `generate-icons.mjs`） |
@@ -91,7 +91,7 @@ npm run typecheck && npm test && npm run build
 
 ## 5. 高风险区提醒（完整约束以 `CLAUDE.md` 为准）
 
-- 修改资料目录、筛选或主页数据时，先更新 `content/manifest.ts`；不要在别处硬编码资料列表。
+- 修改周练、资料入口或主页数据时，先更新 `content/manifest.ts`；不要在别处硬编码目录。
 - 新增正文或交互 widget 时，遵守 `CLAUDE.md` 的语义标签、widget 登记和人工确认流程。
 - 音位由调弦与乐理推导；指法、音阶图、和弦图等易错内容必须由使用者核对。
 - 不主动添加 `CLAUDE.md`「刻意不做」中列出的功能或 CI 配置。
