@@ -1,0 +1,25 @@
+{
+  "pages": [
+    "pages/metronome/index",
+    "pages/tuner/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#f1f2ec",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "吉他工具",
+    "backgroundColor": "#f1f2ec",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#5c6a61",
+    "selectedColor": "#267b55",
+    "backgroundColor": "#fbfcf8",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/metronome/index", "text": "节拍器" },
+      { "pagePath": "pages/tuner/index", "text": "调音器" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

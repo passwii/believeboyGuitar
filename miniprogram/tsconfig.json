@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "types": ["miniprogram-api-typings"],
+    "isolatedModules": false
+  },
+  "include": ["**/*.ts", "**/*.d.ts"],
+  "exclude": ["../node_modules"]
+}

@@ -7,7 +7,9 @@
     "build": "next build",
     "lint": "eslint",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npm run mini:core && tsc --noEmit && tsc -p miniprogram/tsconfig.json --noEmit",
+    "mini:core": "tsc -p packages/guitar-core/tsconfig.build.json",
+    "mini:check": "npm run mini:core && tsc -p miniprogram/tsconfig.json --noEmit",
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
@@ -22,6 +24,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.1",
+    "miniprogram-api-typings": "5.2.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.5"

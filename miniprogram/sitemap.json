@@ -1,0 +1,4 @@
+{
+  "desc": "工具型小程序，不需要微信搜索收录",
+  "rules": [{ "action": "disallow", "page": "*" }]
+}
