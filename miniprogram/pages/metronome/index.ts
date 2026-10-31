@@ -22,7 +22,7 @@ type PendingClick = { beat: number; time: number };
 
 const runtime = {
   audio: null as ReturnType<typeof createMetronomeAudio> | null,
-  timer: null as number | null,
+  timer: null as ReturnType<typeof setInterval> | null,
   phase: "idle" as "idle" | "running",
   meter: DEFAULT_METER as Meter,
   bpm: BPM_DEFAULT,
@@ -154,8 +154,8 @@ Page({
       } else if (audio) {
         void audio.dispose().catch(() => undefined);
       }
-      releaseWakeLock();
       if (generation === startGeneration) {
+        releaseWakeLock();
         runtime.phase = "idle";
         this.setData({
           phase: "idle",

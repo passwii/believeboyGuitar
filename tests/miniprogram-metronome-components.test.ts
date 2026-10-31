@@ -33,14 +33,14 @@ describe("metronome components", () => {
     expect(ts).toContain("rect.left + rect.width / 2");
     expect(ts).toContain("Math.hypot(dx, dy)");
     expect(ts).toContain('triggerEvent("change"');
-    expect(wxss).toMatch(/\.dial\s*\{[^}]*position:\s*absolute/s);
+    expect(wxss).toMatch(/\.dial\s*\{[^}]*position:\s*absolute/);
     expect(wxss).toContain("top: 0");
     expect(wxss).toContain("right: 0");
     expect(wxss).toContain("bottom: 0");
     expect(wxss).toContain("left: 0");
     expect(wxml).toContain('class="dial__ratio"');
     expect(wxss).not.toContain("aspect-ratio");
-    expect(wxss).toMatch(/\.dial__ratio\s*\{[^}]*padding-top:\s*100%/s);
+    expect(wxss).toMatch(/\.dial__ratio\s*\{[^}]*padding-top:\s*100%/);
     expect(wxss).toMatch(/min-width:\s*44px/);
     expect(wxss).toMatch(/min-height:\s*44px/);
   });
