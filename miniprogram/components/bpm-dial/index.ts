@@ -8,8 +8,6 @@ import {
 Component({
   properties: {
     value: { type: Number, value: 90 },
-    min: { type: Number, value: 30 },
-    max: { type: Number, value: 240 },
   },
   data: {
     tempoName: tempoName(90),
@@ -41,7 +39,8 @@ Component({
           (this as any).dial = {
             canvas: item.node,
             context,
-            size: Math.min(item.width, item.height),
+            width: item.width,
+            height: item.height,
           };
           this.draw();
         });
@@ -49,20 +48,21 @@ Component({
     draw() {
       const dial = (this as any).dial;
       if (!dial) return;
-      const { context: ctx, size } = dial;
+      const { context: ctx, width, height } = dial;
       const value = clampBpm(this.data.value);
-      const center = size / 2;
-      const radius = center - 18;
-      ctx.clearRect(0, 0, size, size);
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) / 2 - 18;
+      ctx.clearRect(0, 0, width, height);
       ctx.lineCap = "round";
       ctx.lineWidth = 10;
       ctx.strokeStyle = "#c9d1c8";
       ctx.beginPath();
-      ctx.arc(center, center, radius, 0.75 * Math.PI, 2.25 * Math.PI);
+      ctx.arc(centerX, centerY, radius, 0.75 * Math.PI, 2.25 * Math.PI);
       ctx.stroke();
       const angle = ((bpmToDialAngle(value) - 90) * Math.PI) / 180;
-      const x = center + Math.cos(angle) * radius;
-      const y = center + Math.sin(angle) * radius;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
       ctx.fillStyle = "#267b55";
       ctx.beginPath();
       ctx.arc(x, y, 14, 0, Math.PI * 2);
@@ -83,8 +83,7 @@ Component({
         const dy = touch.clientY - (rect.top + rect.height / 2);
         const distance = Math.hypot(dx, dy);
         if (distance < (Math.min(rect.width, rect.height) * 0.45) / 2) return;
-        const value = dialPointToBpm(dx, dy);
-        const boundedValue = Math.max(this.data.min, Math.min(this.data.max, value));
+        const boundedValue = clampBpm(dialPointToBpm(dx, dy));
         this.triggerEvent("change", { value: boundedValue });
       });
     },

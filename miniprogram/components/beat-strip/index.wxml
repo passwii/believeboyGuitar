@@ -1,6 +1,6 @@
 <view class="strip" aria-hidden="true">
   <view
-    wx:for="{{beats}}"
+    wx:for="{{beatItems}}"
     wx:key="*this"
     class="beat {{running && active === index ? 'beat--active' : ''}} {{accents.indexOf(index) >= 0 ? 'beat--accent' : ''}}"
   >
