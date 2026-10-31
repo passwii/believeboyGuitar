@@ -41,27 +41,23 @@ export function createRecorderPcm(options: RecorderPcmOptions): {
   const duration = options.duration ?? 600000;
   const frameSize = options.frameSize ?? 8;
   let disposed = false;
+  let callbacksRegistered = false;
   let wantsListening = false;
   let running = false;
   let starting = false;
+  let stopping = false;
+  let managerSessionOpen = false;
+  let state: "starting" | "listening" | "stopped" = "stopped";
   let rateIndex = 0;
   let attemptRate = 0;
   let activeRate = 0;
   let generationCounter = 0;
   let activeGeneration = 0;
+  let issuedGeneration = 0;
   let lastStartError = "Recorder failed to start";
   let resolveStart: ((rate: number) => void) | null = null;
   let rejectStart: ((error: Error) => void) | null = null;
   let startPromise: Promise<number> | null = null;
-  let registeredCallbacks: {
-    onStart: () => void;
-    onStop: (result: { duration?: number }) => void;
-    onError: (result: { errMsg?: string }) => void;
-    onFrameRecorded: (result: {
-      frameBuffer: ArrayBuffer;
-      isLastFrame: boolean;
-    }) => void;
-  } | null = null;
 
   const startOptions = (sampleRate: number) =>
     ({
@@ -72,29 +68,62 @@ export function createRecorderPcm(options: RecorderPcmOptions): {
       sampleRate,
     }) as WechatMiniprogram.RecorderManagerStartOption;
 
-  function finishAttempt(errorMessage: string): void {
-    starting = false;
-    wantsListening = false;
-    running = false;
-    invalidateSession();
-    options.onState("stopped");
-    options.onError(errorMessage);
-    rejectStart?.(new Error(errorMessage));
+  function setState(next: "starting" | "listening" | "stopped"): void {
+    if (state === next) return;
+    state = next;
+    options.onState(next);
+  }
+
+  function registerCallbacks(): void {
+    if (callbacksRegistered) return;
+    manager.onStart(onStart);
+    manager.onStop(onStop);
+    manager.onError(onError);
+    manager.onFrameRecorded(onFrameRecorded);
+    callbacksRegistered = true;
+  }
+
+  function unregisterCallbacks(): void {
+    if (!callbacksRegistered) return;
+    const events = manager as RecorderEvents;
+    events.offStart?.(onStart);
+    events.offStop?.(onStop);
+    events.offError?.(onError);
+    events.offFrameRecorded?.(onFrameRecorded);
+    callbacksRegistered = false;
+  }
+
+  function rejectPendingStart(error: Error): void {
+    rejectStart?.(error);
     resolveStart = null;
     rejectStart = null;
     startPromise = null;
   }
 
+  function finishAttempt(errorMessage: string): void {
+    starting = false;
+    wantsListening = false;
+    running = false;
+    activeGeneration = ++generationCounter;
+    setState("stopped");
+    options.onError(errorMessage);
+    rejectPendingStart(new Error(errorMessage));
+  }
+
   function beginAttempt(): void {
-    if (!wantsListening || disposed) return;
+    if (!wantsListening || disposed || stopping || !starting) return;
     if (rateIndex >= rates.length) {
       finishAttempt(lastStartError);
       return;
     }
     attemptRate = rates[rateIndex];
+    issuedGeneration = activeGeneration;
+    managerSessionOpen = true;
     try {
       manager.start(startOptions(attemptRate));
     } catch (error) {
+      if (issuedGeneration !== activeGeneration || !managerSessionOpen) return;
+      managerSessionOpen = false;
       lastStartError = error instanceof Error ? error.message : String(error);
       rateIndex += 1;
       if (rateIndex >= rates.length) {
@@ -105,27 +134,29 @@ export function createRecorderPcm(options: RecorderPcmOptions): {
     }
   }
 
-  function handleStart(generation: number): void {
+  function onStart(): void {
     if (
-      generation !== activeGeneration ||
+      issuedGeneration !== activeGeneration ||
       !wantsListening ||
       disposed ||
+      stopping ||
       !starting
     ) return;
     running = true;
     starting = false;
     activeRate = attemptRate;
-    options.onState("listening");
+    setState("listening");
     resolveStart?.(activeRate);
     resolveStart = null;
     rejectStart = null;
     startPromise = null;
   }
 
-  function handleError(generation: number, result: { errMsg?: string }): void {
-    if (generation !== activeGeneration || disposed) return;
+  function onError(result: { errMsg?: string }): void {
+    if (disposed || stopping || issuedGeneration !== activeGeneration) return;
     const message = result.errMsg ?? "Recorder error";
     if (starting && wantsListening) {
+      managerSessionOpen = false;
       lastStartError = message;
       rateIndex += 1;
       beginAttempt();
@@ -134,124 +165,119 @@ export function createRecorderPcm(options: RecorderPcmOptions): {
     if (!running) return;
     running = false;
     wantsListening = false;
-    invalidateSession();
-    options.onState("stopped");
+    stopping = true;
+    activeGeneration = ++generationCounter;
+    setState("stopped");
     options.onError(message);
     manager.stop();
   }
 
-  function handleStop(generation: number, result: { duration?: number }): void {
-    if (generation !== activeGeneration || disposed) return;
-    const wasActive = running || starting;
+  function onStop(result: { duration?: number }): void {
+    if (disposed) return;
+    const wasRequestedStop = stopping;
+    if (!wasRequestedStop && issuedGeneration !== activeGeneration) return;
+    const wasActive = running || starting || managerSessionOpen;
     running = false;
-    starting = false;
+    managerSessionOpen = false;
+    stopping = false;
+
+    if (wasRequestedStop) {
+      if (wantsListening && starting) {
+        beginAttempt();
+      } else {
+        starting = false;
+        setState("stopped");
+      }
+      return;
+    }
+
     if (
       wantsListening &&
-      !disposed &&
       typeof result.duration === "number" &&
       result.duration >= duration
     ) {
-      void start().catch(() => undefined);
+      startNewSession();
       return;
     }
     wantsListening = false;
-    invalidateSession();
-    if (wasActive) options.onState("stopped");
-    rejectStart?.(new Error("Recorder stopped before starting"));
-    resolveStart = null;
-    rejectStart = null;
-    startPromise = null;
+    starting = false;
+    activeGeneration = ++generationCounter;
+    if (wasActive) setState("stopped");
+    rejectPendingStart(new Error("Recorder stopped before starting"));
   }
 
-  function handleFrameRecorded(
-    generation: number,
-    result: {
-      frameBuffer: ArrayBuffer;
-      isLastFrame: boolean;
-    },
-  ): void {
-    if (generation === activeGeneration && running && !disposed) {
+  function onFrameRecorded(result: {
+    frameBuffer: ArrayBuffer;
+    isLastFrame: boolean;
+  }): void {
+    if (
+      issuedGeneration === activeGeneration &&
+      running &&
+      !stopping &&
+      !disposed
+    ) {
       options.onFrame(toPcmFrame(result.frameBuffer), activeRate);
     }
   }
 
-  function unregisterCallbacks(): void {
-    if (!registeredCallbacks) return;
-    const events = manager as RecorderEvents;
-    events.offStart?.(registeredCallbacks.onStart);
-    events.offStop?.(registeredCallbacks.onStop);
-    events.offError?.(registeredCallbacks.onError);
-    events.offFrameRecorded?.(registeredCallbacks.onFrameRecorded);
-    registeredCallbacks = null;
-  }
-
-  function invalidateSession(): void {
-    activeGeneration = ++generationCounter;
-    unregisterCallbacks();
-  }
-
-  function registerCallbacks(generation: number): void {
-    unregisterCallbacks();
-    const callbacks = {
-      onStart: () => handleStart(generation),
-      onStop: (result: { duration?: number }) =>
-        handleStop(generation, result),
-      onError: (result: { errMsg?: string }) =>
-        handleError(generation, result),
-      onFrameRecorded: (result: {
-        frameBuffer: ArrayBuffer;
-        isLastFrame: boolean;
-      }) => handleFrameRecorded(generation, result),
-    };
-    manager.onStart(callbacks.onStart);
-    manager.onStop(callbacks.onStop);
-    manager.onError(callbacks.onError);
-    manager.onFrameRecorded(callbacks.onFrameRecorded);
-    registeredCallbacks = callbacks;
-  }
-
-  function start(): Promise<number> {
-    if (disposed) return Promise.reject(new Error("Recorder has been disposed"));
-    if (running) return Promise.resolve(activeRate);
-    if (startPromise) return startPromise;
-
+  function createStartRequest(): Promise<number> {
     wantsListening = true;
     starting = true;
     rateIndex = 0;
     activeGeneration = ++generationCounter;
-    options.onState("starting");
-    registerCallbacks(activeGeneration);
+    lastStartError = "Recorder failed to start";
+    setState("starting");
     const pendingStart = new Promise<number>((resolve, reject) => {
       resolveStart = resolve;
       rejectStart = reject;
     });
     startPromise = pendingStart;
-    beginAttempt();
+    return pendingStart;
+  }
+
+  function startNewSession(): void {
+    const pendingStart = createStartRequest();
+    void pendingStart.catch(() => undefined);
+    registerCallbacks();
+    if (!stopping) beginAttempt();
+  }
+
+  function start(): Promise<number> {
+    if (disposed) return Promise.reject(new Error("Recorder has been disposed"));
+    if (startPromise) return startPromise;
+    if (running) {
+      stopping = true;
+      running = false;
+      const pendingStart = createStartRequest();
+      manager.stop();
+      return pendingStart;
+    }
+
+    const pendingStart = createStartRequest();
+    registerCallbacks();
+    if (!stopping) beginAttempt();
     return pendingStart;
   }
 
   function stop(): void {
-    if (!wantsListening && !running && !starting && !startPromise) return;
+    if (!wantsListening && !running && !starting) return;
     wantsListening = false;
+    const requestManagerStop = managerSessionOpen && !stopping;
+    if (requestManagerStop) stopping = true;
     const wasActive = running || starting;
     starting = false;
     running = false;
-    invalidateSession();
-    options.onState("stopped");
-    if (wasActive) manager.stop();
-    if (rejectStart) {
-      rejectStart(new Error("Recorder start was stopped"));
-      rejectStart = null;
-      resolveStart = null;
-      startPromise = null;
-    }
+    activeGeneration = ++generationCounter;
+    if (startPromise) rejectPendingStart(new Error("Recorder start was stopped"));
+    if (wasActive || requestManagerStop) setState("stopped");
+    if (requestManagerStop) manager.stop();
   }
 
   function dispose(): void {
     if (disposed) return;
     stop();
     disposed = true;
-    invalidateSession();
+    unregisterCallbacks();
   }
 
   return { start, stop, dispose, isRunning: () => running };

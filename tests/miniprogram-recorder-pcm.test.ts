@@ -4,17 +4,10 @@ import {
   toPcmFrame,
 } from "../miniprogram/adapters/recorder-pcm";
 
-function manager(rejectedRates: number[] = [48000]) {
+function manager(rejectedRates: number[] = [48000], stopImmediately = true) {
   const callbacks: Record<string, (value?: unknown) => void> = {};
-  const history: Record<string, Array<(value?: unknown) => void>> = {
-    start: [],
-    stop: [],
-    error: [],
-    frame: [],
-  };
   const register = (event: string) => (fn: (value?: unknown) => void) => {
     callbacks[event] = fn;
-    history[event].push(fn);
     return fn;
   };
   const unregister = (event: string) => (fn?: (value?: unknown) => void) => {
@@ -22,7 +15,6 @@ function manager(rejectedRates: number[] = [48000]) {
   };
   return {
     callbacks,
-    history,
     onStart: vi.fn(register("start")),
     onStop: vi.fn(register("stop")),
     onError: vi.fn(register("error")),
@@ -38,7 +30,9 @@ function manager(rejectedRates: number[] = [48000]) {
         callbacks.start?.();
       }
     }),
-    stop: vi.fn(() => callbacks.stop?.({ duration: 1000 })),
+    stop: vi.fn(() => {
+      if (stopImmediately) callbacks.stop?.({ duration: 1000 });
+    }),
     emitFrame: (buffer: ArrayBuffer) =>
       callbacks.frame?.({ frameBuffer: buffer, isLastFrame: false }),
     emitStop: (duration: number) => callbacks.stop?.({ duration }),
@@ -108,7 +102,7 @@ describe("recorder PCM adapter", () => {
     adapter.dispose();
   });
 
-  it("keeps one callback set active across restarts and unregisters on dispose", async () => {
+  it("registers one callback set for the adapter lifetime", async () => {
     const fake = manager();
     const adapter = createRecorderPcm({
       manager: fake as never,
@@ -122,14 +116,14 @@ describe("recorder PCM adapter", () => {
     await adapter.start();
     adapter.dispose();
     adapter.dispose();
-    expect(fake.onStart).toHaveBeenCalledTimes(2);
-    expect(fake.onStop).toHaveBeenCalledTimes(2);
-    expect(fake.onError).toHaveBeenCalledTimes(2);
-    expect(fake.onFrameRecorded).toHaveBeenCalledTimes(2);
-    expect(fake.offStart).toHaveBeenCalledTimes(2);
-    expect(fake.offStop).toHaveBeenCalledTimes(2);
-    expect(fake.offError).toHaveBeenCalledTimes(2);
-    expect(fake.offFrameRecorded).toHaveBeenCalledTimes(2);
+    expect(fake.onStart).toHaveBeenCalledTimes(1);
+    expect(fake.onStop).toHaveBeenCalledTimes(1);
+    expect(fake.onError).toHaveBeenCalledTimes(1);
+    expect(fake.onFrameRecorded).toHaveBeenCalledTimes(1);
+    expect(fake.offStart).toHaveBeenCalledTimes(1);
+    expect(fake.offStop).toHaveBeenCalledTimes(1);
+    expect(fake.offError).toHaveBeenCalledTimes(1);
+    expect(fake.offFrameRecorded).toHaveBeenCalledTimes(1);
   });
 
   it("restarts after the duration limit while listening is still wanted", async () => {
@@ -171,35 +165,44 @@ describe("recorder PCM adapter", () => {
     adapter.dispose();
   });
 
-  it("ignores late events from the previous session after stop and restart", async () => {
-    const fake = manager([]);
-    const onFrame = vi.fn();
-    const onError = vi.fn();
+  it("waits for the old onStop before starting a requested new session", async () => {
+    const fake = manager([], false);
     const adapter = createRecorderPcm({
       manager: fake as never,
       rates: [44100],
-      onFrame,
-      onError,
+      onFrame: vi.fn(),
+      onError: vi.fn(),
       onState: vi.fn(),
     });
     await adapter.start();
-    const oldStart = fake.history.start[0];
-    const oldStop = fake.history.stop[0];
-    const oldError = fake.history.error[0];
-    const oldFrame = fake.history.frame[0];
     adapter.stop();
-    await adapter.start();
-    const startCalls = fake.start.mock.calls.length;
+    const nextStart = adapter.start();
+    expect(fake.start).toHaveBeenCalledTimes(1);
 
-    oldStart();
-    oldFrame({ frameBuffer: new ArrayBuffer(4), isLastFrame: false });
-    oldStop({ duration: 600000 });
-    oldError({ errMsg: "late failure" });
-
+    fake.emitStop(1000);
+    await expect(nextStart).resolves.toBe(44100);
+    expect(fake.start).toHaveBeenCalledTimes(2);
     expect(adapter.isRunning()).toBe(true);
-    expect(fake.start).toHaveBeenCalledTimes(startCalls);
-    expect(onFrame).not.toHaveBeenCalled();
-    expect(onError).not.toHaveBeenCalled();
+    adapter.dispose();
+  });
+
+  it("stops an active session before fulfilling a new start request", async () => {
+    const fake = manager([], false);
+    const adapter = createRecorderPcm({
+      manager: fake as never,
+      rates: [44100],
+      onFrame: vi.fn(),
+      onError: vi.fn(),
+      onState: vi.fn(),
+    });
+    await adapter.start();
+    const nextStart = adapter.start();
+    expect(fake.stop).toHaveBeenCalledTimes(1);
+    expect(fake.start).toHaveBeenCalledTimes(1);
+
+    fake.emitStop(1000);
+    await expect(nextStart).resolves.toBe(44100);
+    expect(fake.start).toHaveBeenCalledTimes(2);
     adapter.dispose();
   });
 
