@@ -1525,6 +1525,8 @@ Required methods:
 - `onLoad()` resets runtime and synchronizes data.
 - `onHide()` and `onUnload()` call `this.stop()`.
 - `onDialChange(event)` calls `this.changeBpm(event.detail.value)`.
+- `toggle()` calls `this.stop()` when running, otherwise `this.start()`.
+- `decrementBpm()` and `incrementBpm()` call `this.changeBpm(runtime.bpm - 1)` and `this.changeBpm(runtime.bpm + 1)`.
 - `changeBpm(value)` updates runtime, data, and reschedules future clicks.
 - `cycleMeter()` advances `METERS`, resets to beat 1, and reschedules when running.
 - `cycleTimbre()` advances `TIMBRES`, calls `audio.setTimbre`, and reschedules future clicks.
@@ -1690,6 +1692,8 @@ function manager() {
       }
     }),
     stop: vi.fn(() => callbacks.stop?.()),
+    emitFrame: (buffer: ArrayBuffer) =>
+      callbacks.frame?.({ frameBuffer: buffer, isLastFrame: false }),
   };
 }
 
@@ -1726,7 +1730,9 @@ describe("recorder PCM adapter", () => {
       onError: vi.fn(),
       onState: vi.fn(),
     });
+    fake.start({ sampleRate: 44100 });
     adapter.stop();
+    fake.emitFrame(new ArrayBuffer(4));
     expect(onFrame).not.toHaveBeenCalled();
     adapter.dispose();
   });
