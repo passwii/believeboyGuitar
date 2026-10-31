@@ -1,0 +1,19 @@
+<view
+  class="dial-shell"
+  aria-role="slider"
+  aria-label="速度"
+  aria-valuemin="30"
+  aria-valuemax="240"
+  aria-valuenow="{{value}}"
+  aria-valuetext="每分钟 {{value}} 拍"
+  bindtouchstart="onTouchStart"
+  bindtouchmove="onTouchMove"
+  bindtouchend="onTouchEnd"
+>
+  <view class="dial__ratio" aria-hidden="true"></view>
+  <canvas type="2d" id="dial" class="dial"></canvas>
+  <view class="dial__readout" aria-hidden="true">
+    <text class="dial__bpm">{{value}}</text>
+    <text class="dial__tempo">{{tempoName}}</text>
+  </view>
+</view>

@@ -52,3 +52,6 @@ next-env.d.ts
 
 # vitest
 /.vitest/
+
+# mini program generated shared core
+/miniprogram/generated/

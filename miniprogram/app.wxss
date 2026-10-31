@@ -1,0 +1,35 @@
+page {
+  --color-canvas: #f1f2ec;
+  --color-surface: #fbfcf8;
+  --color-surface-muted: #e4e9e1;
+  --color-ink-950: #1d2520;
+  --color-ink-700: #49534c;
+  --color-ink-500: #5c6a61;
+  --color-ink-200: #c7cfc7;
+  --color-ink-100: #dde3dc;
+  --color-accent-700: #267b55;
+  --color-accent-100: #d8e9de;
+  --color-accent-50: #edf4ee;
+  --color-on-accent: #ffffff;
+  --color-rule: #c9d1c8;
+  --ease-standard: cubic-bezier(.32, .72, 0, 1);
+  min-height: 100%;
+  background: var(--color-canvas);
+  color: var(--color-ink-950);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+}
+
+button::after {
+  border: 0;
+}
+
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.title {
+  font-size: 40rpx;
+  font-weight: 600;
+}

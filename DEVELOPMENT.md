@@ -32,6 +32,7 @@
 | `app/` | 页面外壳：首页、练习、资料库、节拍器 |
 | `components/` | 导航、TAB、指板音阶、节拍器等组件 |
 | `lib/` | 纯函数：周练目录、音位、TAB、节拍与内容一致性校验 |
+| `miniprogram/` | 微信原生小程序：节拍器与调音器 |
 | `tests/` | vitest 用例，含一批**文档守护测试**（令牌、清单、正文约定、模块边界） |
 | `docs/superpowers/` | 设计与实现文档：`plans/` 实施方案、`specs/` 设计规格 |
 | `scripts/` | 少量脚本（当前只有 `generate-icons.mjs`） |
@@ -68,6 +69,12 @@ npm run typecheck && npm test && npm run build
 - `npm run build` 会实际执行 Next.js 静态导出，验证预渲染与路由构建；它和 `npm run typecheck` 检查的范围不同。
 - 改设计令牌或页面结构时，额外跑 `npm run lint`。
 - 涉及指法、音阶图、和弦图的改动要**打开实际页面截图确认**，不能只看测试绿。
+
+小程序改动至少运行：
+
+```bash
+npm run mini:check && npx vitest run tests/miniprogram-*.test.ts
+```
 
 本地验证通过后，仍需完成页面检查与人工核对：见 §5、§6。
 

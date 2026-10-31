@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "bpm-dial": "../../components/bpm-dial/index",
+    "beat-strip": "../../components/beat-strip/index"
+  },
+  "navigationBarTitleText": "节拍器"
+}
