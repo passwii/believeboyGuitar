@@ -35,6 +35,14 @@ describe("PitchDetector", () => {
     },
   );
 
+  it.each([55, 400])("detects the %d Hz range boundary", (frequency) => {
+    const reading = detector.detect(sine(frequency), SAMPLE_RATE);
+    expect(reading).not.toBeNull();
+    expect(reading!.frequency).toBeGreaterThanOrEqual(55);
+    expect(reading!.frequency).toBeLessThanOrEqual(400);
+    expect(1200 * Math.log2(reading!.frequency / frequency)).toBeCloseTo(0, 0);
+  });
+
   it("handles a harmonic-rich guitar-like wave", () => {
     const reading = detector.detect(harmonic(82.4069), SAMPLE_RATE);
     expect(reading).not.toBeNull();
@@ -52,5 +60,35 @@ describe("PitchDetector", () => {
       return (state / 0xffffffff - 0.5) * 0.8;
     });
     expect(detector.detect(noise, SAMPLE_RATE)).toBeNull();
+  });
+
+  it.each([
+    { minFrequency: Number.NaN },
+    { minFrequency: Number.POSITIVE_INFINITY },
+    { minFrequency: Number.NEGATIVE_INFINITY },
+    { maxFrequency: Number.NaN },
+    { maxFrequency: Number.POSITIVE_INFINITY },
+    { maxFrequency: Number.NEGATIVE_INFINITY },
+    { clarityThreshold: Number.NaN },
+    { clarityThreshold: Number.POSITIVE_INFINITY },
+    { clarityThreshold: Number.NEGATIVE_INFINITY },
+    { rmsThreshold: Number.NaN },
+    { rmsThreshold: Number.POSITIVE_INFINITY },
+    { rmsThreshold: Number.NEGATIVE_INFINITY },
+  ])("rejects non-finite options: %o", (options) => {
+    expect(() => new PitchDetector(options)).toThrow(RangeError);
+  });
+
+  it.each([
+    { minFrequency: 0 },
+    { maxFrequency: 0 },
+    { minFrequency: 400, maxFrequency: 400 },
+    { minFrequency: 401, maxFrequency: 400 },
+    { clarityThreshold: -0.01 },
+    { clarityThreshold: 1.01 },
+    { rmsThreshold: -0.01 },
+    { rmsThreshold: 1.01 },
+  ])("rejects out-of-range options: %o", (options) => {
+    expect(() => new PitchDetector(options)).toThrow(RangeError);
   });
 });

@@ -24,6 +24,25 @@ export class PitchDetector {
     this.maxFrequency = options.maxFrequency ?? 400;
     this.clarityThreshold = options.clarityThreshold ?? 0.9;
     this.rmsThreshold = options.rmsThreshold ?? 10 ** (-50 / 20);
+
+    if (
+      !Number.isFinite(this.minFrequency) ||
+      !Number.isFinite(this.maxFrequency) ||
+      !Number.isFinite(this.clarityThreshold) ||
+      !Number.isFinite(this.rmsThreshold)
+    ) {
+      throw new RangeError("Pitch detector options must be finite");
+    }
+    if (
+      this.minFrequency <= 0 ||
+      this.maxFrequency <= this.minFrequency ||
+      this.clarityThreshold < 0 ||
+      this.clarityThreshold > 1 ||
+      this.rmsThreshold < 0 ||
+      this.rmsThreshold > 1
+    ) {
+      throw new RangeError("Pitch detector options are outside their valid ranges");
+    }
   }
 
   detect(frame: Float32Array, sampleRate: number): PitchReading | null {
@@ -40,8 +59,8 @@ export class PitchDetector {
     );
     if (minLag >= maxLag) return null;
 
-    const nsdf = new Float64Array(maxLag + 1);
-    for (let lag = minLag; lag <= maxLag; lag += 1) {
+    const nsdf = new Float64Array(maxLag + 2);
+    for (let lag = minLag - 1; lag <= maxLag + 1; lag += 1) {
       let correlation = 0;
       let energy = 0;
       for (let index = 0; index < samples.length - lag; index += 1) {
@@ -54,7 +73,7 @@ export class PitchDetector {
     }
 
     const peaks: number[] = [];
-    for (let lag = minLag + 1; lag < maxLag; lag += 1) {
+    for (let lag = minLag; lag <= maxLag; lag += 1) {
       if (
         nsdf[lag] > 0 &&
         nsdf[lag] > nsdf[lag - 1] &&
@@ -74,14 +93,12 @@ export class PitchDetector {
     const right = nsdf[lag + 1];
     const denominator = left - 2 * center + right;
     const offset = denominator === 0 ? 0 : (0.5 * (left - right)) / denominator;
-    const frequency = sampleRate / (lag + offset);
-    if (
-      !Number.isFinite(frequency) ||
-      frequency < this.minFrequency ||
-      frequency > this.maxFrequency
-    ) {
-      return null;
-    }
+    const estimatedFrequency = sampleRate / (lag + offset);
+    if (!Number.isFinite(estimatedFrequency)) return null;
+    const frequency = Math.min(
+      this.maxFrequency,
+      Math.max(this.minFrequency, estimatedFrequency),
+    );
 
     return { frequency, clarity: center, rms: level };
   }
