@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { lessons } from "@/content/manifest";
 import { DifficultyMeter } from "@/components/DifficultyMeter";
 import { LessonWidget } from "@/components/LessonWidget";
-import { LessonSeriesTabs } from "@/components/LessonSeriesTabs";
+import { LessonSeriesPicker } from "@/components/LessonSeriesPicker";
 import { Icon } from "@/components/icons";
 import { LessonTableOfContents } from "@/components/LessonTableOfContents";
 import { splitContentSections } from "@/lib/content-sections";
@@ -57,7 +57,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         >
           <Icon name="home" className="size-4" />
         </Link>
-        <LessonSeriesTabs items={seriesLessons} currentSlug={lesson.slug} />
+        <LessonSeriesPicker items={seriesLessons} currentSlug={lesson.slug} />
       </div>
 
       <header className="mt-4 max-w-3xl">
