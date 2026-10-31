@@ -4,7 +4,7 @@
 
 **Goal:** 交付一个只含节拍器与调音器的微信原生小程序，并抽出可被 Web、小程序和 macOS 复用的纯 TypeScript 核心。
 
-**Architecture:** 现有 Next.js 站点保持原位；新增 `packages/guitar-core` 作为平台无关的节拍、调弦、PCM 和音高检测核心；新增 `miniprogram/` 作为独立微信项目，所有 `wx` API 只存在于适配层。
+**Architecture:** 现有 Next.js 站点保持原位；新增 `packages/guitar-core` 作为平台无关的节拍、调弦、PCM 和音高检测核心；新增 `miniprogram/` 作为独立微信项目。媒体采集、音频播放和设备会话等底层 API 放在适配层；页面可直接处理权限与设置、提示弹窗、屏幕常亮和生命周期相关的微信 API。
 
 **Tech Stack:** TypeScript、原生 WXML/WXSS、微信 WebAudioContext、RecorderManager、Vitest、微信开发者工具原生 TypeScript 编译插件。
 
