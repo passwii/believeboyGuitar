@@ -41,6 +41,7 @@ npm run build
 ## 微信小程序
 
 `miniprogram/` 是独立的微信原生小程序，只包含节拍器与调音器。
+最低微信基础库版本为 `2.19.0`。
 
 ```bash
 npm run mini:core
