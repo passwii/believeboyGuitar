@@ -410,6 +410,92 @@
     box-shadow: var(--shadow-segment);
   }
 
+  /* 周次选择器：触发按钮宽度固定，菜单容纳任意数量的周次。 */
+  .week-picker {
+    position: relative;
+    flex: none;
+  }
+
+  .week-picker__trigger {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-control);
+    background-color: var(--color-surface);
+    padding-inline: 0.875rem;
+    color: var(--color-ink-950);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .week-picker__chevron {
+    transform: rotate(90deg);
+    transition: transform 150ms var(--ease-standard);
+  }
+
+  .week-picker__trigger[aria-expanded="true"] .week-picker__chevron {
+    transform: rotate(-90deg);
+  }
+
+  .week-picker__menu {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: min(20rem, calc(100vw - 1.5rem));
+    max-height: min(70svh, 24rem);
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-segment);
+  }
+
+  .week-picker__label {
+    padding: 0.75rem 0.75rem 0.25rem;
+    color: var(--color-ink-500);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+  }
+
+  .week-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.25rem;
+    padding: 0.5rem;
+  }
+
+  .week-picker__link {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 0.5rem 0.375rem;
+    color: var(--color-ink-700);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: center;
+    transition: background-color 150ms var(--ease-standard),
+      color 150ms var(--ease-standard);
+  }
+
+  @media (hover: hover) {
+    .week-picker__link:hover {
+      background-color: var(--color-surface-muted);
+      color: var(--color-ink-950);
+    }
+  }
+
+  .week-picker__link--current {
+    background-color: var(--color-accent-700);
+    color: var(--color-on-accent);
+  }
+
   /* 触屏上分段控件也要够得着 */
   @media (hover: none) {
     .segment {
