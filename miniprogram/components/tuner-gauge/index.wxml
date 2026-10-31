@@ -1,0 +1,20 @@
+<view
+  class="gauge"
+  aria-label="{{stable ? '已调准' : directionText + ' ' + cents + ' 音分'}}"
+>
+  <view class="gauge__scale" aria-hidden="true">
+    <text>-50</text>
+    <text>0</text>
+    <text>+50</text>
+  </view>
+  <view class="gauge__track" aria-hidden="true">
+    <view class="gauge__zero"></view>
+    <view
+      class="gauge__needle {{stable ? 'gauge__needle--stable' : ''}}"
+      style="left: {{needlePercent * 100}}%;"
+    ></view>
+  </view>
+  <text class="gauge__text {{stable ? 'gauge__text--stable' : ''}}">
+    {{directionText}} {{cents}}¢
+  </text>
+</view>

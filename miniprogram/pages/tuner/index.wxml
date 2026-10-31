@@ -1,1 +1,42 @@
-<view class="page"><view class="title">调音器</view></view>
+<view class="page tuner">
+  <view class="tuner__toolbar">
+    <button class="chip" bindtap="cyclePreset">{{preset.label}}</button>
+    <button class="chip" bindtap="resetMode" aria-pressed="{{mode === 'manual'}}">
+      {{chromatic ? '半音阶' : mode === 'manual' ? '手动锁弦' : '自动'}}
+    </button>
+    <button class="tuner__start" bindtap="toggleTuning">
+      {{listening ? '停止调音' : '开始调音'}}
+    </button>
+  </view>
+
+  <view class="tuner__reading">
+    <text class="tuner__note">{{noteText}}</text>
+    <tuner-gauge
+      cents="{{cents}}"
+      direction="{{directionText}}"
+      stable="{{stable}}"
+    />
+  </view>
+
+  <view wx:if="{{!chromatic}}" class="strings">
+    <button
+      wx:for="{{preset.strings}}"
+      wx:key="id"
+      class="string {{manualStringId === item.id ? 'string--locked' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="selectString"
+      aria-label="锁定 {{item.id}} 弦 {{item.label}}"
+      aria-pressed="{{manualStringId === item.id}}"
+    >
+      <text class="string__note">{{item.label}}</text>
+      <text class="string__number">{{item.id}} 弦</text>
+    </button>
+  </view>
+
+  <view class="tuner__footer">
+    <text class="tuner__status" aria-live="polite">{{statusText}}</text>
+    <button wx:if="{{permissionDenied}}" class="tuner__settings" bindtap="openSettings">
+      打开麦克风设置
+    </button>
+  </view>
+</view>

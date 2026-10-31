@@ -1,3 +1,6 @@
 {
+  "usingComponents": {
+    "tuner-gauge": "../../components/tuner-gauge/index"
+  },
   "navigationBarTitleText": "调音器"
 }
