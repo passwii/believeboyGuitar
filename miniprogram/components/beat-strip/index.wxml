@@ -1,0 +1,12 @@
+<view class="strip" aria-hidden="true">
+  <view
+    wx:for="{{beats}}"
+    wx:key="*this"
+    class="beat {{running && active === index ? 'beat--active' : ''}} {{accents.indexOf(index) >= 0 ? 'beat--accent' : ''}}"
+  >
+    <view class="beat__index">{{index + 1}}</view>
+    <view class="beat__bar"></view>
+    <view class="beat__bar"></view>
+    <view class="beat__bar"></view>
+  </view>
+</view>
