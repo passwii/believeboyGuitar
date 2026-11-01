@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useRef, type KeyboardEvent, type PointerEvent } from "react";
-import { Icon } from "@/components/icons";
 import {
   BPM_MAX,
   BPM_MIN,
+  BPM_STEP,
   DIAL_START_DEG,
   DIAL_SWEEP_DEG,
   bpmToDialAngle,
@@ -68,7 +68,7 @@ const TICKS = Array.from({ length: TICK_COUNT }, (_, index) => {
 type BpmDialProps = {
   value: number;
   onChange: (next: number) => void;
-  /** 手机单屏版：更大的刻度盘，BPM 标签与微调按钮收进圆心。 */
+  /** 手机单屏版：更大的刻度盘，BPM 标签收进圆心；微调按钮由页面放在圆环外。 */
   instrument?: boolean;
 };
 
@@ -120,7 +120,7 @@ export function BpmDial({ value, onChange, instrument = false }: BpmDialProps) {
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      const step = event.shiftKey ? 10 : 1;
+      const step = event.shiftKey ? BPM_STEP * 2 : BPM_STEP;
       let next: number;
       switch (event.key) {
         case "ArrowUp":
@@ -231,29 +231,6 @@ export function BpmDial({ value, onChange, instrument = false }: BpmDialProps) {
           instrument ? "size-[76%]" : "size-[60%]"
         }`}
       />
-
-      {instrument ? (
-        <>
-          <button
-            type="button"
-            aria-label="减速 1 BPM"
-            disabled={value <= BPM_MIN}
-            onClick={() => onChange(clampBpm(value - 1))}
-            className="absolute left-[8%] top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-control-edge/20 bg-surface-muted/70 text-ink-700 disabled:text-ink-300"
-          >
-            <Icon name="minus" className="size-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="加速 1 BPM"
-            disabled={value >= BPM_MAX}
-            onClick={() => onChange(clampBpm(value + 1))}
-            className="absolute right-[8%] top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-control-edge/20 bg-surface-muted/70 text-ink-700 disabled:text-ink-300"
-          >
-            <Icon name="plus" className="size-4" />
-          </button>
-        </>
-      ) : null}
 
       {/* 读数压在圆心：纯视觉，不接管指针 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">

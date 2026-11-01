@@ -1,5 +1,6 @@
 import {
   BPM_DEFAULT,
+  BPM_STEP,
   DEFAULT_METER,
   METERS,
   bpmToIntervalMs,
@@ -58,6 +59,7 @@ function releaseWakeLock(): void {
 Page({
   data: {
     bpm: BPM_DEFAULT,
+    bpmStep: BPM_STEP,
     meter: DEFAULT_METER,
     meters: METERS,
     timbres: TIMBRES,
@@ -101,11 +103,11 @@ Page({
   },
 
   decrementBpm() {
-    this.changeBpm(runtime.bpm - 1);
+    this.changeBpm(runtime.bpm - BPM_STEP);
   },
 
   incrementBpm() {
-    this.changeBpm(runtime.bpm + 1);
+    this.changeBpm(runtime.bpm + BPM_STEP);
   },
 
   changeBpm(value: number) {

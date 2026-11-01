@@ -672,7 +672,7 @@
 
   .metronome-dial,
   .mobile-metronome .bpm-dial {
-    width: min(90vw, 50svh, 22.5rem);
+    width: min(90vw, 44svh, 22.5rem);
     height: auto;
     max-width: 100%;
     aspect-ratio: 1;

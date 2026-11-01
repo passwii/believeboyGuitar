@@ -52,6 +52,8 @@ export const BPM_MIN = 30;
 export const BPM_MAX = 240;
 /** 默认 BPM */
 export const BPM_DEFAULT = 90;
+/** 加减按钮与方向键的正常步进 */
+export const BPM_STEP = 5;
 
 /**
  * 重音拍索引，升序且去重。
