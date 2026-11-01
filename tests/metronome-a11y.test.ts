@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Metronome } from "@/components/Metronome";
-import { BPM_DEFAULT, DEFAULT_METER } from "@/lib/metronome";
+import { BPM_DEFAULT, BPM_STEP, DEFAULT_METER } from "@/lib/metronome";
 
 /**
  * Stage 3 的可访问性与动效契约。
@@ -145,8 +145,18 @@ describe("读屏播报（方案 §10）", () => {
     }
     // 方向键必须 preventDefault，否则方向键会滚动页面
     expect(dial).toContain("event.preventDefault();");
-    // Shift 走 10 拍，与 PageUp/PageDown 一致
-    expect(dial).toContain("event.shiftKey ? 10 : 1");
+    // 正常方向键走 5 拍，Shift 走 10 拍，与 PageUp/PageDown 一致
+    expect(BPM_STEP).toBe(5);
+    expect(dial).toContain("event.shiftKey ? BPM_STEP * 2 : BPM_STEP");
+  });
+
+  it("加减按钮在圆环外，并以 5 BPM 为一步", () => {
+    expect(html).toContain(`aria-label="减速 ${BPM_STEP} BPM"`);
+    expect(html).toContain(`aria-label="加速 ${BPM_STEP} BPM"`);
+    expect(html).toContain(`>−${BPM_STEP}</button>`);
+    expect(html).toContain(`>+${BPM_STEP}</button>`);
+    expect(source).toContain("onClick={() => onChange(bpm - BPM_STEP)}");
+    expect(source).toContain("onClick={() => onChange(bpm + BPM_STEP)}");
   });
 
   it("分段控件用 aria-pressed 表达选中，并各自挂了可见标签", () => {

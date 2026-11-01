@@ -43,6 +43,9 @@ describe("手机单屏节拍器", () => {
       'className="mobile-metronome flex h-full min-h-0 flex-col sm:hidden"',
     );
     expect(metronome).toContain('className="mt-2 flex gap-1.5"');
+    expect(metronome).toContain(
+      'className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 py-1"',
+    );
     expect(metronome).toContain("<BpmDial value={bpm} onChange={onBpmChange} instrument />");
     expect(metronome).toContain(
       'className="grid flex-none grid-cols-[1fr_auto_1fr] items-center gap-3"',
@@ -54,12 +57,17 @@ describe("手机单屏节拍器", () => {
     expect(metronome).toContain('aria-label="返回首页"');
   });
 
-  it("单屏版圆盘包含读数、BPM 标签和圆内微调按钮", () => {
+  it("单屏版的加减按钮放在圆环外，避免拖动圆环时误触", () => {
     expect(dial).toContain("instrument?: boolean;");
     expect(dial).toContain("instrument ? \"text-7xl\" : \"text-6xl\"");
     expect(dial).toContain("BPM");
-    expect(dial).toContain('aria-label="减速 1 BPM"');
-    expect(dial).toContain('aria-label="加速 1 BPM"');
+    expect(dial).not.toContain('aria-label="减速');
+    expect(dial).not.toContain('aria-label="加速');
     expect(dial).toContain('instrument ? "size-[76%]" : "size-[60%]"');
+    expect(metronome).toContain("<BpmDial value={bpm} onChange={onBpmChange} instrument />");
+    expect(metronome).toContain(
+      "<BpmStepControls bpm={bpm} onChange={onBpmChange} />",
+    );
+    expect(globals).toMatch(/\.mobile-metronome \.bpm-dial\s*\{[^}]*44svh/);
   });
 });

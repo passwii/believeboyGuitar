@@ -14,6 +14,7 @@ import {
   BPM_DEFAULT,
   BPM_MAX,
   BPM_MIN,
+  BPM_STEP,
   DEFAULT_METER,
   METERS,
   bpmToIntervalMs,
@@ -65,6 +66,47 @@ const PHASE_LABEL: Record<Phase, string> = {
   // 暂停后按钮回到「开始」（按钮不留在「暂停」上），再按从暂停的拍继续
   paused: "开始",
 };
+
+type BpmStepControlsProps = {
+  bpm: number;
+  onChange: (next: number) => void;
+  className?: string;
+};
+
+function BpmStepControls({ bpm, onChange, className = "" }: BpmStepControlsProps) {
+  const buttonClass =
+    "min-h-11 min-w-14 rounded-control border border-control-edge bg-surface px-3 font-mono text-label font-semibold tabular-nums text-ink-700 hover:text-ink-950 disabled:text-ink-300";
+
+  return (
+    <div
+      role="group"
+      aria-label={`速度步进 ${BPM_STEP} BPM`}
+      className={`flex items-center gap-2 ${className}`}
+    >
+      <button
+        type="button"
+        aria-label={`减速 ${BPM_STEP} BPM`}
+        onClick={() => onChange(bpm - BPM_STEP)}
+        disabled={bpm <= BPM_MIN}
+        className={buttonClass}
+      >
+        −{BPM_STEP}
+      </button>
+      <span className="text-meta text-ink-500" aria-hidden="true">
+        BPM
+      </span>
+      <button
+        type="button"
+        aria-label={`加速 ${BPM_STEP} BPM`}
+        onClick={() => onChange(bpm + BPM_STEP)}
+        disabled={bpm >= BPM_MAX}
+        className={buttonClass}
+      >
+        +{BPM_STEP}
+      </button>
+    </div>
+  );
+}
 
 /** 减弱动态效果时拍点只换颜色，不做缩放（方案 §10） */
 function usePrefersReducedMotion(): boolean {
@@ -188,8 +230,9 @@ function MobileMetronomeView({
         </p>
       </section>
 
-      <section className="flex min-h-0 flex-1 items-center justify-center py-1">
+      <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 py-1">
         <BpmDial value={bpm} onChange={onBpmChange} instrument />
+        <BpmStepControls bpm={bpm} onChange={onBpmChange} />
       </section>
 
       <footer className="grid flex-none grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -757,26 +800,7 @@ export function Metronome() {
       <section className="flex flex-col items-center">
         <BpmDial value={bpm} onChange={changeBpm} />
 
-        <div className="mt-4 flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="减速 1 BPM"
-            onClick={() => changeBpm(bpm - 1)}
-            disabled={bpm <= BPM_MIN}
-            className="size-11 shrink-0 rounded-control border border-control-edge text-lg leading-none text-ink-700 hover:text-ink-950 disabled:text-ink-300"
-          >
-            −
-          </button>
-          <button
-            type="button"
-            aria-label="加速 1 BPM"
-            onClick={() => changeBpm(bpm + 1)}
-            disabled={bpm >= BPM_MAX}
-            className="size-11 shrink-0 rounded-control border border-control-edge text-lg leading-none text-ink-700 hover:text-ink-950 disabled:text-ink-300"
-          >
-            +
-          </button>
-        </div>
+        <BpmStepControls bpm={bpm} onChange={changeBpm} className="mt-4" />
       </section>
 
       {/* 拍点波形：峰值落在每拍，重音拍更高；播放时当前拍整组换成强调色。
