@@ -38,6 +38,10 @@ const DEGREE_BY_PITCH_CLASS = new Map([
 ]);
 const NOTE_NAME_BY_DEGREE = ["", "C", "D", "E", "F", "G", "A", "B"] as const;
 
+export function nextFretboardString(current: number | null): number {
+  return current === null || current >= 6 ? 1 : current + 1;
+}
+
 /**
  * 六条两音一组路径。
  *

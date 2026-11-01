@@ -395,6 +395,91 @@
   .scale-color-5 { background: var(--color-scale-5); }
   .scale-color-6 { background: var(--color-scale-6); }
 
+  .practice-metronome {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .65rem 1rem;
+    border-block: 1px solid var(--color-rule);
+    margin: .75rem 0 .2rem;
+    padding: .7rem 0;
+  }
+
+  .practice-metronome__readout {
+    display: flex;
+    align-items: baseline;
+    gap: .65rem;
+  }
+
+  .practice-metronome__title {
+    color: var(--color-ink-700);
+    font-size: var(--text-label);
+    font-weight: 650;
+  }
+
+  .practice-metronome__bpm {
+    color: var(--color-ink-950);
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  .practice-metronome__controls {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+  }
+
+  .practice-metronome__button {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    border: 1px solid var(--color-control-edge);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+    padding: 0 .75rem;
+    color: var(--color-ink-700);
+    font-size: var(--text-label);
+    font-weight: 600;
+    touch-action: manipulation;
+  }
+
+  .practice-metronome__button:hover:not(:disabled) {
+    color: var(--color-ink-950);
+  }
+
+  .practice-metronome__button:disabled {
+    color: var(--color-ink-300);
+  }
+
+  .practice-metronome__button:focus-visible,
+  .scale-board-viewport:focus-visible {
+    outline: 3px solid var(--color-accent-700);
+    outline-offset: 3px;
+  }
+
+  .practice-metronome__button--transport {
+    border-color: var(--color-accent-700);
+    background: var(--color-accent-700);
+    color: var(--color-on-accent);
+    padding-inline: 1rem;
+  }
+
+  .practice-metronome__button--transport:hover:not(:disabled) {
+    color: var(--color-on-accent);
+    filter: brightness(1.08);
+  }
+
+  .practice-metronome__hint {
+    margin-left: auto;
+    color: var(--color-ink-500);
+    font-size: var(--text-meta);
+  }
+
   .fretboard-scale__header {
     display: flex;
     align-items: center;
@@ -472,6 +557,8 @@
     padding: .75rem;
   }
 
+  .scale-board-viewport:focus-visible { border-color: var(--color-accent-700); }
+
   .scale-board {
     display: block;
     width: 100%;
@@ -522,6 +609,13 @@
   .fretboard-scale--landscape .scale-status { bottom: 1rem; }
 
   @media (max-width: 639px) {
+    .practice-metronome__hint {
+      flex-basis: 100%;
+      margin-left: 0;
+    }
+
+    .fretboard-scale--landscape .practice-metronome { display: none; }
+
     .scale-path-controls {
       flex-wrap: nowrap;
       margin-inline: -.75rem;
@@ -574,6 +668,7 @@
     .fretboard-scale .scale-board { min-width: 100%; }
     .fretboard-scale .scale-board-hint,
     .fretboard-scale .scale-degree-key { display: none; }
+    .fretboard-scale .practice-metronome { display: none; }
   }
 
   @media (max-width: 639px) {
