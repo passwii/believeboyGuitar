@@ -1,7 +1,22 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import * as fretboardScale from "@/lib/fretboard-scale";
 import { buildScaleNotes, SCALE_PATHS } from "@/lib/fretboard-scale";
+
+const scaleSource = readFileSync(
+  path.join(process.cwd(), "components", "FretboardScale.tsx"),
+  "utf8",
+);
+const stylesSource = readFileSync(
+  path.join(process.cwd(), "app", "globals.css"),
+  "utf8",
+);
+const nextFretboardString = (
+  fretboardScale as unknown as {
+    nextFretboardString?: (current: number | null) => number;
+  }
+).nextFretboardString;
 
 describe("六色指板音阶", () => {
   it("六条路径各有六组两音与回到起始弦的 AB", () => {
@@ -111,13 +126,34 @@ describe("六色指板音阶", () => {
   });
 
   it("横屏按钮先请求全屏，再尝试锁定真实横屏", () => {
-    const source = readFileSync(
-      path.join(process.cwd(), "components", "FretboardScale.tsx"),
-      "utf8",
-    );
-    expect(source).toContain("requestFullscreen({ navigationUI: \"hide\" })");
-    expect(source).toContain('orientation.lock("landscape")');
-    expect(source).toContain("浏览器不支持方向锁定，已切换横屏布局");
-    expect(source).toContain('document.addEventListener("fullscreenchange"');
+    expect(scaleSource).toContain("requestFullscreen({ navigationUI: \"hide\" })");
+    expect(scaleSource).toContain('orientation.lock("landscape")');
+    expect(scaleSource).toContain("浏览器不支持方向锁定，已切换横屏布局");
+    expect(scaleSource).toContain('document.addEventListener("fullscreenchange"');
+  });
+
+  it("回车从未选中状态开始循环切换 1 到 6 弦", () => {
+    expect(nextFretboardString).toBeTypeOf("function");
+    expect(nextFretboardString?.(null)).toBe(1);
+    expect(nextFretboardString?.(1)).toBe(2);
+    expect(nextFretboardString?.(5)).toBe(6);
+    expect(nextFretboardString?.(6)).toBe(1);
+  });
+
+  it("Enter 切弦且不劫持原生控件", () => {
+    expect(scaleSource).toContain('window.addEventListener("keydown", onKeyDown)');
+    expect(scaleSource).toContain('event.key !== "Enter"');
+    expect(scaleSource).toContain("input, textarea, select, button, a");
+    expect(scaleSource).toContain("event.preventDefault()");
+  });
+
+  it("手机横屏隐藏节拍器，纵屏仍保留控件", () => {
+    const shortLandscapeLayout =
+      stylesSource.match(
+        /@media \(orientation: landscape\) and \(max-height: 620px\) \{([\s\S]*?)\n  \}/,
+      )?.[1] ?? "";
+    expect(shortLandscapeLayout).toContain(".fretboard-scale .practice-metronome");
+    expect(shortLandscapeLayout).toContain("display: none");
+    expect(stylesSource).toContain(".fretboard-scale--landscape .practice-metronome");
   });
 });

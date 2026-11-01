@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { PracticeMetronome } from "@/components/PracticeMetronome";
 import {
   buildScaleNotes,
+  nextFretboardString,
   SCALE_PATHS,
   type ScaleNote,
 } from "@/lib/fretboard-scale";
@@ -29,11 +31,15 @@ function arcPath(cx: number, cy: number, radius: number, start: number, end: num
 function NoteMark({
   note,
   activePath,
+  activeString,
 }: {
   note: ScaleNote;
   activePath: "all" | number;
+  activeString: number | null;
 }) {
-  const visible = activePath === "all" || note.pathIds.includes(activePath);
+  const visible =
+    (activePath === "all" || note.pathIds.includes(activePath)) &&
+    (activeString === null || note.stringNumber === activeString);
   const radius = 13;
   const colors =
     activePath === "all"
@@ -92,15 +98,17 @@ function stringY(stringNumber: number) {
 
 export function FretboardScale() {
   const [activePath, setActivePath] = useState<"all" | number>("all");
+  const [activeString, setActiveString] = useState<number | null>(null);
   const [landscape, setLandscape] = useState(false);
   const [status, setStatus] = useState("");
   const statusTimer = useRef<number | null>(null);
+  const activeStringRef = useRef<number | null>(null);
 
-  const announce = (message: string) => {
+  const announce = useCallback((message: string) => {
     setStatus(message);
     if (statusTimer.current !== null) window.clearTimeout(statusTimer.current);
     statusTimer.current = window.setTimeout(() => setStatus(""), 3200);
-  };
+  }, []);
 
   useEffect(
     () => () => {
@@ -113,13 +121,35 @@ export function FretboardScale() {
     const onFullscreenChange = () => {
       if (document.fullscreenElement) return;
       setLandscape(false);
-      setStatus("已退出横屏");
-      if (statusTimer.current !== null) window.clearTimeout(statusTimer.current);
-      statusTimer.current = window.setTimeout(() => setStatus(""), 3200);
+      announce("已退出横屏");
     };
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
-  }, []);
+  }, [announce]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || event.isComposing) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      if (event.key !== "Enter") return;
+
+      const target = event.target;
+      const interactive =
+        target instanceof Element
+          ? target.closest("input, textarea, select, button, a, [contenteditable='true']")
+          : null;
+      if (interactive) return;
+
+      event.preventDefault();
+      const nextString = nextFretboardString(activeStringRef.current);
+      activeStringRef.current = nextString;
+      setActiveString(nextString);
+      announce(`当前选中 ${nextString} 弦`);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [announce]);
 
   async function toggleLandscape() {
     const next = !landscape;
@@ -189,6 +219,8 @@ export function FretboardScale() {
         </button>
       </header>
 
+      <PracticeMetronome />
+
       <div className="scale-path-controls" role="group" aria-label="颜色路径">
         <button
           type="button"
@@ -213,10 +245,21 @@ export function FretboardScale() {
         ))}
       </div>
 
-      <div className="scale-board-viewport">
+      <div
+        className="scale-board-viewport"
+        role="group"
+        aria-label="指板音阶"
+        aria-describedby="practice-metronome-help"
+        aria-keyshortcuts="Enter Space"
+        tabIndex={0}
+      >
         <svg
           role="img"
-          aria-label="C 大调十五品六色指板音阶，一弦在上，六弦在下"
+          aria-label={
+            activeString === null
+              ? "C 大调十五品六色指板音阶，一弦在上，六弦在下"
+              : `C 大调十五品指板音阶，当前选中 ${activeString} 弦`
+          }
           viewBox="0 0 820 220"
           className="scale-board"
         >
@@ -261,30 +304,49 @@ export function FretboardScale() {
           ))}
           {STRINGS.map((stringNumber) => (
             <g key={`string-${stringNumber}`}>
+              {activeString === stringNumber ? (
+                <circle
+                  cx="24"
+                  cy={stringY(stringNumber)}
+                  r="10"
+                  fill="var(--color-accent-700)"
+                />
+              ) : null}
               <line
                 x1="46"
                 y1={stringY(stringNumber)}
                 x2="796"
                 y2={stringY(stringNumber)}
                 stroke="var(--color-on-accent)"
-                strokeOpacity=".34"
-                strokeWidth={0.7 + (stringNumber - 1) * 0.18}
+                strokeOpacity={
+                  activeString === null ? ".34" : activeString === stringNumber ? ".82" : ".12"
+                }
+                strokeWidth={0.7 + (stringNumber - 1) * 0.18 + (activeString === stringNumber ? 0.7 : 0)}
               />
               <text
                 x="28"
                 y={stringY(stringNumber) + 4}
                 textAnchor="end"
-                fill="var(--color-ink-700)"
+                fill={
+                  activeString === stringNumber
+                    ? "var(--color-on-accent)"
+                    : "var(--color-ink-700)"
+                }
                 fontFamily="var(--font-mono)"
                 fontSize="10"
-                fontWeight="600"
+                fontWeight={activeString === stringNumber ? "700" : "600"}
               >
                 {stringNumber}
               </text>
             </g>
           ))}
           {NOTES.map((note) => (
-            <NoteMark key={note.key} note={note} activePath={activePath} />
+            <NoteMark
+              key={note.key}
+              note={note}
+              activePath={activePath}
+              activeString={activeString}
+            />
           ))}
         </svg>
       </div>
