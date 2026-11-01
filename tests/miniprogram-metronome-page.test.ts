@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
+import { BPM_STEP } from "@/lib/metronome";
 
 const ts = readFileSync("miniprogram/pages/metronome/index.ts", "utf8");
 const wxml = readFileSync("miniprogram/pages/metronome/index.wxml", "utf8");
@@ -42,6 +43,9 @@ async function createPageHarness(audio: ReturnType<typeof fakeAudio>) {
     setData(update: Record<string, unknown>) {
       Object.assign(this.data, update);
     },
+    changeBpm(value: number) {
+      definition.changeBpm.call(this, value);
+    },
     tick() {
       definition.tick.call(this);
     },
@@ -70,6 +74,25 @@ describe("metronome page", () => {
     expect(ts).toContain("setKeepScreenOn");
     expect(wxml).toContain("bpm-dial");
     expect(wxml).toContain("beat-strip");
+  });
+
+  it("adjusts tempo by the shared BPM step and labels both controls accessibly", async () => {
+    const { definition, instance } = await createPageHarness(fakeAudio("running"));
+    try {
+      definition.decrementBpm.call(instance);
+      expect(instance.data.bpm).toBe(90 - BPM_STEP);
+
+      definition.incrementBpm.call(instance);
+      expect(instance.data.bpm).toBe(90);
+      expect(instance.data.bpmStep).toBe(BPM_STEP);
+      expect(wxml).toContain('aria-label="减速 {{bpmStep}} BPM"');
+      expect(wxml).toContain('aria-label="加速 {{bpmStep}} BPM"');
+    } finally {
+      definition.stop.call(instance);
+      vi.doUnmock("../miniprogram/adapters/metronome-audio");
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
   });
 
   it("does not release a newer run's wake lock when an older start fails", async () => {

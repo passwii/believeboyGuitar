@@ -14,8 +14,8 @@
   <view class="metronome__dial">
     <bpm-dial value="{{bpm}}" bind:change="onDialChange" />
     <view class="metronome__steps">
-      <button class="step" bindtap="decrementBpm" aria-label="减速 1 BPM">−</button>
-      <button class="step" bindtap="incrementBpm" aria-label="加速 1 BPM">+</button>
+      <button class="step" bindtap="decrementBpm" aria-label="减速 {{bpmStep}} BPM">−{{bpmStep}}</button>
+      <button class="step" bindtap="incrementBpm" aria-label="加速 {{bpmStep}} BPM">+{{bpmStep}}</button>
     </view>
   </view>
 
