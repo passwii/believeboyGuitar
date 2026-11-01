@@ -19,4 +19,11 @@ describe("练习页节拍器", () => {
     expect(source).toContain('window.addEventListener("keydown", onKeyDown)');
     expect(source).toContain("audio.schedule(");
   });
+
+  it("音频启动等待期间再次按空格会取消待启动状态", () => {
+    expect(source).toContain("const startingRef = useRef(false)");
+    expect(source).toContain("if (runningRef.current || startingRef.current) stop();");
+    expect(source).toContain("startingRef.current = true;");
+    expect(source).toContain("startingRef.current = false;");
+  });
 });

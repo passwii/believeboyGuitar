@@ -23,6 +23,7 @@ export function PracticeMetronome() {
   const intervalRef = useRef<number | null>(null);
   const bpmRef = useRef(bpm);
   const runningRef = useRef(false);
+  const startingRef = useRef(false);
   const generationRef = useRef(0);
   const nextBeatTimeRef = useRef(0);
   const nextBeatIndexRef = useRef(0);
@@ -48,6 +49,7 @@ export function PracticeMetronome() {
 
   const stop = useCallback(() => {
     generationRef.current += 1;
+    startingRef.current = false;
     runningRef.current = false;
     if (intervalRef.current !== null) {
       window.clearInterval(intervalRef.current);
@@ -60,7 +62,8 @@ export function PracticeMetronome() {
   }, []);
 
   const start = useCallback(async () => {
-    if (runningRef.current) return;
+    if (runningRef.current || startingRef.current) return;
+    startingRef.current = true;
     const generation = ++generationRef.current;
 
     try {
@@ -69,6 +72,7 @@ export function PracticeMetronome() {
       await audio.resume();
       if (generation !== generationRef.current || runningRef.current) return;
 
+      startingRef.current = false;
       runningRef.current = true;
       nextBeatTimeRef.current = audio.currentTime + START_LEAD_S;
       nextBeatIndexRef.current = 0;
@@ -78,6 +82,7 @@ export function PracticeMetronome() {
       intervalRef.current = window.setInterval(scheduleWindow, LOOKAHEAD_MS);
     } catch {
       if (generation !== generationRef.current) return;
+      startingRef.current = false;
       runningRef.current = false;
       setRunning(false);
       setAnnouncement("无法启动节拍器，请检查浏览器声音权限");
@@ -85,7 +90,7 @@ export function PracticeMetronome() {
   }, [scheduleWindow]);
 
   const toggle = useCallback(() => {
-    if (runningRef.current) stop();
+    if (runningRef.current || startingRef.current) stop();
     else void start();
   }, [start, stop]);
 
@@ -100,6 +105,7 @@ export function PracticeMetronome() {
   useEffect(() => {
     return () => {
       generationRef.current += 1;
+      startingRef.current = false;
       runningRef.current = false;
       if (intervalRef.current !== null) window.clearInterval(intervalRef.current);
       const audio = audioRef.current;
