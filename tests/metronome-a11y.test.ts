@@ -23,15 +23,6 @@ function beatDotsBlock(): string {
   return source.slice(from, to);
 }
 
-/** 只取 Space 的按键分支 */
-function spaceBranch(): string {
-  const from = source.indexOf('if (event.key !== " " && event.key !== "Spacebar") return;');
-  const to = source.indexOf("window.addEventListener(\"keydown\"");
-  expect(from).toBeGreaterThan(-1);
-  expect(to).toBeGreaterThan(from);
-  return source.slice(from, to);
-}
-
 describe("拍点指示（方案 §3 / §10）", () => {
   it("按拍号渲染对应数量的圆点，整组对读屏隐藏", () => {
     const dots = html.match(/class="size-3 rounded-full/g) ?? [];
@@ -170,24 +161,19 @@ describe("读屏播报（方案 §10）", () => {
 
 describe("键盘（方案 §4 / §10）", () => {
   it("Space 在原生控件上不劫持，避免和原生激活打架", () => {
-    const branch = spaceBranch();
-    expect(branch).toContain(
-      '"input, textarea, select, button, a, [contenteditable=\'true\']"',
-    );
-    // 命中原生控件时直接返回，不 preventDefault
-    expect(branch).toMatch(/if \(interactive\) return;/);
-    expect(branch.indexOf("if (interactive) return;")).toBeLessThan(
-      branch.indexOf("event.preventDefault();"),
-    );
+    expect(source).toContain("bindMetronomeSpaceShortcut(window, toggle)");
+    expect(html).toContain('aria-keyshortcuts="Space"');
+    expect(html).toContain("空格开始/暂停");
+    expect(html).toContain("Esc 结束");
   });
 
   it("Space 在其它位置切开始/暂停", () => {
-    expect(spaceBranch()).toContain("toggle();");
+    expect(source).toContain("bindMetronomeSpaceShortcut(window, toggle)");
   });
 
   it("Esc 结束，且 idle 时是无操作（按钮此时也是 disabled）", () => {
     const from = source.indexOf('if (event.key === "Escape")');
-    const to = source.indexOf('if (event.key !== " " && event.key !== "Spacebar") return;');
+    const to = source.indexOf("window.addEventListener(\"keydown\"", from);
     expect(from).toBeGreaterThan(-1);
     const branch = source.slice(from, to);
 
@@ -199,13 +185,11 @@ describe("键盘（方案 §4 / §10）", () => {
     expect(html).toMatch(/<button[^>]*disabled[^>]*>结束<\/button>/);
   });
 
-  it("带修饰键的组合键不劫持", () => {
-    expect(source).toContain("if (event.metaKey || event.ctrlKey || event.altKey) return;");
-  });
-
-  it("监听挂在 window 上，卸载时移除", () => {
-    expect(source).toContain('window.addEventListener("keydown", onKeyDown)');
-    expect(source).toContain('window.removeEventListener("keydown", onKeyDown)');
+  it("Space 的共享监听随组件生命周期绑定与清理", () => {
+    expect(source).toContain("bindMetronomeSpaceShortcut(window, toggle)");
+    expect(readFileSync(new URL("../lib/metronome-keyboard.ts", import.meta.url), "utf8")).toContain(
+      'host.removeEventListener("keydown", onKeyDown)',
+    );
   });
 });
 

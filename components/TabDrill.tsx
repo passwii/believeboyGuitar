@@ -3,8 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { TabStaff } from "@/components/TabStaff";
-import { clampBpm, METERS } from "@/lib/metronome";
+import { BPM_MAX, BPM_MIN, BPM_STEP, clampBpm, METERS } from "@/lib/metronome";
 import { createMetronomeAudio, type MetronomeAudio } from "@/lib/metronome-audio";
+import { bindMetronomeSpaceShortcut } from "@/lib/metronome-keyboard";
+import {
+  beatTimeForResume,
+  elapsedBeatsAt,
+  eighthPositionAt,
+  nextBeatAfter,
+  type TabDrillTimeline,
+} from "@/lib/tab-drill-playhead";
 import type { TabSection } from "@/lib/tab-practice";
 import { activeNoteIndex, totalBeats } from "@/lib/tab-timing";
 
@@ -46,6 +54,7 @@ export function TabDrill({
   legend = [],
 }: TabDrillProps) {
   const headingId = `${idPrefix}-heading`;
+  const tempoControlsId = `${idPrefix}-tempo-controls`;
   const totalMeasures = sections.reduce((total, section) => total + section.measures.length, 0);
   const defaultBpm = sections[0]?.bpm ?? 100;
   const loopEighths = Math.max(
@@ -55,17 +64,21 @@ export function TabDrill({
 
   const [bpm, setBpm] = useState(defaultBpm);
   const [running, setRunning] = useState(false);
+  const [tempoControlsExpanded, setTempoControlsExpanded] = useState(false);
+  const [announcement, setAnnouncement] = useState("练习节拍器待开始");
   /** 当前八分音符位置；-1 表示未开始 */
   const [eighth, setEighth] = useState(-1);
 
   const audioRef = useRef<MetronomeAudio | null>(null);
   const intervalRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
-  const startTimeRef = useRef(0);
+  const timelineRef = useRef<TabDrillTimeline>({ anchorTime: 0, elapsedBeats: 0 });
   const nextBeatTimeRef = useRef(0);
   const nextBeatIndexRef = useRef(0);
   const bpmRef = useRef(defaultBpm);
   const runningRef = useRef(false);
+  const startingRef = useRef(false);
+  const startGenerationRef = useRef(0);
 
   useEffect(() => {
     bpmRef.current = bpm;
@@ -84,7 +97,13 @@ export function TabDrill({
     }
   }, [beatSeconds]);
 
-  const stop = useCallback(() => {
+  const pause = useCallback(() => {
+    const wasRunning = runningRef.current;
+    const wasStarting = startingRef.current;
+    if (!wasRunning && !wasStarting) return;
+
+    startGenerationRef.current += 1;
+    startingRef.current = false;
     runningRef.current = false;
     if (intervalRef.current !== null) {
       window.clearInterval(intervalRef.current);
@@ -95,50 +114,89 @@ export function TabDrill({
       pollRef.current = null;
     }
     const audio = audioRef.current;
-    if (audio) audio.cancelFrom(audio.currentTime);
+    if (audio) {
+      if (wasRunning) {
+        const elapsedBeats = elapsedBeatsAt(
+          timelineRef.current,
+          audio.currentTime,
+          bpmRef.current,
+        );
+        const position = eighthPositionAt(
+          timelineRef.current,
+          audio.currentTime,
+          bpmRef.current,
+          loopEighths,
+        );
+        timelineRef.current = { anchorTime: 0, elapsedBeats };
+        setEighth(position);
+      }
+      audio.cancelFrom(audio.currentTime);
+    }
     setRunning(false);
-    setEighth(-1);
-  }, []);
+    setAnnouncement("练习节拍器已暂停");
+  }, [loopEighths]);
 
   const start = useCallback(async () => {
-    if (runningRef.current) return;
-    const audio = audioRef.current ?? createMetronomeAudio();
-    audioRef.current = audio;
-    await audio.resume();
-    if (runningRef.current) return;
-    runningRef.current = true;
-    startTimeRef.current = audio.currentTime + START_LEAD_S;
-    nextBeatTimeRef.current = startTimeRef.current;
-    nextBeatIndexRef.current = 0;
-    setRunning(true);
-    setEighth(0);
-    scheduleWindow();
-    intervalRef.current = window.setInterval(scheduleWindow, LOOKAHEAD_MS);
-    pollRef.current = window.setInterval(() => {
-      const current = audioRef.current;
-      if (!current) return;
-      const elapsed = current.currentTime - startTimeRef.current;
-      if (elapsed < 0) return;
-      const position = Math.floor((elapsed / beatSeconds()) * 2);
-      setEighth(position % loopEighths);
-    }, POLL_MS);
-  }, [beatSeconds, loopEighths, scheduleWindow]);
+    if (runningRef.current || startingRef.current) return;
+    startingRef.current = true;
+    const generation = ++startGenerationRef.current;
+
+    try {
+      const audio = audioRef.current ?? createMetronomeAudio();
+      audioRef.current = audio;
+      await audio.resume();
+      if (generation !== startGenerationRef.current || runningRef.current) return;
+
+      startingRef.current = false;
+      const timeline: TabDrillTimeline = {
+        anchorTime: audio.currentTime + START_LEAD_S,
+        elapsedBeats: timelineRef.current.elapsedBeats,
+      };
+      timelineRef.current = timeline;
+      const nextBeat = nextBeatAfter(timeline.elapsedBeats);
+      nextBeatTimeRef.current = beatTimeForResume(timeline, bpmRef.current);
+      nextBeatIndexRef.current = nextBeat % METER.beatsPerBar;
+      runningRef.current = true;
+      setRunning(true);
+      setEighth(eighthPositionAt(timeline, timeline.anchorTime, bpmRef.current, loopEighths));
+      setAnnouncement("练习节拍器已开始");
+      scheduleWindow();
+      intervalRef.current = window.setInterval(scheduleWindow, LOOKAHEAD_MS);
+      pollRef.current = window.setInterval(() => {
+        const current = audioRef.current;
+        if (!current) return;
+        setEighth(
+          eighthPositionAt(timelineRef.current, current.currentTime, bpmRef.current, loopEighths),
+        );
+      }, POLL_MS);
+    } catch {
+      if (generation !== startGenerationRef.current) return;
+      startingRef.current = false;
+      runningRef.current = false;
+      setRunning(false);
+      setAnnouncement("无法启动节拍器，请检查浏览器声音权限");
+    }
+  }, [loopEighths, scheduleWindow]);
 
   const toggle = useCallback(() => {
-    if (runningRef.current) stop();
+    if (runningRef.current || startingRef.current) pause();
     else void start();
-  }, [start, stop]);
+  }, [pause, start]);
+
+  useEffect(() => bindMetronomeSpaceShortcut(window, toggle), [toggle]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.hidden) stop();
+      if (document.hidden) pause();
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [stop]);
+  }, [pause]);
 
   useEffect(
     () => () => {
+      startGenerationRef.current += 1;
+      startingRef.current = false;
       runningRef.current = false;
       if (intervalRef.current !== null) window.clearInterval(intervalRef.current);
       if (pollRef.current !== null) window.clearInterval(pollRef.current);
@@ -148,6 +206,10 @@ export function TabDrill({
     [],
   );
 
+  function changeBpm(amount: number) {
+    setBpm((current) => clampBpm(current + amount));
+  }
+
   const beatPosition = eighth < 0 ? -1 : eighth / 2;
   const activeNotes: Record<string, number | null> = {};
   for (const section of sections) {
@@ -156,144 +218,224 @@ export function TabDrill({
   }
 
   return (
-    <section
-      aria-labelledby={headingId}
-      className="min-w-0 scroll-mt-24 overflow-hidden rounded-card border border-rule bg-surface"
-    >
-      <header className="border-b border-rule px-3 py-3 sm:px-6 sm:py-5">
-        <div className="flex flex-wrap items-start justify-between gap-4 max-sm:hidden">
-          <div>
-            <p className="text-micro font-medium text-ink-500">{eyebrow}</p>
-            <h2 id={headingId} className="mt-1 scroll-mt-24 text-title text-ink-950">
-              {title}
-            </h2>
+    <>
+      <section
+        aria-labelledby={headingId}
+        className="min-w-0 scroll-mt-24 overflow-hidden rounded-card border border-rule bg-surface"
+      >
+        <header className="border-b border-rule px-3 py-3 sm:px-6 sm:py-5">
+          <div className="flex flex-wrap items-start justify-between gap-4 max-sm:hidden">
+            <div>
+              <p className="text-micro font-medium text-ink-500">{eyebrow}</p>
+              <h2 id={headingId} className="mt-1 scroll-mt-24 text-title text-ink-950">
+                {title}
+              </h2>
+            </div>
+            <dl className="flex flex-wrap gap-x-4 gap-y-1 text-meta text-ink-500">
+              <div className="flex gap-1">
+                <dt>练习</dt>
+                <dd className="font-mono text-ink-950 tabular-nums">{sections.length} 段</dd>
+              </div>
+              <div className="flex gap-1">
+                <dt>小节</dt>
+                <dd className="font-mono text-ink-950 tabular-nums">{totalMeasures}</dd>
+              </div>
+              <div className="flex gap-1">
+                <dt>弦</dt>
+                <dd className="font-mono text-ink-950 tabular-nums">6 弦</dd>
+              </div>
+            </dl>
           </div>
-          <dl className="flex flex-wrap gap-x-4 gap-y-1 text-meta text-ink-500">
-            <div className="flex gap-1">
-              <dt>练习</dt>
-              <dd className="font-mono text-ink-950 tabular-nums">{sections.length} 段</dd>
-            </div>
-            <div className="flex gap-1">
-              <dt>小节</dt>
-              <dd className="font-mono text-ink-950 tabular-nums">{totalMeasures}</dd>
-            </div>
-            <div className="flex gap-1">
-              <dt>弦</dt>
-              <dd className="font-mono text-ink-950 tabular-nums">6 弦</dd>
-            </div>
-          </dl>
-        </div>
-        <p className="mt-3 text-meta leading-relaxed text-ink-700 max-sm:hidden">{summary}</p>
+          <p className="mt-3 text-meta leading-relaxed text-ink-700 max-sm:hidden">{summary}</p>
 
-        <div className="flex flex-wrap items-center gap-1.5 sm:mt-4 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => setBpm((value) => clampBpm(value - 1))}
-            aria-label="速度减一拍"
-            className="grid size-11 place-items-center rounded-control border border-control-edge/40 text-ink-700 transition-colors duration-150 hover:bg-surface-muted active:scale-95"
-          >
-            <Icon name="minus" className="size-4" />
-          </button>
-          <span className="w-14 whitespace-nowrap text-center font-mono text-meta text-ink-950 tabular-nums sm:w-16">
-            {bpm} BPM
+          <div className="tab-drill-controls flex-wrap items-center gap-1.5 sm:mt-4 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => changeBpm(-BPM_STEP)}
+              aria-label={`减速 ${BPM_STEP} BPM`}
+              disabled={bpm <= BPM_MIN}
+              className="grid size-11 place-items-center rounded-control border border-control-edge/40 text-ink-700 transition-colors duration-150 hover:bg-surface-muted active:scale-95"
+            >
+              <Icon name="minus" className="size-4" />
+            </button>
+            <span className="w-14 whitespace-nowrap text-center font-mono text-meta text-ink-950 tabular-nums sm:w-16">
+              {bpm} BPM
+            </span>
+            <button
+              type="button"
+              onClick={() => changeBpm(BPM_STEP)}
+              aria-label={`加速 ${BPM_STEP} BPM`}
+              disabled={bpm >= BPM_MAX}
+              className="grid size-11 place-items-center rounded-control border border-control-edge/40 text-ink-700 transition-colors duration-150 hover:bg-surface-muted active:scale-95"
+            >
+              <Icon name="plus" className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={toggle}
+              aria-pressed={running}
+              aria-keyshortcuts="Space"
+              aria-label={running ? "暂停练习节拍器" : "开始练习节拍器"}
+              className="flex h-11 items-center gap-2 rounded-control bg-accent-700 px-3 text-label font-semibold text-on-accent transition-[filter] duration-150 hover:brightness-110 active:scale-[0.99] sm:ml-1 sm:px-4"
+            >
+              <Icon name={running ? "pause" : "play"} className="size-4" />
+              {running ? "暂停" : "开始"}
+            </button>
+            <span className="text-meta text-ink-500 max-sm:hidden">
+              空格开始/暂停 · 一个时钟驱动发声与谱面高亮
+            </span>
+          </div>
+
+          {legend.length > 0 ? (
+            <ul
+              aria-label="谱面记号图例"
+              className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 sm:flex sm:flex-wrap"
+            >
+              {legend.map((item) => (
+                <li key={`${item.symbol}-${item.label}`} className="flex items-center gap-1.5">
+                  <span className="min-w-5 font-mono text-label font-semibold text-ink-700">
+                    {item.symbol}
+                  </span>
+                  <span className="text-meta text-ink-500">{item.label}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </header>
+
+        <div className="divide-y divide-rule">
+          {sections.map((section, index) => {
+            const sectionHeadingId = `${idPrefix}-${section.id}`;
+
+            return (
+              <section
+                key={section.id}
+                aria-labelledby={sectionHeadingId}
+                className="scroll-mt-24 px-3 py-4 sm:px-6 sm:py-6"
+              >
+                <header className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 w-6 shrink-0 font-mono text-label text-ink-500 tabular-nums"
+                  >
+                    {String(index).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                      <h3
+                        id={sectionHeadingId}
+                        className="scroll-mt-24 text-label font-semibold text-ink-950 sm:text-title"
+                      >
+                        {section.title}
+                      </h3>
+                      <span className="inline-flex items-center rounded-pill bg-surface-muted px-2.5 py-1 font-mono text-meta text-ink-700 tabular-nums">
+                        ♩ = {section.bpm}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-body text-ink-700 text-pretty max-sm:hidden">
+                      {section.focus}
+                    </p>
+                  </div>
+                </header>
+
+                <div className="mt-2 sm:mt-4 sm:ml-9">
+                  <TabStaff
+                    measures={section.measures}
+                    bpm={running ? bpm : section.bpm}
+                    activeNoteIndex={activeNotes[section.id]}
+                    cdStart={section.cdStart}
+                    title={`${section.title} TAB 谱`}
+                    meta={[section.rhythm, ...(section.labels ?? [])]}
+                  />
+                  <div className="mt-3 hidden border-l-2 border-control-edge pl-3 sm:block">
+                    <p className="text-meta leading-relaxed text-ink-500">
+                      <strong className="font-medium text-ink-700">练习提示：</strong>
+                      {section.tip}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            );
+          })}
+        </div>
+        <p role="status" className="sr-only">
+          {running ? `正在以每分钟 ${bpm} 拍播放，谱面高亮当前拍位` : announcement}
+        </p>
+      </section>
+
+      <aside className="practice-metronome-float" aria-label="周练节拍器">
+        <div className="practice-metronome-float__readout">
+          <div>
+            <p className="text-micro font-medium text-ink-500">节拍器</p>
+            <output
+              className="practice-metronome-float__bpm"
+              aria-label={`当前速度 ${bpm} BPM`}
+            >
+              {bpm} <span>BPM</span>
+            </output>
+          </div>
+          <span className="practice-metronome-float__status" aria-hidden="true">
+            <span className={running ? "practice-metronome-float__signal is-running" : "practice-metronome-float__signal"} />
+            {running ? "运行中" : eighth >= 0 ? "已暂停" : "待开始"}
           </span>
-          <button
-            type="button"
-            onClick={() => setBpm((value) => clampBpm(value + 1))}
-            aria-label="速度加一拍"
-            className="grid size-11 place-items-center rounded-control border border-control-edge/40 text-ink-700 transition-colors duration-150 hover:bg-surface-muted active:scale-95"
-          >
-            <Icon name="plus" className="size-4" />
-          </button>
+        </div>
+
+        <div className="practice-metronome-float__actions">
           <button
             type="button"
             onClick={toggle}
             aria-pressed={running}
-            className="flex h-11 items-center gap-2 rounded-control bg-accent-700 px-3 text-label font-semibold text-on-accent transition-[filter] duration-150 hover:brightness-110 active:scale-[0.99] sm:ml-1 sm:px-4"
+            aria-keyshortcuts="Space"
+            aria-label={running ? "暂停练习节拍器" : "开始练习节拍器"}
+            className="practice-metronome-float__transport"
           >
             <Icon name={running ? "pause" : "play"} className="size-4" />
             {running ? "暂停" : "开始"}
           </button>
-          <span className="text-meta text-ink-500 max-sm:hidden">
-            一个时钟驱动发声与谱面高亮
-          </span>
-        </div>
-
-        {legend.length > 0 ? (
-          <ul
-            aria-label="谱面记号图例"
-            className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 sm:flex sm:flex-wrap"
+          <button
+            type="button"
+            onClick={() => setTempoControlsExpanded((value) => !value)}
+            aria-expanded={tempoControlsExpanded}
+            aria-controls={tempoControlsId}
+            aria-label={tempoControlsExpanded ? "收起调速控制" : "展开调速控制"}
+            className="practice-metronome-float__expand"
           >
-            {legend.map((item) => (
-              <li key={`${item.symbol}-${item.label}`} className="flex items-center gap-1.5">
-                <span className="min-w-5 font-mono text-label font-semibold text-ink-700">
-                  {item.symbol}
-                </span>
-                <span className="text-meta text-ink-500">{item.label}</span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </header>
+            <Icon name="sliders" className="size-4" />
+            {tempoControlsExpanded ? "收起" : "调速"}
+          </button>
+        </div>
+        <p className="text-meta text-ink-500">空格开始/暂停</p>
 
-      <div className="divide-y divide-rule">
-        {sections.map((section, index) => {
-          const sectionHeadingId = `${idPrefix}-${section.id}`;
-
-          return (
-            <section
-              key={section.id}
-              aria-labelledby={sectionHeadingId}
-              className="scroll-mt-24 px-3 py-4 sm:px-6 sm:py-6"
-            >
-              <header className="flex items-start gap-3">
-                <span
-                  aria-hidden="true"
-                  className="mt-1 w-6 shrink-0 font-mono text-label text-ink-500 tabular-nums"
-                >
-                  {String(index).padStart(2, "0")}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <h3
-                      id={sectionHeadingId}
-                      className="scroll-mt-24 text-label font-semibold text-ink-950 sm:text-title"
-                    >
-                      {section.title}
-                    </h3>
-                    <span className="inline-flex items-center rounded-pill bg-surface-muted px-2.5 py-1 font-mono text-meta text-ink-700 tabular-nums">
-                      ♩ = {section.bpm}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-body text-ink-700 text-pretty max-sm:hidden">
-                    {section.focus}
-                  </p>
-                </div>
-              </header>
-
-              <div className="mt-2 sm:mt-4 sm:ml-9">
-                <TabStaff
-                  measures={section.measures}
-                  bpm={running ? bpm : section.bpm}
-                  activeNoteIndex={activeNotes[section.id]}
-                  cdStart={section.cdStart}
-                  title={`${section.title} TAB 谱`}
-                  meta={[section.rhythm, ...(section.labels ?? [])]}
-                />
-                <div className="mt-3 hidden border-l-2 border-control-edge pl-3 sm:block">
-                  <p className="text-meta leading-relaxed text-ink-500">
-                    <strong className="font-medium text-ink-700">练习提示：</strong>
-                    {section.tip}
-                  </p>
-                </div>
-              </div>
-            </section>
-          );
-        })}
-      </div>
-      <p role="status" className="sr-only">
-        {running ? `正在以每分钟 ${bpm} 拍播放，谱面高亮当前拍位` : "练习节拍器已停止"}
-      </p>
-    </section>
+        <div
+          id={tempoControlsId}
+          hidden={!tempoControlsExpanded}
+          role="group"
+          aria-label="速度控制"
+          className="practice-metronome-float__tempo-controls"
+        >
+          <button
+            type="button"
+            onClick={() => changeBpm(-BPM_STEP)}
+            aria-label={`减速 ${BPM_STEP} BPM`}
+            disabled={bpm <= BPM_MIN}
+            className="practice-metronome__button"
+          >
+            <Icon name="minus" className="size-4" />
+          </button>
+          <span className="font-mono text-label font-semibold tabular-nums text-ink-950">
+            {bpm} BPM
+          </span>
+          <button
+            type="button"
+            onClick={() => changeBpm(BPM_STEP)}
+            aria-label={`加速 ${BPM_STEP} BPM`}
+            disabled={bpm >= BPM_MAX}
+            className="practice-metronome__button"
+          >
+            <Icon name="plus" className="size-4" />
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
