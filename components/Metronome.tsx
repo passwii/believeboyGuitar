@@ -34,6 +34,7 @@ import {
   type MetronomeAudio,
   type Timbre,
 } from "@/lib/metronome-audio";
+import { bindMetronomeSpaceShortcut } from "@/lib/metronome-keyboard";
 
 /**
  * 调度参数（方案 §8）：25ms 的 interval 只负责往音频时钟里排拍子，
@@ -713,7 +714,7 @@ export function Metronome() {
     };
   }, [stopTicking]);
 
-  /** Space 切换开始/暂停，Esc 结束；焦点在原生控件上时不劫持 Space */
+  /** Esc 结束；Space 的统一规则由共享绑定器处理。 */
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
@@ -723,24 +724,14 @@ export function Metronome() {
         if (phaseRef.current === "idle") return;
         event.preventDefault();
         void stop();
-        return;
       }
-
-      if (event.key !== " " && event.key !== "Spacebar") return;
-
-      const target = event.target as HTMLElement | null;
-      const interactive = target?.closest(
-        "input, textarea, select, button, a, [contenteditable='true']",
-      );
-      if (interactive) return;
-
-      event.preventDefault();
-      toggle();
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [stop, toggle]);
+  }, [stop]);
+
+  useEffect(() => bindMetronomeSpaceShortcut(window, toggle), [toggle]);
 
   /** BPM 播报节流：拖动滑杆时只在停下来 400ms 后播报一次 */
   useEffect(() => {
@@ -838,11 +829,15 @@ export function Metronome() {
       <section className="flex flex-col items-stretch gap-1">
         <button
           type="button"
+          aria-keyshortcuts="Space"
           onClick={toggle}
           className="h-16 w-full rounded-control bg-accent-700 text-lg font-medium text-on-accent"
         >
           {PHASE_LABEL[phase]}
         </button>
+        <p className="text-center text-meta text-ink-500">
+          空格开始/暂停 · Esc 结束
+        </p>
         <button
           type="button"
           onClick={() => void stop()}

@@ -5,10 +5,12 @@ import { Icon } from "@/components/icons";
 import {
   BPM_MAX,
   BPM_MIN,
+  BPM_STEP,
   clampBpm,
   DEFAULT_METER,
 } from "@/lib/metronome";
 import { createMetronomeAudio, type MetronomeAudio } from "@/lib/metronome-audio";
+import { bindMetronomeSpaceShortcut } from "@/lib/metronome-keyboard";
 
 const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD_S = 0.12;
@@ -47,7 +49,7 @@ export function PracticeMetronome() {
     }
   }, [beatSeconds]);
 
-  const stop = useCallback(() => {
+  const pause = useCallback(() => {
     generationRef.current += 1;
     startingRef.current = false;
     runningRef.current = false;
@@ -90,17 +92,17 @@ export function PracticeMetronome() {
   }, [scheduleWindow]);
 
   const toggle = useCallback(() => {
-    if (runningRef.current || startingRef.current) stop();
+    if (runningRef.current || startingRef.current) pause();
     else void start();
-  }, [start, stop]);
+  }, [pause, start]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.hidden) stop();
+      if (document.hidden) pause();
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [stop]);
+  }, [pause]);
 
   useEffect(() => {
     return () => {
@@ -114,26 +116,7 @@ export function PracticeMetronome() {
     };
   }, []);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.repeat || event.isComposing) return;
-      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-      if (event.key !== " " && event.key !== "Spacebar") return;
-
-      const target = event.target;
-      const interactive =
-        target instanceof Element
-          ? target.closest("input, textarea, select, button, a, [contenteditable='true']")
-          : null;
-      if (interactive) return;
-
-      event.preventDefault();
-      toggle();
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggle]);
+  useEffect(() => bindMetronomeSpaceShortcut(window, toggle), [toggle]);
 
   function changeBpm(amount: number) {
     setBpm((current) => clampBpm(current + amount));
@@ -153,8 +136,8 @@ export function PracticeMetronome() {
       <div className="practice-metronome__controls" role="group" aria-label="节拍器控制">
         <button
           type="button"
-          aria-label="速度减一拍"
-          onClick={() => changeBpm(-1)}
+          aria-label={`减速 ${BPM_STEP} BPM`}
+          onClick={() => changeBpm(-BPM_STEP)}
           disabled={bpm <= BPM_MIN}
           className="practice-metronome__button"
         >
@@ -162,8 +145,8 @@ export function PracticeMetronome() {
         </button>
         <button
           type="button"
-          aria-label="速度加一拍"
-          onClick={() => changeBpm(1)}
+          aria-label={`加速 ${BPM_STEP} BPM`}
+          onClick={() => changeBpm(BPM_STEP)}
           disabled={bpm >= BPM_MAX}
           className="practice-metronome__button"
         >

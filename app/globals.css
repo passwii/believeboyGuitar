@@ -480,6 +480,97 @@
     font-size: var(--text-meta);
   }
 
+  .tab-drill-controls { display: flex; }
+
+  .practice-metronome-float { display: none; }
+
+  .practice-metronome-float__readout,
+  .practice-metronome-float__status,
+  .practice-metronome-float__actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .practice-metronome-float__readout,
+  .practice-metronome-float__actions {
+    justify-content: space-between;
+    gap: .65rem;
+  }
+
+  .practice-metronome-float__status {
+    gap: .4rem;
+    color: var(--color-ink-500);
+    font-size: var(--text-meta);
+    white-space: nowrap;
+  }
+
+  .practice-metronome-float__signal {
+    width: .5rem;
+    height: .5rem;
+    flex: none;
+    border-radius: var(--radius-pill);
+    background: var(--color-ink-200);
+  }
+
+  .practice-metronome-float__signal.is-running { background: var(--color-accent-700); }
+
+  .practice-metronome-float__bpm {
+    display: block;
+    color: var(--color-ink-950);
+    font-family: var(--font-mono);
+    font-size: var(--text-title);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  .practice-metronome-float__bpm span {
+    color: var(--color-ink-500);
+    font-size: var(--text-meta);
+    font-weight: 500;
+  }
+
+  .practice-metronome-float__transport,
+  .practice-metronome-float__expand {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    border: 1px solid var(--color-control-edge);
+    border-radius: var(--radius-control);
+    padding-inline: .65rem;
+    color: var(--color-ink-700);
+    font-size: var(--text-label);
+    font-weight: 600;
+  }
+
+  .practice-metronome-float__transport {
+    flex: 1;
+    border-color: var(--color-accent-700);
+    background: var(--color-accent-700);
+    color: var(--color-on-accent);
+  }
+
+  .practice-metronome-float__expand { background: var(--color-surface); }
+
+  .practice-metronome-float__transport:focus-visible,
+  .practice-metronome-float__expand:focus-visible {
+    outline: 3px solid var(--color-accent-700);
+    outline-offset: 3px;
+  }
+
+  .practice-metronome-float__tempo-controls {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    justify-items: center;
+    gap: .3rem;
+    border-top: 1px solid var(--color-rule);
+    padding-top: .65rem;
+  }
+
+  .practice-metronome-float__tempo-controls[hidden] { display: none; }
+
   .fretboard-scale__header {
     display: flex;
     align-items: center;
@@ -716,6 +807,32 @@
     .practice-focus {
       padding-left: max(.75rem, env(safe-area-inset-left));
       padding-right: max(.75rem, env(safe-area-inset-right));
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .practice-focus {
+      padding-right: calc(max(2rem, env(safe-area-inset-right)) + 14rem);
+    }
+
+    .tab-drill-controls { display: none; }
+
+    .practice-metronome-float {
+      position: fixed;
+      z-index: 20;
+      top: 50%;
+      right: max(2rem, calc((100vw - var(--container-page)) / 2 + 2rem));
+      display: flex;
+      width: 13rem;
+      max-height: calc(100svh - 2rem);
+      flex-direction: column;
+      gap: .7rem;
+      overflow-y: auto;
+      transform: translateY(-50%);
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-card);
+      background: var(--color-surface);
+      padding: .75rem;
     }
   }
 
