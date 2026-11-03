@@ -1,0 +1,11 @@
+{
+  "name": "Guitar Effects",
+  "identifier": "com.damonrock.guitareffects",
+  "version": "0.1.0",
+  "out": "build",
+  "macos": {
+    "infoPlist": {
+      "NSMicrophoneUsageDescription": "Guitar Effects needs audio input access to process your instrument."
+    }
+  }
+}

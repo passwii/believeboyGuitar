@@ -1,0 +1,4 @@
+/build/
+/.mygo/
+/native/build/
+/resources/darwin-arm64/AudioEngine.dylib

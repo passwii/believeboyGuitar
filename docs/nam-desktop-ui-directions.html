@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NAM Effects — Studio Console</title>
+  <style>
+    :root {
+      --background: #171b1a;
+      --foreground: #ecefe9;
+      --muted: #a2ada5;
+      --card: #202624;
+      --popover: #202624;
+      --secondary: #29312d;
+      --border: #39433d;
+      --ring: #69d293;
+      --primary: #69d293;
+      --primary-foreground: #142019;
+      --accent: #69d293;
+      --radius: 10px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: var(--font-sans);
+      color: var(--foreground);
+      font-variant-numeric: tabular-nums;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: transparent; }
+    button, select { font: inherit; }
+    .preview { width: 100%; margin: 0; }
+    .caption { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 9px; color: #59675e; font-size: 12px; }
+    .switch { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #c9d1c8; border-radius: 9px; background: #fbfcf8; }
+    .switch button { padding: 5px 9px; border: 0; border-radius: 6px; background: transparent; color: #59675e; font-size: 11px; cursor: pointer; }
+    .switch button[aria-pressed="true"] { background: #e4e9e1; color: #1d2520; font-weight: 650; }
+    .fit { position: relative; overflow: hidden; margin: 0 auto; }
+    .app { width: 960px; height: 640px; transform: scale(var(--fit, 1)); transform-origin: top left; padding: 20px; border: 1px solid #343d39; border-radius: 16px; background: #171b1a; color: #ecefe9; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+    .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .spacer { flex: 1; }
+    .header { min-height: 32px; display: flex; align-items: center; gap: 12px; }
+    .brand { font-size: 24px; line-height: 1; font-weight: 720; letter-spacing: -.03em; }
+    .status { color: #a2ada5; font-size: 13px; }
+    .button { min-height: 34px; padding: 0 12px; border: 1px solid #39433d; border-radius: 8px; background: #202624; color: #ecefe9; font-size: 12px; white-space: nowrap; }
+    .button.primary { border-color: #69d293; background: #69d293; color: #142019; font-weight: 650; }
+    .button:disabled { opacity: .48; }
+    .routes { display: flex; gap: 12px; }
+    .route { flex: 1; min-width: 0; padding: 12px; border: 1px solid #39433d; border-radius: 10px; background: #202624; display: flex; flex-direction: column; gap: 7px; }
+    .eyebrow { color: #a2ada5; font-size: 11px; font-weight: 700; letter-spacing: .05em; }
+    .select { min-width: 0; height: 31px; padding: 0 11px; border: 1px solid #39433d; border-radius: 7px; background: #191f1d; color: #ecefe9; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+    .select span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chevron { width: 7px; height: 7px; border-right: 1.5px solid #a2ada5; border-bottom: 1.5px solid #a2ada5; transform: translateY(-2px) rotate(45deg); flex: none; }
+    .global { display: flex; align-items: center; gap: 18px; padding: 10px 12px; border: 1px solid #39433d; border-radius: 10px; background: #202624; }
+    .gain { flex: 1; min-width: 0; }
+    .gain-label { margin-bottom: 4px; font-size: 12px; }
+    .track { position: relative; height: 4px; border-radius: 5px; background: #39433d; }
+    .track:before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--value, 50%); border-radius: inherit; background: #69d293; }
+    .thumb { position: absolute; top: 50%; left: var(--value, 50%); width: 15px; height: 15px; border-radius: 50%; background: #d9dddc; transform: translate(-50%, -50%); }
+    .chain { flex: 1; min-height: 0; padding: 14px; border: 1px solid #39433d; border-radius: 12px; background: #202624; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+    .chain-head { display: flex; align-items: center; gap: 9px; min-height: 30px; }
+    .chain-head h2 { margin: 0 auto 0 0; font-size: 17px; font-weight: 680; }
+    .count { color: #a2ada5; font-size: 10px; white-space: nowrap; }
+    .list { display: flex; flex-direction: column; gap: 8px; overflow: auto; min-height: 0; }
+    .block { padding: 10px; border: 1px solid #39433d; border-radius: 9px; background: #191f1d; }
+    .block-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .block-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 680; }
+    .block-index { color: #a2ada5; font-family: var(--font-mono); font-size: 11px; font-weight: 500; }
+    .kind.nam { color: #e5b65c; }
+    .kind.ir { color: #75c9d6; }
+    .filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .actions { display: flex; gap: 7px; flex: none; }
+    .actions .button { min-height: 29px; padding: 0 9px; font-size: 11px; }
+    .params { display: flex; gap: 12px; margin-top: 8px; }
+    .param { flex: 1; min-width: 0; }
+    .param-label { margin-bottom: 5px; color: #a2ada5; font-size: 12px; }
+    .param .track { height: 4px; }
+    .empty { color: #a2ada5; font-size: 13px; }
+    .meters { display: flex; align-items: center; gap: 16px; padding: 11px 13px; border: 1px solid #39433d; border-radius: 10px; background: #202624; }
+    .level { flex: 1; min-width: 0; }
+    .level-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
+    .level-label { color: #a2ada5; font-size: 11px; }
+    .level-value { font-size: 12px; }
+    .meter { height: 7px; border-radius: 9px; background: #39433d; overflow: hidden; }
+    .meter i { display: block; height: 100%; width: var(--value); border-radius: inherit; background: #69d293; }
+    .clip { color: #ff786f; font-weight: 700; font-size: 11px; }
+    .note { margin: 7px 0 0; color: #59675e; text-align: right; font-size: 11px; }
+    @media (max-width: 740px) { .caption { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main class="preview">
+    <div class="caption"><span>Dark studio console · native window reference</span><div class="switch" role="group" aria-label="Preview state"><button data-state="empty" aria-pressed="false">Empty chain</button><button data-state="loaded" aria-pressed="true">NAM + IR</button></div></div>
+    <div class="fit" id="frame">
+      <section class="app" id="app">
+        <header class="header"><strong class="brand">NAM Effects</strong><span class="status" id="status">Stopped</span><span class="spacer"></span><button class="button">Open Preset</button><button class="button">Save Preset</button><button class="button primary" id="start">Start</button></header>
+        <section class="routes">
+          <div class="route"><div class="eyebrow">INPUT ROUTING</div><div class="select"><span id="inputDevice">USB Audio Interface · usb-in</span><i class="chevron"></i></div><div class="select"><span id="inputChannel">Input 1</span><i class="chevron"></i></div></div>
+          <div class="route"><div class="eyebrow">OUTPUT ROUTING</div><div class="select"><span id="outputDevice">Built-in Output · headphones</span><i class="chevron"></i></div><div class="select"><span>128</span><i class="chevron"></i></div></div>
+        </section>
+        <section class="global"><div class="eyebrow">GLOBAL GAIN</div><div class="gain"><div class="gain-label">Input&nbsp; +0.0 dB</div><div class="track" style="--value:50%"><i class="thumb"></i></div></div><div class="gain"><div class="gain-label">Master&nbsp; +0.0 dB</div><div class="track" style="--value:50%"><i class="thumb"></i></div></div></section>
+        <section class="chain"><header class="chain-head"><h2>Signal chain</h2><span class="count" id="count">2 MODULES</span><button class="button">Add NAM Model</button><button class="button">Add IR</button></header><div class="list" id="list"></div></section>
+        <footer class="meters"><div class="level"><div class="level-head"><span class="level-label">Input level</span><span class="level-value mono" id="inputValue">-18.4 dBFS</span></div><div class="meter"><i id="inputBar" style="--value:69%"></i></div></div><div class="level"><div class="level-head"><span class="level-label">Output level</span><span class="level-value mono" id="outputValue">-21.0 dBFS</span></div><div class="meter"><i id="outputBar" style="--value:65%"></i></div></div><span class="clip" id="clip" hidden>CLIPPING</span></footer>
+      </section>
+    </div>
+    <p class="note">Example device names, file names and meter values are illustrative; the app displays live values from its current state.</p>
+  </main>
+  <script>
+    const blocks = [
+      { kind: "NAM", file: "A2_Clean_Combo.nam", mix: "100%" },
+      { kind: "IR", file: "2x12_Open_Back.wav", mix: "100%" },
+    ];
+    const list = document.getElementById("list");
+    const chainCount = document.getElementById("count");
+    function render(kind) {
+      const empty = kind === "empty";
+      document.querySelectorAll("[data-state]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.state === kind)));
+      document.getElementById("inputDevice").textContent = empty ? "No input device" : "USB Audio Interface · usb-in";
+      document.getElementById("inputChannel").textContent = empty ? "Choose input channel" : "Input 1";
+      document.getElementById("outputDevice").textContent = empty ? "No output device" : "Built-in Output · headphones";
+      document.getElementById("start").disabled = empty;
+      document.getElementById("inputValue").textContent = empty ? "-120.0 dBFS" : "-18.4 dBFS";
+      document.getElementById("outputValue").textContent = empty ? "-120.0 dBFS" : "-21.0 dBFS";
+      document.getElementById("inputBar").style.setProperty("--value", empty ? "0%" : "69%");
+      document.getElementById("outputBar").style.setProperty("--value", empty ? "0%" : "65%");
+      document.getElementById("clip").hidden = true;
+      chainCount.textContent = empty ? "0 MODULES" : `${blocks.length} MODULES`;
+      list.innerHTML = empty ? '<p class="empty">Add a NAM model or cabinet IR to build the signal chain.</p>' : blocks.map((block, index) => `
+        <article class="block"><div class="block-head"><span class="block-index">${String(index + 1).padStart(2, "0")}</span><strong class="kind ${block.kind.toLowerCase()}">${block.kind}</strong><span class="count">·</span><strong class="block-name filename">${block.file}</strong><div class="actions"><button class="button" ${index === 0 ? "disabled" : ""}>Move up</button><button class="button" ${index === blocks.length - 1 ? "disabled" : ""}>Move down</button><button class="button">Bypass</button><button class="button">Remove</button></div></div><div class="params"><div class="param"><div class="param-label">Input&nbsp; +0.0 dB</div><div class="track" style="--value:50%"><i class="thumb"></i></div></div><div class="param"><div class="param-label">Output&nbsp; +0.0 dB</div><div class="track" style="--value:50%"><i class="thumb"></i></div></div><div class="param"><div class="param-label">Mix&nbsp; ${block.mix}</div><div class="track" style="--value:100%"><i class="thumb"></i></div></div></div></article>`).join("");
+    }
+    function fit() {
+      const scale = Math.min(1, Math.max(0.5, (window.innerWidth - 8) / 960));
+      const frame = document.getElementById("frame");
+      frame.style.width = `${960 * scale}px`;
+      frame.style.height = `${640 * scale}px`;
+      document.getElementById("app").style.setProperty("--fit", scale);
+    }
+    document.querySelectorAll("[data-state]").forEach((button) => button.addEventListener("click", () => render(button.dataset.state)));
+    window.addEventListener("resize", fit);
+    render("loaded");
+    fit();
+  </script>
+</body>
+</html>
