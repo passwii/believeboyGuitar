@@ -18,6 +18,11 @@ It is intentionally separate from the NAM interface redesign.
 - Load a local NAM model and WAV IR, then save and restore a preset.
 - Check device disconnect/reconnect and sleep/wake recovery; record audible dropouts and underrun counts.
 
+## Known Follow-ups
+
+- The device list is refreshed at startup only. A device connected afterward is not selectable until the app is restarted.
+- Chain edits clone loaded NAM and IR modules from their source paths. If a source file is moved or deleted after loading, reorder or removal may fail while cloning the chain.
+
 ## Details to Record If a Problem Appears
 
 - macOS version and Mac architecture.

@@ -44,7 +44,7 @@ func toolbar(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
 	if state.Running {
 		statusColor = theme.Success
 	}
-	if state.InputMeterDB >= 0 || state.OutputMeterDB >= 0 || state.Message != "" {
+	if state.Message != "" || (state.Running && (state.InputMeterDB >= 0 || state.OutputMeterDB >= 0)) {
 		statusColor = theme.Danger
 	}
 
@@ -117,19 +117,19 @@ func themedContext(c *ui.Context) *ui.Theme {
 }
 
 func statusLabel(state AppState) string {
+	if state.Starting {
+		return "正在启动"
+	}
+	if !state.Running {
+		return "已停止"
+	}
 	if state.InputMeterDB >= 0 {
 		return "输入削波"
 	}
 	if state.OutputMeterDB >= 0 {
 		return "输出削波"
 	}
-	if state.Starting {
-		return "正在启动"
-	}
-	if state.Running {
-		return "监听中"
-	}
-	return "已停止"
+	return "监听中"
 }
 
 func transportButton(c *ui.Context, a *App, state AppState) {
@@ -256,28 +256,34 @@ func chainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme, compa
 				go a.pickAndAdd([]mygo.FileFilter{{Name: "WAV 箱体 IR", Extensions: []string{"wav"}}})
 			}
 		})
-		if len(state.Blocks) == 0 {
-			ui.Row(c).Grow(1).AlignItems(ui.Center).Justify(ui.Center).Gap(9).Children(func() {
-				ui.Icon(c, signalIcon).FontSize(20).TextColor(theme.TextMuted)
-				ui.Text(c, "效果链为空").FontSize(12).TextColor(theme.TextMuted)
-			})
-			return
-		}
-
 		ui.ScrollHorizontal(c).Grow(1).MinHeight(0).Gap(8).Padding(2).AlignItems(ui.Center).Children(func() {
 			inputStage(c, a, state, theme, nodeWidth, cardHeight)
 			signalConnector(c, theme, state.Running, 0)
-			for i, item := range state.Blocks {
-				moduleCard(c, a, state, item, i, len(state.Blocks), theme, blockWidth, cardHeight)
-				signalConnector(c, theme, state.Running, int64(i+1))
+			if len(state.Blocks) == 0 {
+				emptyChainStage(c, theme, blockWidth, cardHeight)
+			} else {
+				for i, item := range state.Blocks {
+					moduleCard(c, a, state, item, i, len(state.Blocks), theme, blockWidth, cardHeight)
+					signalConnector(c, theme, state.Running, int64(i+1))
+				}
 			}
+			signalConnector(c, theme, state.Running, int64(len(state.Blocks)+1))
 			outputStage(c, a, state, theme, nodeWidth, cardHeight)
 		})
 	})
 }
 
+func emptyChainStage(c *ui.Context, theme *ui.Theme, width, height float32) {
+	ui.Column(c).Width(width).Height(height).AlignItems(ui.Center).Justify(ui.Center).Gap(8).Padding(12).Background(theme.Surface).Radius(10).Children(func() {
+		ui.Icon(c, signalIcon).FontSize(20).TextColor(theme.TextMuted)
+		ui.Text(c, "效果链为空").FontSize(12).TextColor(theme.TextMuted)
+		ui.Text(c, "添加 NAM 或 IR 模块").FontSize(10).TextColor(theme.TextMuted)
+	})
+}
+
 func inputStage(c *ui.Context, a *App, state AppState, theme *ui.Theme, width, height float32) {
 	inputGain := state.InputGainDB
+	level := activeMeterDB(state.Running, state.InputMeterDB)
 	ui.Column(c).Width(width).Height(height).Gap(8).Padding(11).Background(theme.SurfaceHover).Radius(10).Children(func() {
 		ui.Row(c).AlignItems(ui.Center).Gap(7).Children(func() {
 			ui.Icon(c, inputIcon).FontSize(16).TextColor(theme.Accent)
@@ -285,17 +291,17 @@ func inputStage(c *ui.Context, a *App, state AppState, theme *ui.Theme, width, h
 		})
 		ui.Text(c, "输入电平").FontSize(11).TextColor(theme.TextMuted)
 		ui.Row(c).AlignItems(ui.Baseline).Gap(5).Children(func() {
-			reading := ui.Text(c, fmt.Sprintf("%+.1f", state.InputMeterDB)).Font("SF Mono").FontSize(18).Bold()
-			if state.InputMeterDB >= 0 {
+			reading := ui.Text(c, fmt.Sprintf("%+.1f", level)).Font("SF Mono").FontSize(18).Bold()
+			if level >= 0 {
 				reading.TextColor(theme.Danger)
 			}
 			reading.Shrink(0)
 			ui.Text(c, "dBFS").FontSize(10).TextColor(theme.TextMuted)
-			if state.InputMeterDB >= 0 {
+			if level >= 0 {
 				ui.Text(c, "削波").FontSize(10).TextColor(theme.Danger).Bold()
 			}
 		})
-		meter(c, "输入电平", state.InputMeterDB)
+		meter(c, "输入电平", level)
 		ui.Box(c).Grow(1)
 		ui.Row(c).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "输入增益").FontSize(11).TextColor(theme.TextMuted).Grow(1)
@@ -309,6 +315,7 @@ func inputStage(c *ui.Context, a *App, state AppState, theme *ui.Theme, width, h
 
 func outputStage(c *ui.Context, a *App, state AppState, theme *ui.Theme, width, height float32) {
 	outputGain := state.OutputGainDB
+	level := activeMeterDB(state.Running, state.OutputMeterDB)
 	ui.Column(c).Width(width).Height(height).Gap(8).Padding(11).Background(theme.SurfaceHover).Radius(10).Children(func() {
 		ui.Row(c).AlignItems(ui.Center).Gap(7).Children(func() {
 			ui.Icon(c, outputIcon).FontSize(16).TextColor(theme.Accent)
@@ -316,17 +323,17 @@ func outputStage(c *ui.Context, a *App, state AppState, theme *ui.Theme, width, 
 		})
 		ui.Text(c, "输出电平").FontSize(11).TextColor(theme.TextMuted)
 		ui.Row(c).AlignItems(ui.Baseline).Gap(5).Children(func() {
-			reading := ui.Text(c, fmt.Sprintf("%+.1f", state.OutputMeterDB)).Font("SF Mono").FontSize(18).Bold()
-			if state.OutputMeterDB >= 0 {
+			reading := ui.Text(c, fmt.Sprintf("%+.1f", level)).Font("SF Mono").FontSize(18).Bold()
+			if level >= 0 {
 				reading.TextColor(theme.Danger)
 			}
 			reading.Shrink(0)
 			ui.Text(c, "dBFS").FontSize(10).TextColor(theme.TextMuted)
-			if state.OutputMeterDB >= 0 {
+			if level >= 0 {
 				ui.Text(c, "削波").FontSize(10).TextColor(theme.Danger).Bold()
 			}
 		})
-		meter(c, "输出电平", state.OutputMeterDB)
+		meter(c, "输出电平", level)
 		ui.Box(c).Grow(1)
 		ui.Row(c).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "主输出").FontSize(11).TextColor(theme.TextMuted).Grow(1)
@@ -336,6 +343,13 @@ func outputStage(c *ui.Context, a *App, state AppState, theme *ui.Theme, width, 
 			a.controller.SetMasterGain(outputGain)
 		}
 	})
+}
+
+func activeMeterDB(running bool, db float64) float64 {
+	if !running {
+		return -120
+	}
+	return db
 }
 
 func meter(c *ui.Context, label string, db float64) {
@@ -372,7 +386,7 @@ func moduleCard(c *ui.Context, a *App, state AppState, item BlockItem, index, co
 			ui.Text(c, fmt.Sprintf("%02d", index+1)).Font("SF Mono").FontSize(10).TextColor(theme.TextMuted).Shrink(0)
 			ui.Text(c, blockKindName(block)).FontSize(10).TextColor(blockKindColor(block, theme)).Bold().Shrink(0)
 			ui.Box(c).Grow(1)
-			more := ui.ButtonBase(c).Label("模块操作").Padding(5).Radius(7).Background(theme.SurfaceHover)
+			more := ui.ButtonBase(c).Label(shortPath(block.Path) + " 模块操作").Padding(5).Radius(7).Background(theme.SurfaceHover)
 			more.Children(func() { ui.Icon(c, moreIcon).Size(14, 14) })
 			more.Menu(func(m *ui.Menu) {
 				if m.Item("上移").Disabled(index == 0 || !canReorder || state.PresetLoading).Chosen() {

@@ -44,12 +44,12 @@ func selectOption(t *testing.T, tester *ui.Tester, control, option string) {
 func TestInitialViewShowsStoppedSignalConsole(t *testing.T) {
 	app := New(nil)
 	tester := ui.NewTester(app.View, 1280, 800)
-	for _, label := range []string{"NAM Effects", "Stopped", "Input", "No input device", "Output", "No output device", "Input gain", "Master gain", "Signal chain", "Input level", "Output level", "Add NAM Model", "Add IR"} {
+	for _, label := range []string{"吉他效果器", "已停止", "输入", "未发现输入设备", "输出", "未发现输出设备", "输入增益", "主输出", "效果链", "输入电平", "输出电平", "+ NAM", "+ IR"} {
 		if !tester.HasText(label) {
 			t.Errorf("initial view is missing %q; text=%q", label, tester.Texts())
 		}
 	}
-	if tester.HasText("Monitoring") {
+	if tester.HasText("监听中") {
 		t.Fatalf("new app must not claim that monitoring is active")
 	}
 }
@@ -68,15 +68,15 @@ func TestDeviceControlsApplySelectionsInEventOrder(t *testing.T) {
 	<-updates
 	tester := ui.NewTester(a.View, 1280, 800)
 
-	selectOption(t, tester, "Input device", "Interface In Two · input-2")
-	selectOption(t, tester, "Input device", "Interface In One · input-1")
+	selectOption(t, tester, "吉他输入设备", "Interface In Two · input-2")
+	selectOption(t, tester, "吉他输入设备", "Interface In One · input-1")
 	waitForAppState(t, a, updates, "latest input selection", func(state AppState) bool { return state.SelectedInputID == "input-1" })
-	selectOption(t, tester, "Output device", "Interface Out One · output-1")
-	selectOption(t, tester, "Output device", "Interface Out Two · output-2")
+	selectOption(t, tester, "耳机输出设备", "Interface Out One · output-1")
+	selectOption(t, tester, "耳机输出设备", "Interface Out Two · output-2")
 	waitForAppState(t, a, updates, "latest output selection", func(state AppState) bool { return state.SelectedOutputID == "output-2" })
-	selectOption(t, tester, "Input channel", "Input 2")
+	selectOption(t, tester, "输入通道", "输入 2")
 	waitForAppState(t, a, updates, "input channel selection", func(state AppState) bool { return state.InputChannel == 1 })
-	selectOption(t, tester, "Buffer size", "256")
+	selectOption(t, tester, "缓冲大小", "256 样本")
 	waitForAppState(t, a, updates, "buffer selection", func(state AppState) bool { return state.BufferSize == 256 })
 
 	state := a.State()
@@ -107,7 +107,7 @@ func TestStartButtonShowsStartingAndIgnoresSecondClick(t *testing.T) {
 	}
 	defer releaseEngine()
 
-	if err := tester.Click("Start"); err != nil {
+	if err := tester.Click("开始监听"); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -116,10 +116,10 @@ func TestStartButtonShowsStartingAndIgnoresSecondClick(t *testing.T) {
 		t.Fatal("Start button did not reach the engine")
 	}
 	tester.Frame()
-	if state := a.State(); !state.Starting || state.Running || !tester.HasText("Starting...") {
+	if state := a.State(); !state.Starting || state.Running || !tester.HasText("正在启动") {
 		t.Fatalf("view while engine opens: state=%+v text=%q", state, tester.Texts())
 	}
-	if err := tester.Click("Starting..."); err != nil {
+	if err := tester.Click("正在启动"); err != nil {
 		t.Fatal(err)
 	}
 	starts := 0
@@ -135,7 +135,7 @@ func TestStartButtonShowsStartingAndIgnoresSecondClick(t *testing.T) {
 	releaseEngine()
 	waitForAppState(t, a, updates, "monitoring to start", func(state AppState) bool { return state.Running })
 	tester.Frame()
-	if state := a.State(); state.Starting || !tester.HasText("Stop") {
+	if state := a.State(); state.Starting || !tester.HasText("停止监听") {
 		t.Fatalf("view after open: state=%+v text=%q", state, tester.Texts())
 	}
 }
@@ -165,16 +165,16 @@ func TestNativeControlsDriveFakeEngine(t *testing.T) {
 	}
 	tester := ui.NewTester(a.View, 1280, 900)
 
-	if err := tester.Click("Start"); err != nil {
+	if err := tester.Click("开始监听"); err != nil {
 		t.Fatal(err)
 	}
 	waitForAppState(t, a, updates, "monitoring to start", func(state AppState) bool { return state.Running })
 	tester.Frame()
-	if !tester.HasText("Running") || !fake.running {
+	if !tester.HasText("监听中") || !fake.running {
 		t.Fatalf("after Start: status=%+v text=%q", a.State(), tester.Texts())
 	}
 
-	if err := tester.Click("Add NAM Model"); err != nil {
+	if err := tester.Click("+ NAM"); err != nil {
 		t.Fatal(err)
 	}
 	waitForAppState(t, a, updates, "NAM model to load", func(state AppState) bool {
@@ -185,18 +185,21 @@ func TestNativeControlsDriveFakeEngine(t *testing.T) {
 		t.Fatalf("after import: state=%+v text=%q", a.State(), tester.Texts())
 	}
 
-	if err := tester.Click("Bypass"); err != nil {
+	if err := tester.Click("clean.nam 模块操作"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tester.ChooseMenuItem("旁路"); err != nil {
 		t.Fatal(err)
 	}
 	waitForAppState(t, a, updates, "bypass to update", func(state AppState) bool {
 		return len(state.Blocks) == 1 && state.Blocks[0].Block.Bypassed
 	})
 	tester.Frame()
-	if !a.State().Blocks[0].Block.Bypassed || !fake.blocks[0].Bypassed || !tester.HasText("Enable") {
+	if !a.State().Blocks[0].Block.Bypassed || !fake.blocks[0].Bypassed {
 		t.Fatalf("after bypass: state=%+v text=%q", a.State(), tester.Texts())
 	}
 
-	if err := tester.Click("Block input gain"); err != nil {
+	if err := tester.Click("模块输入增益"); err != nil {
 		t.Fatal(err)
 	}
 	tester.Key(0, ui.KeyRight)
@@ -207,7 +210,7 @@ func TestNativeControlsDriveFakeEngine(t *testing.T) {
 	if a.State().Blocks[0].Block.InputGainDB == 0 {
 		t.Fatalf("block input gain did not change: %+v", a.State().Blocks[0].Block)
 	}
-	if err := tester.Click("Block mix"); err != nil {
+	if err := tester.Click("模块混合比例"); err != nil {
 		t.Fatal(err)
 	}
 	tester.Key(0, ui.KeyLeft)
@@ -228,14 +231,17 @@ func TestNativeControlsDriveFakeEngine(t *testing.T) {
 		}
 		return []string{"/impulses/room.wav"}, nil
 	}
-	if err := tester.Click("Add IR"); err != nil {
+	if err := tester.Click("+ IR"); err != nil {
 		t.Fatal(err)
 	}
 	waitForAppState(t, a, updates, "IR to load", func(state AppState) bool {
 		return len(state.Blocks) == 2 && state.Blocks[1].Block.ID == "/impulses/room.wav"
 	})
 	tester.Frame()
-	if err := tester.Click("Move down"); err != nil {
+	if err := tester.Click("clean.nam 模块操作"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tester.ChooseMenuItem("下移"); err != nil {
 		t.Fatal(err)
 	}
 	waitForAppState(t, a, updates, "chain order to update", func(state AppState) bool {
@@ -248,7 +254,10 @@ func TestNativeControlsDriveFakeEngine(t *testing.T) {
 		t.Fatalf("fake engine reordered IDs = %v", got)
 	}
 
-	if err := tester.Click("Remove"); err != nil {
+	if err := tester.Click("room.wav 模块操作"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tester.ChooseMenuItem("移除"); err != nil {
 		t.Fatal(err)
 	}
 	waitForAppState(t, a, updates, "IR to be removed", func(state AppState) bool {
@@ -313,7 +322,7 @@ func TestOpenPresetRestoresMissingBlockAndRelinkAction(t *testing.T) {
 	}
 	tester := ui.NewTester(a.View, 1280, 900)
 
-	if err := tester.Click("Open Preset"); err != nil {
+	if err := tester.Click("打开"); err != nil {
 		t.Fatal(err)
 	}
 	state := waitForAppState(t, a, updates, "preset to load", func(state AppState) bool {
@@ -325,7 +334,7 @@ func TestOpenPresetRestoresMissingBlockAndRelinkAction(t *testing.T) {
 	// The virtualized list measures newly loaded rows before placing them.
 	tester.Frame()
 	tester.Frame()
-	if !tester.HasText("File not found") || !tester.HasText("Relink") {
+	if !tester.HasText("文件缺失") || !tester.HasText("moved.wav 模块操作") {
 		t.Fatalf("missing preset row is not actionable; text=%q", tester.Texts())
 	}
 
@@ -337,7 +346,10 @@ func TestOpenPresetRestoresMissingBlockAndRelinkAction(t *testing.T) {
 		relinkOpened <- struct{}{}
 		return []string{replacement}, nil
 	}
-	if err := tester.Click("Relink"); err != nil {
+	if err := tester.Click("moved.wav 模块操作"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tester.ChooseMenuItem("重新定位文件"); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -388,7 +400,7 @@ func TestSavePresetWritesJSONUnderUserDataWithDetectedParameters(t *testing.T) {
 		return "studio", nil
 	}
 	tester := ui.NewTester(a.View, 1280, 900)
-	if err := tester.Click("Save Preset"); err != nil {
+	if err := tester.Click("保存"); err != nil {
 		t.Fatal(err)
 	}
 
