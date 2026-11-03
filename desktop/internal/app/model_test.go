@@ -41,10 +41,10 @@ func selectOption(t *testing.T, tester *ui.Tester, control, option string) {
 	}
 }
 
-func TestInitialViewShowsStoppedChain(t *testing.T) {
+func TestInitialViewShowsStoppedSignalConsole(t *testing.T) {
 	app := New(nil)
 	tester := ui.NewTester(app.View, 1280, 800)
-	for _, label := range []string{"NAM Effects", "Stopped", "Input", "No input device", "Output", "No output device", "Input gain", "Master gain", "Effects chain", "Add NAM Model", "Add IR"} {
+	for _, label := range []string{"NAM Effects", "Stopped", "Input", "No input device", "Output", "No output device", "Input gain", "Master gain", "Signal chain", "Input level", "Output level", "Add NAM Model", "Add IR"} {
 		if !tester.HasText(label) {
 			t.Errorf("initial view is missing %q; text=%q", label, tester.Texts())
 		}

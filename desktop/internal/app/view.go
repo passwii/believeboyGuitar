@@ -12,39 +12,81 @@ import (
 
 func view(c *ui.Context, a *App) {
 	state := a.State()
+	width, height := c.Size()
+	compact := width < 760 || height < 560
 	t := *c.Theme()
-	t.Dark = false
-	t.Background = ui.Hex("#F1F2EC")
-	t.Surface = ui.Hex("#FBFCF8")
-	t.SurfaceHover = ui.Hex("#E4E9E1")
-	t.SurfacePressed = ui.Hex("#DDE3DC")
-	t.Border = ui.Hex("#C9D1C8")
-	t.Text = ui.Hex("#1D2520")
-	t.TextMuted = ui.Hex("#5C6A61")
-	t.Accent = ui.Hex("#267B55")
-	t.AccentHover = ui.Hex("#2E8C62")
-	t.AccentPressed = ui.Hex("#1D6344")
-	t.AccentText = ui.Hex("#FFFFFF")
-	t.Focus = ui.Hex("#267B55")
+	t.Dark = true
+	t.Background = ui.Hex("#171B1A")
+	t.Surface = ui.Hex("#202624")
+	t.SurfaceHover = ui.Hex("#29312D")
+	t.SurfacePressed = ui.Hex("#343D39")
+	t.Border = ui.Hex("#39433D")
+	t.Text = ui.Hex("#ECEFE9")
+	t.TextMuted = ui.Hex("#A2ADA5")
+	t.Accent = ui.Hex("#69D293")
+	t.AccentHover = ui.Hex("#7BE0A1")
+	t.AccentPressed = ui.Hex("#50B97A")
+	t.AccentText = ui.Hex("#142019")
+	t.Danger = ui.Hex("#FF786F")
+	t.Warning = ui.Hex("#E5B65C")
+	t.Success = ui.Hex("#69D293")
+	t.Selection = ui.RGBA(105, 210, 147, 0.25)
+	t.Focus = ui.Hex("#69D293")
+	t.Inverse = ui.Hex("#ECEFE9")
+	t.InverseText = ui.Hex("#171B1A")
+	t.Scrollbar = ui.RGBA(236, 239, 233, 0.28)
+	t.Radius = 8
 	c.SetTheme(&t)
 
-	ui.Column(c).Fill().Gap(18).Padding(28).Children(func() {
+	rootGap, rootPadding, titleSize := float32(12), float32(20), float32(24)
+	if compact {
+		rootGap, rootPadding, titleSize = 8, 12, 20
+	}
+	ui.Column(c).Fill().Gap(rootGap).Padding(rootPadding).Children(func() {
 		ui.Row(c).AlignItems(ui.Center).Gap(12).Children(func() {
-			ui.Text(c, "NAM Effects").FontSize(28).Bold()
-			ui.Text(c, state.Status).TextColor(t.TextMuted).FontSize(14)
+			ui.Text(c, "NAM Effects").FontSize(titleSize).Bold()
+			ui.Text(c, state.Status).TextColor(t.TextMuted).FontSize(13)
 			if state.Message != "" {
-				ui.Text(c, state.Message).TextColor(t.Accent).FontSize(13)
+				ui.Text(c, state.Message).TextColor(t.Danger).FontSize(12).Grow(1).MinWidth(0).SingleLine()
 			}
+			if ui.Button(c, "Open Preset").Disabled(state.PresetLoading).Clicked() {
+				go a.openPresetFile()
+			}
+			if ui.Button(c, "Save Preset").Disabled(state.PresetLoading).Clicked() {
+				go a.savePreset()
+			}
+			transportButton(c, a, state)
 		})
 
-		deviceControls(c, a, state, &t)
-		gainControls(c, a, state, &t)
-		chainControls(c, a, state, &t)
-		meters(c, state, &t)
+		deviceControls(c, a, state, &t, compact)
+		gainControls(c, a, state, &t, compact)
+		chainControls(c, a, state, &t, compact)
+		meters(c, state, &t, compact)
 	})
 }
 
-func deviceControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
+func transportButton(c *ui.Context, a *App, state AppState) {
+	config := engine.AudioConfig{
+		InputDeviceID: state.SelectedInputID, InputChannel: state.InputChannel,
+		OutputDeviceID: state.SelectedOutputID, BufferSize: state.BufferSize,
+	}
+	startDisabled := state.SelectedInputID == "" || state.SelectedOutputID == "" || state.InputChannel < 0
+	label := "Start"
+	if state.Starting {
+		label = "Starting..."
+	} else if state.Running {
+		label = "Stop"
+	}
+	if ui.PrimaryButton(c, label).Disabled(state.Starting || (!state.Running && (startDisabled || state.PresetLoading))).Clicked() {
+		if state.Running {
+			go a.controller.StopMonitoring()
+		} else {
+			go a.controller.StartMonitoring(config)
+		}
+	}
+}
+
+func deviceControls(c *ui.Context, a *App, state AppState, theme *ui.Theme, compact bool) {
 	deviceLocked := state.Running || state.Starting
 	inputOptions, inputValues := deviceOptions(state.Devices, true)
 	outputOptions, outputValues := deviceOptions(state.Devices, false)
@@ -69,26 +111,28 @@ func deviceControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
 		bufferValue = "128"
 	}
 
-	ui.Row(c).Gap(12).Children(func() {
-		ui.Column(c).Grow(1).Gap(8).Padding(14).Background(theme.Surface).Border(1, theme.Border).Radius(10).Children(func() {
-			ui.Text(c, "Input").FontSize(13).TextColor(theme.TextMuted)
+	cardPadding, cardGap, cardLabelSize := float32(12), float32(7), float32(11)
+	if compact {
+		cardPadding, cardGap, cardLabelSize = 8, 5, 9
+	}
+	ui.Row(c).Gap(10).Children(func() {
+		ui.Column(c).Grow(1).Gap(cardGap).Padding(cardPadding).Background(theme.Surface).Border(1, theme.Border).Radius(10).Children(func() {
+			ui.Text(c, "INPUT ROUTING").FontSize(cardLabelSize).TextColor(theme.TextMuted).Bold()
 			if len(inputOptions) == 0 {
-				ui.Text(c, "No input device").FontSize(15).Bold()
-			} else {
-				if ui.Select(c, &inputValue, inputOptions).Disabled(deviceLocked).Label("Input device").Changed() {
-					if id := selectedID(inputValues, inputValue); id != "" {
-						a.controller.SelectInput(id)
-					}
+				ui.Text(c, "No input device").FontSize(14).Bold()
+			} else if ui.Select(c, &inputValue, inputOptions).Disabled(deviceLocked).Label("Input device").Changed() {
+				if id := selectedID(inputValues, inputValue); id != "" {
+					a.controller.SelectInput(id)
 				}
 			}
 			if ui.Select(c, &channelValue, channelOptions).Disabled(deviceLocked).Label("Input channel").Changed() && channelValue != channelOptions[0] {
 				a.controller.SelectInputChannel(indexOf(channelOptions[1:], channelValue))
 			}
 		})
-		ui.Column(c).Grow(1).Gap(8).Padding(14).Background(theme.Surface).Border(1, theme.Border).Radius(10).Children(func() {
-			ui.Text(c, "Output").FontSize(13).TextColor(theme.TextMuted)
+		ui.Column(c).Grow(1).Gap(cardGap).Padding(cardPadding).Background(theme.Surface).Border(1, theme.Border).Radius(10).Children(func() {
+			ui.Text(c, "OUTPUT ROUTING").FontSize(cardLabelSize).TextColor(theme.TextMuted).Bold()
 			if len(outputOptions) == 0 {
-				ui.Text(c, "No output device").FontSize(15).Bold()
+				ui.Text(c, "No output device").FontSize(14).Bold()
 			} else if ui.Select(c, &outputValue, outputOptions).Disabled(deviceLocked).Label("Output device").Changed() {
 				if id := selectedID(outputValues, outputValue); id != "" {
 					a.controller.SelectOutput(id)
@@ -101,39 +145,25 @@ func deviceControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
 			}
 		})
 	})
-
-	config := engine.AudioConfig{
-		InputDeviceID: state.SelectedInputID, InputChannel: state.InputChannel,
-		OutputDeviceID: state.SelectedOutputID, BufferSize: state.BufferSize,
-	}
-	startDisabled := state.SelectedInputID == "" || state.SelectedOutputID == "" || state.InputChannel < 0
-	label := "Start"
-	if state.Starting {
-		label = "Starting..."
-	} else if state.Running {
-		label = "Stop"
-	}
-	if ui.PrimaryButton(c, label).Disabled(state.Starting || (!state.Running && (startDisabled || state.PresetLoading))).Clicked() {
-		if state.Running {
-			go a.controller.StopMonitoring()
-		} else {
-			go a.controller.StartMonitoring(config)
-		}
-	}
 }
 
-func gainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
+func gainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme, compact bool) {
 	input := state.InputGainDB
 	master := state.OutputGainDB
-	ui.Row(c).Gap(20).Children(func() {
-		ui.Column(c).Grow(1).Gap(6).Children(func() {
-			ui.Text(c, fmt.Sprintf("Input gain  %+.1f dB", input))
+	paddingY, paddingX, gap, headingSize, valueSize := float32(10), float32(12), float32(18), float32(11), float32(12)
+	if compact {
+		paddingY, paddingX, gap, headingSize, valueSize = 6, 8, 8, 9, 10
+	}
+	ui.Row(c).AlignItems(ui.Center).Gap(gap).Padding(paddingY, paddingX).Background(theme.Surface).Border(1, theme.Border).Radius(10).Children(func() {
+		ui.Text(c, "GLOBAL GAIN").FontSize(headingSize).TextColor(theme.TextMuted).Bold().Shrink(0)
+		ui.Column(c).Grow(1).Gap(3).Children(func() {
+			ui.Text(c, fmt.Sprintf("Input  %+.1f dB", input)).FontSize(valueSize)
 			if ui.Slider(c, &input, -24, 24).Label("Input gain").Disabled(state.PresetLoading).Changed() {
 				a.controller.SetInputGain(input)
 			}
 		})
-		ui.Column(c).Grow(1).Gap(6).Children(func() {
-			ui.Text(c, fmt.Sprintf("Master gain  %+.1f dB", master))
+		ui.Column(c).Grow(1).Gap(3).Children(func() {
+			ui.Text(c, fmt.Sprintf("Master  %+.1f dB", master)).FontSize(valueSize)
 			if ui.Slider(c, &master, -24, 24).Label("Master gain").Disabled(state.PresetLoading).Changed() {
 				a.controller.SetMasterGain(master)
 			}
@@ -141,7 +171,7 @@ func gainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
 	})
 }
 
-func chainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
+func chainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme, compact bool) {
 	hasRecoverySlot := false
 	for _, item := range state.Blocks {
 		if item.Missing || item.Orphaned {
@@ -149,16 +179,15 @@ func chainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
 			break
 		}
 	}
-	ui.Column(c).Fill().Grow(1).Gap(10).Padding(16).Background(theme.Surface).Border(1, theme.Border).Radius(12).Children(func() {
-		ui.Row(c).AlignItems(ui.Center).Gap(10).Children(func() {
-			ui.Text(c, "Effects chain").FontSize(17).Bold()
-			if ui.Button(c, "Open Preset").Disabled(state.PresetLoading).Clicked() {
-				go a.openPresetFile()
-			}
-			if ui.Button(c, "Save Preset").Disabled(state.PresetLoading).Clicked() {
-				go a.savePreset()
-			}
-			if ui.PrimaryButton(c, "Add NAM Model").Disabled(state.PresetLoading).Clicked() {
+	chainPadding, chainGap, blockPadding, blockGap := float32(14), float32(10), float32(10), float32(8)
+	if compact {
+		chainPadding, chainGap, blockPadding, blockGap = 9, 7, 6, 4
+	}
+	ui.Column(c).Fill().Grow(1).Gap(chainGap).Padding(chainPadding).Background(theme.Surface).Border(1, theme.Border).Radius(12).Children(func() {
+		ui.Row(c).AlignItems(ui.Center).Gap(9).Children(func() {
+			ui.Text(c, "Signal chain").FontSize(17).Bold().Grow(1)
+			ui.Text(c, fmt.Sprintf("%d MODULES", len(state.Blocks))).FontSize(10).TextColor(theme.TextMuted)
+			if ui.Button(c, "Add NAM Model").Disabled(state.PresetLoading).Clicked() {
 				go a.pickAndAdd([]mygo.FileFilter{{Name: "NAM models", Extensions: []string{"nam"}}})
 			}
 			if ui.Button(c, "Add IR").Disabled(state.PresetLoading).Clicked() {
@@ -166,7 +195,7 @@ func chainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
 			}
 		})
 		if len(state.Blocks) == 0 {
-			ui.Text(c, "Add a model or impulse response to build your signal chain.").TextColor(theme.TextMuted)
+			ui.Text(c, "Add a NAM model or cabinet IR to build the signal chain.").TextColor(theme.TextMuted)
 			return
 		}
 		a.list.Key = func(row int) any { return state.Blocks[row].Block.ID }
@@ -180,15 +209,17 @@ func chainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
 		ui.List(c, &a.list, len(state.Blocks), func(i int) {
 			item := state.Blocks[i]
 			block := item.Block
-			ui.Column(c).Gap(8).Padding(10).Border(1, theme.Border).Radius(8).Children(func() {
-				ui.Row(c).AlignItems(ui.Center).Gap(8).Children(func() {
-					title := blockKindName(block) + " · " + shortPath(block.Path)
+			ui.Column(c).Gap(blockGap).Padding(blockPadding).Background(ui.Hex("#191F1D")).Border(1, theme.Border).Radius(9).Children(func() {
+				ui.Row(c).AlignItems(ui.Center).Gap(7).Children(func() {
+					ui.Text(c, fmt.Sprintf("%02d", i+1)).FontSize(11).TextColor(theme.TextMuted).Shrink(0)
 					if item.Missing {
-						title = "Missing " + title
+						ui.Text(c, "Missing").FontSize(11).TextColor(theme.Danger).Bold().Shrink(0)
 					} else if item.Orphaned {
-						title = "Engine-only " + title
+						ui.Text(c, "Engine-only").FontSize(11).TextColor(theme.Warning).Bold().Shrink(0)
 					}
-					ui.Text(c, title).Bold().Grow(1).MinWidth(0).SingleLine()
+					ui.Text(c, blockKindName(block)).TextColor(blockKindColor(block)).Bold().Shrink(0)
+					ui.Text(c, "·").TextColor(theme.TextMuted).Shrink(0)
+					ui.Text(c, shortPath(block.Path)).Bold().Grow(1).MinWidth(0).SingleLine()
 					if ui.Button(c.Key("move-up-"+block.ID), "Move up").Shrink(0).Disabled(i == 0 || hasRecoverySlot || state.PresetLoading).Clicked() {
 						a.list.Reorder([]int{i}, i-1)
 					}
@@ -217,33 +248,37 @@ func chainControls(c *ui.Context, a *App, state AppState, theme *ui.Theme) {
 					}
 				})
 				if item.Message != "" {
-					ui.Text(c, item.Message).TextColor(ui.Hex("#B13A32")).FontSize(12)
+					ui.Text(c, item.Message).TextColor(theme.Danger).FontSize(12)
 				}
-				blockSliders(c, a, block, item.Missing || item.Orphaned || state.PresetLoading)
+				blockSliders(c, a, block, item.Missing || item.Orphaned || state.PresetLoading, compact)
 			})
-		})
+		}).Grow(1).Gap(8)
 	})
 }
 
-func blockSliders(c *ui.Context, a *App, block engine.Block, disabled bool) {
+func blockSliders(c *ui.Context, a *App, block engine.Block, disabled, compact bool) {
 	inputGain := block.InputGainDB
 	outputGain := block.OutputGainDB
 	mix := block.Mix
-	ui.Row(c).Gap(12).Children(func() {
+	gap, labelSize := float32(12), float32(12)
+	if compact {
+		gap, labelSize = 7, 10
+	}
+	ui.Row(c).Gap(gap).Children(func() {
 		ui.Column(c).Grow(1).Gap(3).Children(func() {
-			ui.Text(c, fmt.Sprintf("Input %+.1f dB", inputGain)).FontSize(12)
+			ui.Text(c, fmt.Sprintf("Input %+.1f dB", inputGain)).FontSize(labelSize).TextColor(c.Theme().TextMuted)
 			if ui.Slider(c, &inputGain, -24, 24).Label("Block input gain").Disabled(disabled).Changed() {
 				a.controller.SetBlockParam(block.ID, "inputGainDb", inputGain)
 			}
 		})
 		ui.Column(c).Grow(1).Gap(3).Children(func() {
-			ui.Text(c, fmt.Sprintf("Output %+.1f dB", outputGain)).FontSize(12)
+			ui.Text(c, fmt.Sprintf("Output %+.1f dB", outputGain)).FontSize(labelSize).TextColor(c.Theme().TextMuted)
 			if ui.Slider(c, &outputGain, -24, 24).Label("Block output gain").Disabled(disabled).Changed() {
 				a.controller.SetBlockParam(block.ID, "outputGainDb", outputGain)
 			}
 		})
 		ui.Column(c).Grow(1).Gap(3).Children(func() {
-			ui.Text(c, fmt.Sprintf("Mix %.0f%%", mix*100)).FontSize(12)
+			ui.Text(c, fmt.Sprintf("Mix %.0f%%", mix*100)).FontSize(labelSize).TextColor(c.Theme().TextMuted)
 			if ui.Slider(c, &mix, 0, 1).Label("Block mix").Disabled(disabled).Changed() {
 				a.controller.SetBlockParam(block.ID, "mix", mix)
 			}
@@ -251,14 +286,48 @@ func blockSliders(c *ui.Context, a *App, block engine.Block, disabled bool) {
 	})
 }
 
-func meters(c *ui.Context, state AppState, theme *ui.Theme) {
+func blockKindColor(block engine.Block) ui.Color {
+	switch block.Kind {
+	case "nam":
+		return ui.Hex("#E5B65C")
+	case "ir":
+		return ui.Hex("#75C9D6")
+	default:
+		return ui.Hex("#ECEFE9")
+	}
+}
+
+func meters(c *ui.Context, state AppState, theme *ui.Theme, compact bool) {
 	clipping := state.InputMeterDB >= 0 || state.OutputMeterDB >= 0
-	ui.Row(c).Gap(16).Children(func() {
-		ui.Text(c, fmt.Sprintf("Input  %+.1f dBFS", state.InputMeterDB)).TextColor(theme.TextMuted)
-		ui.Text(c, fmt.Sprintf("Output  %+.1f dBFS", state.OutputMeterDB)).TextColor(theme.TextMuted)
+	levels := &ui.MeterLevels{Warning: -12, Critical: -3}
+	paddingY, paddingX, gap := float32(11), float32(13), float32(16)
+	if compact {
+		paddingY, paddingX, gap = 6, 8, 8
+	}
+	ui.Row(c).Gap(gap).Padding(paddingY, paddingX).Background(theme.Surface).Border(1, theme.Border).Radius(10).Children(func() {
+		level(c, "Input level", state.InputMeterDB, levels, theme, compact)
+		level(c, "Output level", state.OutputMeterDB, levels, theme, compact)
 		if clipping {
-			ui.Text(c, "Clipping").TextColor(ui.Hex("#B13A32")).Bold()
+			ui.Text(c, "CLIPPING").TextColor(theme.Danger).Bold().Shrink(0)
 		}
+	})
+}
+
+func level(c *ui.Context, label string, db float64, levels *ui.MeterLevels, theme *ui.Theme, compact bool) {
+	gap, labelSize, valueSize := float32(5), float32(11), float32(12)
+	if compact {
+		gap, labelSize, valueSize = 3, 9, 10
+	}
+	ui.Column(c).Grow(1).Gap(gap).Children(func() {
+		ui.Row(c).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, label).FontSize(labelSize).TextColor(theme.TextMuted)
+			ui.Text(c, fmt.Sprintf("%+.1f dBFS", db)).FontSize(valueSize).TextColor(theme.Text).Grow(1).TextAlign(ui.End)
+		})
+		value := db
+		if value < -60 {
+			value = -60
+		}
+		ui.Meter(c, value, -60, 0, levels).Label(label)
 	})
 }
 
