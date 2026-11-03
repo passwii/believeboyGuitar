@@ -9,6 +9,8 @@ import type { TabDuration, TabMeasure } from "@/lib/tab";
  * 节拍器与谱面共用这一个时间轴：拍点推进时，落在该拍位上的音符被点亮。
  */
 export const DURATION_BEATS: Record<TabDuration, number> = {
+  w: 4,
+  h: 2,
   q: 1,
   "8": 0.5,
   "8t": 1 / 3,

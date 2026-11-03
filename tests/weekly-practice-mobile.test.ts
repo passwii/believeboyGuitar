@@ -5,16 +5,16 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
 
-describe("每周练习手机阅读版", () => {
+describe("练习条目手机阅读版", () => {
   const page = read("app/practice/[slug]/page.tsx");
   const drill = read("components/TabDrill.tsx");
   const staff = read("components/TabStaff.tsx");
   const weekOne = read("content/lessons/week-1-finger-independence.html");
   const weekTwo = read("content/lessons/week-2-alternate-picking.html");
 
-  it("手机页头只保留周次，说明与元数据后置", () => {
-    expect(page).toContain('<span className="sm:hidden">{week.label}</span>');
-    expect(page).toContain("<PracticeWeekPicker");
+  it("手机页头只保留条目名称，说明与元数据后置", () => {
+    expect(page).toContain('<span className="sm:hidden">{entry.label ?? entry.title}</span>');
+    expect(page).toContain("<PracticeEntryPicker");
     expect(page).not.toContain("lesson.summary");
   });
 

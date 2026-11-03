@@ -16,15 +16,14 @@ export function elapsedBeatsAt(
   return Math.max(0, timeline.elapsedBeats) + (delta * clampBpm(bpm)) / 60;
 }
 
-export function eighthPositionAt(
+export function beatPositionAt(
   timeline: TabDrillTimeline,
   audioTime: number,
   bpm: number,
-  loopEighths: number,
+  loopBeats: number,
 ): number {
-  if (!Number.isInteger(loopEighths) || loopEighths <= 0) return 0;
-  const position = Math.floor(elapsedBeatsAt(timeline, audioTime, bpm) * 2);
-  return position % loopEighths;
+  if (!Number.isFinite(loopBeats) || loopBeats <= 0) return 0;
+  return elapsedBeatsAt(timeline, audioTime, bpm) % loopBeats;
 }
 
 export function nextBeatAfter(elapsedBeats: number): number {

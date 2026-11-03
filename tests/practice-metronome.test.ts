@@ -68,7 +68,7 @@ describe("练习页节拍器", () => {
   it("周练暂停时保存当前位置，恢复时接着下一个节拍", () => {
     expect(tabDrillSource).toContain("elapsedBeatsAt(");
     expect(tabDrillSource).toContain("beatTimeForResume(");
-    expect(tabDrillSource).toContain("eighthPositionAt(");
+    expect(tabDrillSource).toContain("beatPositionAt(");
     expect(tabDrillSource).toContain("timelineRef.current = { anchorTime: 0, elapsedBeats }");
   });
 });

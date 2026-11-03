@@ -4,7 +4,13 @@ import { describe, expect, it } from "vitest";
 import { TabStaff } from "@/components/TabStaff";
 import { WeekOneTabDrill } from "@/components/WeekOneTabDrill";
 import { deriveTabPitch, groupNotesForRhythm, type TabNote } from "@/lib/tab";
-import { TAB_LAYOUT, tabBeamRowY, tabStemSpan, tabStringY } from "@/lib/tab-layout";
+import {
+  TAB_LAYOUT,
+  tabBeamRowY,
+  tabNoteFontSize,
+  tabStemSpan,
+  tabStringY,
+} from "@/lib/tab-layout";
 import { FRET_TO_FINGER, WEEK1_SECTIONS } from "@/lib/week-1-tab-exercises";
 
 describe("第 1 周曲谱数据", () => {
@@ -193,6 +199,24 @@ describe("TAB 符杠分组", () => {
     expect(sixteenths[0].beams).toBe(2);
     expect(groupNotesForRhythm([note("q")])[0].beams).toBe(0);
   });
+
+  it("短休止切开普通符杠，并保留三连音分组", () => {
+    const groups = groupNotesForRhythm([
+      note("8"),
+      note("8"),
+      { ...note("8"), rest: true },
+      note("8"),
+    ]);
+    expect(groups.map((group) => group.notes.length)).toEqual([2, 1, 1]);
+    expect(groups.map((group) => group.beams)).toEqual([1, 0, 1]);
+
+    const triplet = groupNotesForRhythm([
+      note("8t"),
+      { ...note("8t"), rest: true },
+      note("8t"),
+    ]);
+    expect(triplet).toMatchObject([{ notes: [{}, {}, {}], beams: 1, triplet: true }]);
+  });
 });
 
 describe("TAB 谱面", () => {
@@ -222,10 +246,171 @@ describe("TAB 谱面", () => {
     expect(html.match(/opacity="0\.55"/g)).toHaveLength(48);
   });
 
+  it("同一节奏位置绘制强力和弦双音与小节记号", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [
+          {
+            notes: [
+              {
+                string: 5,
+                fret: 5,
+                duration: "q",
+                chord: [{ string: 4, fret: 7 }],
+              },
+            ],
+            annotations: [
+              { kind: "chord", label: "D5" },
+              { kind: "palm-mute", startSlot: 0, endSlot: 0 },
+            ],
+          },
+        ],
+        bpm: 160,
+        activeNoteIndex: 0,
+      }),
+    );
+
+    expect(markup).toContain(">5</text>");
+    expect(markup).toContain(">7</text>");
+    expect(markup).toContain(">D5</text>");
+    expect(markup).toContain(">P.M.</text>");
+    expect(markup).toContain(
+      "第 1 小节：5 弦 5 品（四分音符）；4 弦 7 品（四分音符）；和弦 D5；第 1 至 1 格掌根制音",
+    );
+    expect(markup.match(/class="fill-accent-100"/g)).toHaveLength(4);
+  });
+
+  it("全小节休止按一个四拍小节渲染", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [{ notes: [{ string: 6, fret: 0, duration: "w", rest: true }] }],
+        bpm: 160,
+      }),
+    );
+
+    expect(markup).toContain("第 1 小节：全小节休止");
+    expect(markup).not.toContain(">0</text>");
+    expect(markup).toContain('width="8" height="4"');
+  });
+
+  it("短休止的读屏说明包含具体时值", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [{ notes: [{ string: 6, fret: 0, duration: "8", rest: true }] }],
+        bpm: 100,
+      }),
+    );
+    expect(markup).toContain("第 1 小节：八分休止");
+  });
+
+  it("全音符画空心符头且不画符干", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [{ notes: [{ string: 1, fret: 12, duration: "w" }] }],
+        bpm: 100,
+      }),
+    );
+    expect(markup).toContain('class="tab-whole-notehead"');
+    expect(markup).not.toContain('class="tab-stem"');
+  });
+
+  it("滑入、闷音 X 与揉弦记号可由共享谱面绘制", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [
+          {
+            notes: [
+              { string: 2, fret: 14, duration: "q", slide: "up" },
+              { string: 2, fret: 0, fretLabel: "X", duration: "8", articulation: "muted" },
+              { string: 3, fret: 10, duration: "h", tie: true, vibrato: true },
+            ],
+          },
+        ],
+        bpm: 160,
+      }),
+    );
+
+    expect(markup).toContain(">/14</text>");
+    expect(markup).toContain(">X</text>");
+    expect(markup).toContain(">闷</text>");
+    expect(markup).toContain('class="tab-vibrato"');
+  });
+
+  it("休止符按时值绘制并跟随播放头高亮", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [
+          {
+            notes: [
+              { string: 6, fret: 0, duration: "8", rest: true },
+              { string: 6, fret: 5, duration: "8" },
+            ],
+          },
+        ],
+        bpm: 100,
+        activeNoteIndex: 0,
+      }),
+    );
+
+    expect(markup).toContain('class="tab-rest tab-rest-8"');
+    expect(markup.match(/class="fill-accent-100"/g)).toHaveLength(2);
+    expect(markup).not.toContain('class="tab-rest-q"');
+  });
+
+  it("二分音符有可见的空心时值标记", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [{ notes: [{ string: 3, fret: 10, duration: "h" }] }],
+        bpm: 100,
+      }),
+    );
+    expect(markup).toContain('class="tab-half-notehead"');
+  });
+
+  it("二分音符符干连接到空心符头上沿", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [{ notes: [{ string: 3, fret: 10, duration: "h" }] }],
+        bpm: 100,
+      }),
+    );
+    const [stem] = stemLines(markup);
+    const fontSize = tabNoteFontSize(1, 2);
+    const halfNoteheadTop = tabStringY(0, 3) - fontSize * 0.55;
+
+    expect(stem.y2).toBe(halfNoteheadTop);
+  });
+
+  it("读屏说明每个音符的时值与开/闷奏法", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TabStaff, {
+        measures: [
+          {
+            notes: [
+              { string: 2, fret: 5, duration: "q", articulation: "open" },
+              { string: 2, fret: 7, duration: "16", articulation: "muted" },
+            ],
+          },
+        ],
+        bpm: 100,
+      }),
+    );
+
+    expect(markup).toContain(
+      "第 1 小节：2 弦 5 品（四分音符，开放弹奏）、7 品（十六分音符，闷音）",
+    );
+  });
+
   it("读屏能拿到逐小节的品位说明", () => {
-    expect(html).toContain("第 1 小节：6 弦 5、6、7、8、5、6、7、8 品");
-    expect(html).toContain("第 2 小节：6 弦 8、7、6、5、8、7、6、5 品");
-    expect(html).toContain("第 4 小节：6 弦 5、6、7、8、8、7、6、5 品");
+    expect(html).toContain(
+      "第 1 小节：6 弦 5 品（八分音符）、6 品（八分音符）、7 品（八分音符）、8 品（八分音符）、5 品（八分音符）、6 品（八分音符）、7 品（八分音符）、8 品（八分音符）",
+    );
+    expect(html).toContain(
+      "第 2 小节：6 弦 8 品（八分音符）、7 品（八分音符）、6 品（八分音符）、5 品（八分音符）、8 品（八分音符）、7 品（八分音符）、6 品（八分音符）、5 品（八分音符）",
+    );
+    expect(html).toContain(
+      "第 4 小节：6 弦 5 品（八分音符）、6 品（八分音符）、7 品（八分音符）、8 品（八分音符）、8 品（八分音符）、7 品（八分音符）、6 品（八分音符）、5 品（八分音符）",
+    );
   });
 
   it("品位、指法与标准调弦都渲染出来，音位本身不进入 tab 序列", () => {

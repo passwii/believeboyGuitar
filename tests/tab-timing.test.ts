@@ -17,6 +17,41 @@ describe("曲谱时间轴", () => {
     expect(totalBeats([quarters(4)])).toBe(4);
   });
 
+  it("全小节休止占满四拍并在一个位置显示", () => {
+    const rest: TabMeasure = {
+      notes: [{ string: 6, fret: 0, duration: "w", rest: true }],
+    };
+    expect(noteTimings([rest])).toEqual([{ onset: 0, duration: 4 }]);
+    expect(totalBeats([rest])).toBe(4);
+  });
+
+  it("二分时值占两拍", () => {
+    const half: TabMeasure = {
+      notes: [{ string: 3, fret: 10, duration: "h", tie: true }],
+    };
+    expect(noteTimings([half])).toEqual([{ onset: 0, duration: 2 }]);
+    expect(totalBeats([half])).toBe(2);
+  });
+
+  it("和弦双音共用同一拍位，不延长时间轴", () => {
+    const chord: TabMeasure = {
+      notes: [
+        {
+          string: 5,
+          fret: 5,
+          duration: "q",
+          chord: [{ string: 4, fret: 7 }],
+        },
+        { string: 5, fret: 5, duration: "q" },
+      ],
+    };
+    expect(noteTimings([chord])).toEqual([
+      { onset: 0, duration: 1 },
+      { onset: 1, duration: 1 },
+    ]);
+    expect(totalBeats([chord])).toBe(2);
+  });
+
   it("八分音符半拍一个", () => {
     const timings = noteTimings([eighths(8)]);
     expect(timings.map((timing) => timing.onset)).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]);

@@ -7,9 +7,9 @@ import { BPM_MAX, BPM_MIN, BPM_STEP, clampBpm, METERS } from "@/lib/metronome";
 import { createMetronomeAudio, type MetronomeAudio } from "@/lib/metronome-audio";
 import { bindMetronomeSpaceShortcut } from "@/lib/metronome-keyboard";
 import {
+  beatPositionAt,
   beatTimeForResume,
   elapsedBeatsAt,
-  eighthPositionAt,
   nextBeatAfter,
   type TabDrillTimeline,
 } from "@/lib/tab-drill-playhead";
@@ -57,17 +57,14 @@ export function TabDrill({
   const tempoControlsId = `${idPrefix}-tempo-controls`;
   const totalMeasures = sections.reduce((total, section) => total + section.measures.length, 0);
   const defaultBpm = sections[0]?.bpm ?? 100;
-  const loopEighths = Math.max(
-    2,
-    Math.ceil(Math.max(...sections.map((section) => totalBeats(section.measures))) * 2),
-  );
+  const loopBeats = Math.max(1, ...sections.map((section) => totalBeats(section.measures)));
 
   const [bpm, setBpm] = useState(defaultBpm);
   const [running, setRunning] = useState(false);
   const [tempoControlsExpanded, setTempoControlsExpanded] = useState(false);
   const [announcement, setAnnouncement] = useState("练习节拍器待开始");
-  /** 当前八分音符位置；-1 表示未开始 */
-  const [eighth, setEighth] = useState(-1);
+  /** 当前拍位；-1 表示未开始 */
+  const [playheadBeat, setPlayheadBeat] = useState(-1);
 
   const audioRef = useRef<MetronomeAudio | null>(null);
   const intervalRef = useRef<number | null>(null);
@@ -121,20 +118,20 @@ export function TabDrill({
           audio.currentTime,
           bpmRef.current,
         );
-        const position = eighthPositionAt(
+        const position = beatPositionAt(
           timelineRef.current,
           audio.currentTime,
           bpmRef.current,
-          loopEighths,
+          loopBeats,
         );
         timelineRef.current = { anchorTime: 0, elapsedBeats };
-        setEighth(position);
+        setPlayheadBeat(position);
       }
       audio.cancelFrom(audio.currentTime);
     }
     setRunning(false);
     setAnnouncement("练习节拍器已暂停");
-  }, [loopEighths]);
+  }, [loopBeats]);
 
   const start = useCallback(async () => {
     if (runningRef.current || startingRef.current) return;
@@ -158,15 +155,15 @@ export function TabDrill({
       nextBeatIndexRef.current = nextBeat % METER.beatsPerBar;
       runningRef.current = true;
       setRunning(true);
-      setEighth(eighthPositionAt(timeline, timeline.anchorTime, bpmRef.current, loopEighths));
+      setPlayheadBeat(beatPositionAt(timeline, timeline.anchorTime, bpmRef.current, loopBeats));
       setAnnouncement("练习节拍器已开始");
       scheduleWindow();
       intervalRef.current = window.setInterval(scheduleWindow, LOOKAHEAD_MS);
       pollRef.current = window.setInterval(() => {
         const current = audioRef.current;
         if (!current) return;
-        setEighth(
-          eighthPositionAt(timelineRef.current, current.currentTime, bpmRef.current, loopEighths),
+        setPlayheadBeat(
+          beatPositionAt(timelineRef.current, current.currentTime, bpmRef.current, loopBeats),
         );
       }, POLL_MS);
     } catch {
@@ -176,7 +173,7 @@ export function TabDrill({
       setRunning(false);
       setAnnouncement("无法启动节拍器，请检查浏览器声音权限");
     }
-  }, [loopEighths, scheduleWindow]);
+  }, [loopBeats, scheduleWindow]);
 
   const toggle = useCallback(() => {
     if (runningRef.current || startingRef.current) pause();
@@ -210,7 +207,7 @@ export function TabDrill({
     setBpm((current) => clampBpm(current + amount));
   }
 
-  const beatPosition = eighth < 0 ? -1 : eighth / 2;
+  const beatPosition = playheadBeat;
   const activeNotes: Record<string, number | null> = {};
   for (const section of sections) {
     activeNotes[section.id] =
@@ -363,7 +360,7 @@ export function TabDrill({
         </p>
       </section>
 
-      <aside className="practice-metronome-float" aria-label="周练节拍器">
+      <aside className="practice-metronome-float" aria-label="练习节拍器">
         <div className="practice-metronome-float__readout">
           <div>
             <p className="text-micro font-medium text-ink-500">节拍器</p>
@@ -376,7 +373,7 @@ export function TabDrill({
           </div>
           <span className="practice-metronome-float__status" aria-hidden="true">
             <span className={running ? "practice-metronome-float__signal is-running" : "practice-metronome-float__signal"} />
-            {running ? "运行中" : eighth >= 0 ? "已暂停" : "待开始"}
+            {running ? "运行中" : playheadBeat >= 0 ? "已暂停" : "待开始"}
           </span>
         </div>
 

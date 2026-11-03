@@ -16,6 +16,6 @@ export type TabSection = {
   tip: string;
   /** 额外标签，例如和弦进行、拨片规则或技巧名。 */
   labels?: readonly string[];
-  /** 每节固定四小节 */
+  /** 连续曲谱小节；桌面按四小节自动分谱表。 */
   measures: readonly TabMeasure[];
 };
