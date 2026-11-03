@@ -14,7 +14,7 @@ export type TabString = 1 | 2 | 3 | 4 | 5 | 6;
  * 目前只覆盖资料库里实际用到的几种；新增时值时要同时补
  * `groupNotesForRhythm` 与 `TabStaff` 的符杠绘制。
  */
-export type TabDuration = "q" | "8" | "8t" | "16";
+export type TabDuration = "w" | "h" | "q" | "8" | "8t" | "16";
 
 /** 拨片方向。 */
 export type TabStroke = "down" | "up";
@@ -24,6 +24,16 @@ export type TabPick = {
   stroke: TabStroke;
   ghost?: boolean;
 };
+
+export type TabChordTone = {
+  string: TabString;
+  fret: number;
+  fretLabel?: string;
+};
+
+export type TabMeasureAnnotation =
+  | { kind: "chord"; label: string }
+  | { kind: "palm-mute"; startSlot: number; endSlot: number };
 
 export interface TabNote {
   string: TabString;
@@ -45,6 +55,16 @@ export interface TabNote {
   hammerOn?: boolean;
   /** 当前音带 Quarter Choke 微推弦。 */
   quarterChoke?: boolean;
+  /** 同一拍点一起弹奏的和弦音；主音符本身是和弦中的一个音。 */
+  chord?: readonly TabChordTone[];
+  /** 开放/闷音提示，绘制在六线谱下方。 */
+  articulation?: "open" | "muted";
+  /** 滑入当前品位。 */
+  slide?: "up" | "down";
+  /** 当前音带吉他常用的揉弦记号。 */
+  vibrato?: boolean;
+  /** 休止事件仍占据节奏时值，但不画品位数字。 */
+  rest?: boolean;
   /**
    * 在拨片轨迹里的格子下标，从 0 开始。
    * 不填时按 notes 的顺序均分小节；填写后可与更细的 picking 轨迹对齐。
@@ -55,6 +75,7 @@ export interface TabNote {
 /** 一个小节。小节内的音符按时间顺序排列。 */
 export interface TabMeasure {
   notes: readonly TabNote[];
+  annotations?: readonly TabMeasureAnnotation[];
   /**
    * 独立的右手拨片轨迹。
    * 可以和 notes 等长，也可以更细（例如八分音符上做十六分空拨）。
@@ -184,14 +205,25 @@ export function groupNotesForRhythm(notes: readonly TabNote[]): RhythmGroup[] {
   while (index < notes.length) {
     const duration = notes[index].duration;
 
-    if (duration === "q") {
+    if (
+      duration === "q" ||
+      duration === "h" ||
+      duration === "w" ||
+      (notes[index].rest && duration !== "8t")
+    ) {
       groups.push({ start: index, notes: [notes[index]], beams: 0, triplet: false });
       index += 1;
       continue;
     }
 
     let runEnd = index + 1;
-    while (runEnd < notes.length && notes[runEnd].duration === duration) runEnd += 1;
+    while (
+      runEnd < notes.length &&
+      notes[runEnd].duration === duration &&
+      (duration === "8t" || !notes[runEnd].rest)
+    ) {
+      runEnd += 1;
+    }
 
     const groupSize = duration === "8t" ? 3 : 4;
     for (let start = index; start < runEnd; start += groupSize) {
@@ -215,22 +247,79 @@ export function groupNotesForRhythm(notes: readonly TabNote[]): RhythmGroup[] {
  */
 export function describeMeasureNotes(measure: TabMeasure): string {
   const runs: { string: number; frets: string[] }[] = [];
+  const durationLabels: Record<TabDuration, string> = {
+    w: "全音符",
+    h: "二分音符",
+    q: "四分音符",
+    "8": "八分音符",
+    "8t": "八分三连音",
+    "16": "十六分音符",
+  };
 
   for (const note of measure.notes) {
+    if (note.rest) {
+      const restLabels: Record<TabDuration, string> = {
+        w: "全小节休止",
+        h: "二分休止",
+        q: "四分休止",
+        "8": "八分休止",
+        "8t": "八分三连休止",
+        "16": "十六分休止",
+      };
+      runs.push({ string: 0, frets: [restLabels[note.duration]] });
+      continue;
+    }
     if (note.silent) continue;
-    const last = runs[runs.length - 1];
-    const pitchLabel = note.tie ? "延音" : (note.fretLabel ?? String(note.fret));
-    const fretLabel = `${pitchLabel}${note.shift ? "（移位）" : ""}${
-      note.accent ? "（重音）" : ""
-    }`;
-    if (last && last.string === note.string) {
-      last.frets.push(fretLabel);
-    } else {
-      runs.push({ string: note.string, frets: [fretLabel] });
+    const tones = [
+      { string: note.string, fret: note.fret, fretLabel: note.fretLabel },
+      ...(note.chord ?? []),
+    ];
+    for (const tone of tones) {
+      const basePitchLabel = tone.fretLabel ?? String(tone.fret);
+      const pitchLabel = note.tie
+        ? `延音${note.vibrato ? "（揉弦）" : ""}`
+        : tone.fretLabel === "X"
+          ? "X"
+          : `${note.slide === "up" ? "滑入" : note.slide === "down" ? "滑出" : ""}${
+              basePitchLabel
+            }${note.vibrato ? "（揉弦）" : ""}`;
+      const details = [
+        note.shift ? "移位" : "",
+        note.accent ? "重音" : "",
+        durationLabels[note.duration],
+        note.articulation === "open"
+          ? "开放弹奏"
+          : note.articulation === "muted" || tone.fretLabel === "X"
+            ? "闷音"
+            : "",
+      ].filter(Boolean);
+      const fretText = /^\d/.test(pitchLabel) ? `${pitchLabel} 品` : pitchLabel;
+      const fretLabel = `${fretText}${details.length ? `（${details.join("，")}）` : ""}`;
+      const last = runs[runs.length - 1];
+      if (last && last.string === tone.string) {
+        last.frets.push(fretLabel);
+      } else {
+        runs.push({ string: tone.string, frets: [fretLabel] });
+      }
     }
   }
 
-  return runs.map((run) => `${run.string} 弦 ${run.frets.join("、")} 品`).join("；");
+  return runs
+    .map((run) => {
+      if (run.string === 0) return run.frets.join("、");
+      return `${run.string} 弦 ${run.frets.join("、")}`;
+    })
+    .join("；");
+}
+
+export function describeMeasureAnnotations(measure: TabMeasure): string {
+  return (measure.annotations ?? [])
+    .map((annotation) =>
+      annotation.kind === "chord"
+        ? `和弦 ${annotation.label}`
+        : `第 ${annotation.startSlot + 1} 至 ${annotation.endSlot + 1} 格掌根制音`,
+    )
+    .join("；");
 }
 
 /** 给读屏使用的拨片轨迹说明。 */

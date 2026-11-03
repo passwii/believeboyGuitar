@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
  * 页脚。
  *
  * 2026-10-25 起全站是一个世界，页脚不按路径换皮。
- * 手机上的节拍器与每周练习需要专注模式，所以这些页面的窄屏隐藏页脚；
+ * 手机上的节拍器与练习详情需要专注模式，所以这些页面的窄屏隐藏页脚；
  * 桌面仍保留正常站点外壳。
  *
  * 底部留白做两件事：安全区避让（BLF-1448）+ 为移动端底部 dock 让位
@@ -16,7 +16,7 @@ export function SiteFooter() {
   const pathname = usePathname();
   const focusMode =
     pathname === "/metronome" ||
-    pathname.startsWith("/practice/week-") ||
+    pathname.startsWith("/practice/") ||
     pathname === "/library/fretboard-scale";
 
   return (

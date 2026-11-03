@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { activeNoteIndex } from "@/lib/tab-timing";
 import {
+  beatPositionAt,
   beatTimeForResume,
   elapsedBeatsAt,
-  eighthPositionAt,
   nextBeatAfter,
   type TabDrillTimeline,
 } from "@/lib/tab-drill-playhead";
@@ -20,10 +21,34 @@ describe("weekly TAB playhead timeline", () => {
     expect(elapsedBeatsAt(timeline, 20.5, 120)).toBe(3.25);
   });
 
-  it("maps the playhead to an eighth-note position and wraps at the loop length", () => {
+  it("keeps fractional beat positions and wraps at the loop length", () => {
     const timeline: TabDrillTimeline = { anchorTime: 10, elapsedBeats: 0.5 };
 
-    expect(eighthPositionAt(timeline, 12.3, 120, 8)).toBe(2);
+    expect(beatPositionAt(timeline, 12.3, 120, 4)).toBeCloseTo(1.1);
+  });
+
+  it("highlights a sixteenth-note event between eighth-note positions", () => {
+    const timeline: TabDrillTimeline = { anchorTime: 10, elapsedBeats: 0 };
+    const sixteenths = [
+      {
+        notes: Array.from({ length: 16 }, () => ({ string: 6 as const, fret: 5, duration: "16" as const })),
+      },
+    ];
+    const beatPosition = beatPositionAt(timeline, 10.15, 120, 4);
+
+    expect(activeNoteIndex(sixteenths, beatPosition)).toBe(1);
+  });
+
+  it("highlights the current triplet event instead of quantizing it to an eighth note", () => {
+    const timeline: TabDrillTimeline = { anchorTime: 10, elapsedBeats: 0 };
+    const triplets = [
+      {
+        notes: Array.from({ length: 12 }, () => ({ string: 6 as const, fret: 5, duration: "8t" as const })),
+      },
+    ];
+    const beatPosition = beatPositionAt(timeline, 10.2, 120, 4);
+
+    expect(activeNoteIndex(triplets, beatPosition)).toBe(1);
   });
 
   it("starts a fresh timeline on beat zero", () => {

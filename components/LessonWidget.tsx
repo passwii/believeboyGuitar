@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { WeekOneTabDrill } from "@/components/WeekOneTabDrill";
 import { WeekTwoTabDrill } from "@/components/WeekTwoTabDrill";
+import { RockRhythmTabDrill } from "@/components/RockRhythmTabDrill";
 import type { WidgetName } from "@/content/widgets";
 
 /**
@@ -10,6 +11,7 @@ import type { WidgetName } from "@/content/widgets";
 const WIDGETS: Record<WidgetName, ComponentType> = {
   "week1-tab-drill": WeekOneTabDrill,
   "week2-tab-drill": WeekTwoTabDrill,
+  "rock-rhythm-tab-drill": RockRhythmTabDrill,
 };
 
 export function LessonWidget({ name }: { name: WidgetName }) {

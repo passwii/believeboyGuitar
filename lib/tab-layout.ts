@@ -118,10 +118,10 @@ export function tabNoteX(
 }
 
 /** 音符挤在一起时换小字号，避免相邻数字粘住。 */
-export function tabNoteFontSize(noteCount: number): number {
-  return noteCount >= TAB_LAYOUT.denseNoteCount
-    ? TAB_LAYOUT.denseNoteFontSize
-    : TAB_LAYOUT.noteFontSize;
+export function tabNoteFontSize(noteCount: number, maxLabelLength = 1): number {
+  if (noteCount >= TAB_LAYOUT.denseNoteCount) return TAB_LAYOUT.denseNoteFontSize;
+  if (maxLabelLength >= 2) return 12;
+  return TAB_LAYOUT.noteFontSize;
 }
 
 /** 品位数字的基线；字形以弦线为中心。 */
@@ -133,6 +133,8 @@ export type TabStemSpanOptions = {
   /** 音符所在弦线的 y。 */
   stringY: number;
   fontSize: number;
+  /** 二分音符的符干接在空心符头上沿。 */
+  openNotehead?: boolean;
   /** 符杠的 y；不连符杠的音符省略，画一段固定长度的符干。 */
   beamY?: number;
 };
@@ -141,11 +143,13 @@ export type TabStemSpanOptions = {
  * 符干的上下端。下端贴着品位数字的字形上沿，上端接符杠——这样节奏符号和
  * 数字之间始终是一条连续的线，不会各自漂在谱面的两端。
  */
-export function tabStemSpan({ stringY, fontSize, beamY }: TabStemSpanOptions): {
+export function tabStemSpan({ stringY, fontSize, openNotehead, beamY }: TabStemSpanOptions): {
   top: number;
   bottom: number;
 } {
-  const bottom = stringY - fontSize * TAB_LAYOUT.fretGlyphTop - TAB_LAYOUT.stemGap;
+  const bottom = openNotehead
+    ? stringY - fontSize * 0.55
+    : stringY - fontSize * TAB_LAYOUT.fretGlyphTop - TAB_LAYOUT.stemGap;
   const top =
     beamY === undefined
       ? bottom - TAB_LAYOUT.plainStemLength

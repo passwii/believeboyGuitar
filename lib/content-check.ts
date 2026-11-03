@@ -1,4 +1,4 @@
-import type { PracticeWeek } from "@/content/manifest";
+import type { PracticeEntry } from "@/content/manifest";
 import { widgetMarkerNames } from "@/lib/content-sections";
 import { WIDGET_NAMES } from "@/content/widgets";
 
@@ -10,29 +10,29 @@ const FORBIDDEN_IN_CONTENT = [
   { pattern: /\sstyle\s*=/i, message: "不得包含行内 style 属性" },
 ] as const;
 
-export function validatePracticeWeek(week: PracticeWeek): string[] {
+export function validatePracticeEntry(entry: PracticeEntry): string[] {
   const issues: string[] = [];
-  if (!SLUG_PATTERN.test(week.slug)) {
-    issues.push(`slug 应为小写 kebab-case：${week.slug}`);
+  if (!SLUG_PATTERN.test(entry.slug)) {
+    issues.push(`slug 应为小写 kebab-case：${entry.slug}`);
   }
-  if (week.label.trim() === "") issues.push(`${week.slug}：label 不能为空`);
-  if (week.title.trim() === "") issues.push(`${week.slug}：title 不能为空`);
-  if (week.focus.trim() === "") issues.push(`${week.slug}：focus 不能为空`);
+  if (entry.label?.trim() === "") issues.push(`${entry.slug}：label 不能为空`);
+  if (entry.title.trim() === "") issues.push(`${entry.slug}：title 不能为空`);
+  if (entry.focus.trim() === "") issues.push(`${entry.slug}：focus 不能为空`);
   return issues;
 }
 
 export function checkManifestAgainstFiles(
-  weeks: readonly PracticeWeek[],
+  entries: readonly PracticeEntry[],
   files: readonly string[],
 ): string[] {
   const issues: string[] = [];
   const seen = new Set<string>();
-  for (const week of weeks) {
-    if (seen.has(week.slug)) issues.push(`slug 重复：${week.slug}`);
-    seen.add(week.slug);
+  for (const entry of entries) {
+    if (seen.has(entry.slug)) issues.push(`slug 重复：${entry.slug}`);
+    seen.add(entry.slug);
   }
 
-  const expected = new Set(weeks.map((week) => `${week.slug}.html`));
+  const expected = new Set(entries.map((entry) => `${entry.slug}.html`));
   for (const file of expected) {
     if (!files.includes(file)) {
       issues.push(`清单中有 ${file.replace(/\.html$/, "")}，但缺少 content/lessons/${file}`);
@@ -62,15 +62,15 @@ export function validateContentHtml(html: string, slug: string): string[] {
 }
 
 export function runContentCheck(input: {
-  weeks: readonly PracticeWeek[];
+  entries: readonly PracticeEntry[];
   files: readonly string[];
   readHtml: (slug: string) => string;
 }): string[] {
-  const issues = input.weeks.flatMap(validatePracticeWeek);
-  issues.push(...checkManifestAgainstFiles(input.weeks, input.files));
-  for (const week of input.weeks) {
-    if (input.files.includes(`${week.slug}.html`)) {
-      issues.push(...validateContentHtml(input.readHtml(week.slug), week.slug));
+  const issues = input.entries.flatMap(validatePracticeEntry);
+  issues.push(...checkManifestAgainstFiles(input.entries, input.files));
+  for (const entry of input.entries) {
+    if (input.files.includes(`${entry.slug}.html`)) {
+      issues.push(...validateContentHtml(input.readHtml(entry.slug), entry.slug));
     }
   }
   return issues;

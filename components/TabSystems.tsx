@@ -70,11 +70,33 @@ export function TabSystems({
                   noteGridCount,
                   measureWidth,
                 );
+              const slotXAt = (slot: number) =>
+                tabNoteX(measureX, slot, noteGridCount, measureWidth);
               const rhythmGroups = groupNotesForRhythm(measure.notes);
-              const noteFontSize = tabNoteFontSize(count);
+              const maxLabelLength = measure.notes.reduce((max, note) => {
+                if (note.rest || note.silent) return max;
+                const mainLabelLength = note.tie
+                  ? 1
+                  : (note.slide ? 1 : 0) + (note.fretLabel ?? String(note.fret)).length;
+                const chordLabelLength = (note.chord ?? []).reduce(
+                  (chordMax, tone) => Math.max(chordMax, (tone.fretLabel ?? String(tone.fret)).length),
+                  1,
+                );
+                return Math.max(max, mainLabelLength, chordLabelLength);
+              }, 1);
+              const noteFontSize = tabNoteFontSize(count, maxLabelLength);
               const fingerFontSize = count >= TAB_LAYOUT.denseNoteCount ? 9 : 10;
               const highestStringY = measure.notes.reduce(
-                (top, note) => Math.min(top, tabStringY(rowTop, note.string)),
+                (top, note) =>
+                  Math.min(
+                    top,
+                    ...(note.rest
+                      ? []
+                      : [
+                          tabStringY(rowTop, note.string),
+                          ...(note.chord ?? []).map((tone) => tabStringY(rowTop, tone.string)),
+                        ]),
+                  ),
                 tabStringY(rowTop, TAB_LAYOUT.stringCount),
               );
               const beamY = tabBeamRowY(highestStringY);
@@ -121,6 +143,60 @@ export function TabSystems({
                     strokeWidth={1.25}
                   />
 
+                  {measure.annotations?.map((annotation, annotationIndex) => {
+                    if (annotation.kind === "chord") {
+                      return (
+                        <text
+                          key={`annotation-${annotationIndex}`}
+                          x={measureX + TAB_LAYOUT.measurePadX}
+                          y={rowTop + 34}
+                          fontFamily="var(--font-mono)"
+                          fontSize={10}
+                          fontWeight={700}
+                          className="fill-ink-700"
+                        >
+                          {annotation.label}
+                        </text>
+                      );
+                    }
+
+                    const startX = slotXAt(annotation.startSlot);
+                    const endX = slotXAt(annotation.endSlot);
+                    return (
+                      <g key={`annotation-${annotationIndex}`}>
+                        <text
+                          x={startX - 4}
+                          y={rowTop + 44}
+                          fontFamily="var(--font-mono)"
+                          fontSize={9}
+                          fontWeight={600}
+                          className="fill-ink-700"
+                        >
+                          P.M.
+                        </text>
+                        <line
+                          x1={startX + 23}
+                          y1={rowTop + 40}
+                          x2={endX + 4}
+                          y2={rowTop + 40}
+                          stroke="currentColor"
+                          strokeWidth={1}
+                          strokeDasharray="3 3"
+                          className="text-ink-500"
+                        />
+                        <line
+                          x1={endX + 4}
+                          y1={rowTop + 37}
+                          x2={endX + 4}
+                          y2={rowTop + 43}
+                          stroke="currentColor"
+                          strokeWidth={1}
+                          className="text-ink-500"
+                        />
+                      </g>
+                    );
+                  })}
+
                   {measure.picking?.map((pick, pickIndex) => {
                     const pickCount = Math.max(1, measure.picking?.length ?? 0);
                     const pickX = tabNoteX(measureX, pickIndex, pickCount, measureWidth);
@@ -151,13 +227,26 @@ export function TabSystems({
                     const beamed = group.beams > 0;
                     const beamYs = beamed ? tabBeamYs(beamY, group.beams) : [];
                     const triplet = group.triplet ? tabTripletMark(beamY, startX, endX) : null;
+                    const beamSegments: number[][] = [];
+                    let segment: number[] = [];
+                    group.notes.forEach((note, index) => {
+                      if (note.rest) {
+                        if (segment.length > 0) beamSegments.push(segment);
+                        segment = [];
+                      } else {
+                        segment.push(index);
+                      }
+                    });
+                    if (segment.length > 0) beamSegments.push(segment);
 
                     return (
                       <g key={`rhythm-${group.start}`}>
                         {group.notes.map((note, index) => {
+                          if (note.rest || note.duration === "w") return null;
                           const { top, bottom } = tabStemSpan({
                             stringY: tabStringY(rowTop, note.string),
                             fontSize: noteFontSize,
+                            openNotehead: note.duration === "h",
                             beamY: beamed ? beamY : undefined,
                           });
 
@@ -175,29 +264,32 @@ export function TabSystems({
                           );
                         })}
 
-                        {beamed && group.notes.length > 1
-                          ? beamYs.map((y) => (
-                              <line
-                                key={`beam-${y}`}
-                                x1={startX}
-                                y1={y}
-                                x2={endX}
-                                y2={y}
-                                stroke="currentColor"
-                                strokeWidth={2.5}
-                                strokeLinecap="round"
-                              />
-                            ))
+                        {beamed
+                          ? beamSegments.flatMap((notesInSegment, segmentIndex) =>
+                              notesInSegment.length > 1
+                                ? beamYs.map((y, beamIndex) => (
+                                    <line
+                                      key={`beam-${segmentIndex}-${beamIndex}`}
+                                      x1={xs[notesInSegment[0]]}
+                                      y1={y}
+                                      x2={xs[notesInSegment[notesInSegment.length - 1]]}
+                                      y2={y}
+                                      stroke="currentColor"
+                                      strokeWidth={2.5}
+                                      strokeLinecap="round"
+                                    />
+                                  ))
+                                : beamYs.map((y, flagIndex) => (
+                                    <path
+                                      key={`flag-${segmentIndex}-${flagIndex}`}
+                                      d={`M ${xs[notesInSegment[0]]} ${y} q 8 5 6 13`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={1.25}
+                                    />
+                                  )),
+                            )
                           : null}
-
-                        {beamed && group.notes.length === 1 ? (
-                          <path
-                            d={`M ${startX} ${beamY} q 8 5 6 13`}
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={1.25}
-                          />
-                        ) : null}
 
                         {group.notes.map((note, index) =>
                           note.accent ? (
@@ -245,50 +337,170 @@ export function TabSystems({
                     if (note.silent) return null;
 
                     const x = noteXAt(noteIndex);
+                    const globalNoteIndex =
+                      measureOffsets[system.measureStart + measureIndex] + noteIndex;
+                    const highlighted = globalNoteIndex === activeNoteIndex;
+                    if (note.rest) {
+                      const y = tabStringY(rowTop, 4);
+                      const restHighlight = highlighted ? (
+                        <rect
+                          x={x - 10}
+                          y={y - 9}
+                          width={20}
+                          height={18}
+                          rx={4}
+                          className="fill-accent-100"
+                        />
+                      ) : null;
+                      if (note.duration === "w") {
+                        return (
+                          <g key={`rest-${noteIndex}`}>
+                            {restHighlight}
+                            <rect
+                              x={x - 4}
+                              y={y - 2}
+                              width={8}
+                              height={4}
+                              className="fill-ink-700 tab-rest tab-rest-w"
+                            />
+                          </g>
+                        );
+                      }
+                      if (note.duration === "h") {
+                        return (
+                          <g key={`rest-${noteIndex}`}>
+                            {restHighlight}
+                            <rect
+                              x={x - 4}
+                              y={y - 6}
+                              width={8}
+                              height={4}
+                              className="fill-ink-700 tab-rest tab-rest-h"
+                            />
+                          </g>
+                        );
+                      }
+                      if (note.duration === "8" || note.duration === "8t") {
+                        return (
+                          <g key={`rest-${noteIndex}`}>
+                            {restHighlight}
+                            <path
+                              d={`M ${x} ${y - 13} v 10 q 8 2 4 7 q -1 3 -4 4`}
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={1.5}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className={`tab-rest tab-rest-${note.duration}`}
+                            />
+                          </g>
+                        );
+                      }
+                      if (note.duration === "16") {
+                        return (
+                          <g key={`rest-${noteIndex}`}>
+                            {restHighlight}
+                            <path
+                              d={`M ${x} ${y - 13} v 10 q 8 2 4 7 q -1 3 -4 4 M ${x} ${y - 7} q 8 2 4 7 q -1 3 -4 4`}
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={1.5}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="tab-rest tab-rest-16"
+                            />
+                          </g>
+                        );
+                      }
+                      return (
+                        <g key={`rest-${noteIndex}`}>
+                          {restHighlight}
+                          <path
+                            d={`M ${x - 3} ${y - 8} l 6 4 -6 4 6 4`}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="tab-rest tab-rest-q"
+                          />
+                        </g>
+                      );
+                    }
                     const stringY = tabStringY(rowTop, note.string);
                     const fretLabel = note.tie
                       ? "~"
-                      : (note.fretLabel ?? String(note.fret));
-                    const maskWidth = noteFontSize * 0.62 * fretLabel.length + 3;
+                      : `${note.slide === "up" ? "/" : note.slide === "down" ? "\\" : ""}${
+                          note.fretLabel ?? String(note.fret)
+                        }`;
                     const previousX =
                       noteIndex > 0
                         ? noteXAt(noteIndex - 1)
                         : x;
 
-                    const globalNoteIndex =
-                      measureOffsets[system.measureStart + measureIndex] + noteIndex;
-                    const highlighted = globalNoteIndex === activeNoteIndex;
+                    const tones = [
+                      { string: note.string, fret: note.fret, fretLabel: note.fretLabel },
+                      ...(note.chord ?? []),
+                    ];
 
                     return (
                       <g key={`note-${noteIndex}`}>
-                        {highlighted ? (
-                          <rect
-                            x={x - noteFontSize * 0.78}
-                            y={stringY - noteFontSize * 1.05}
-                            width={noteFontSize * 1.56}
-                            height={noteFontSize * 1.4}
-                            rx={noteFontSize * 0.32}
-                            className="fill-accent-100"
-                          />
-                        ) : null}
-                        <rect
-                          x={x - maskWidth / 2}
-                          y={stringY - noteFontSize * TAB_LAYOUT.fretGlyphTop}
-                          width={maskWidth}
-                          height={noteFontSize}
-                          className="fill-surface"
-                        />
-                        <text
-                          x={x}
-                          y={tabFretBaselineY(stringY)}
-                          textAnchor="middle"
-                          fontFamily="var(--font-mono)"
-                          fontSize={noteFontSize}
-                          fontWeight={600}
-                          fill="currentColor"
-                        >
-                          {fretLabel}
-                        </text>
+                        {tones.map((tone, toneIndex) => {
+                          const toneY = tabStringY(rowTop, tone.string);
+                          const toneLabel =
+                            toneIndex === 0
+                              ? fretLabel
+                              : (tone.fretLabel ?? String(tone.fret));
+                          const maskWidth = noteFontSize * 0.62 * toneLabel.length + 3;
+                          return (
+                            <g key={`tone-${toneIndex}`}>
+                              {highlighted ? (
+                                <rect
+                                  x={x - noteFontSize * 0.78}
+                                  y={toneY - noteFontSize * 1.05}
+                                  width={noteFontSize * 1.56}
+                                  height={noteFontSize * 1.4}
+                                  rx={noteFontSize * 0.32}
+                                  className="fill-accent-100"
+                                />
+                              ) : null}
+                              <rect
+                                x={x - maskWidth / 2}
+                                y={toneY - noteFontSize * TAB_LAYOUT.fretGlyphTop}
+                                width={maskWidth}
+                                height={noteFontSize}
+                                className="fill-surface"
+                              />
+                              {note.duration === "h" || note.duration === "w" ? (
+                                <ellipse
+                                  cx={x}
+                                  cy={toneY}
+                                  rx={noteFontSize * 0.82}
+                                  ry={noteFontSize * 0.55}
+                                  fill="var(--color-surface)"
+                                  stroke="currentColor"
+                                  strokeWidth={1}
+                                  className={
+                                    note.duration === "w"
+                                      ? "tab-whole-notehead"
+                                      : "tab-half-notehead"
+                                  }
+                                />
+                              ) : null}
+                              <text
+                                x={x}
+                                y={tabFretBaselineY(toneY)}
+                                textAnchor="middle"
+                                fontFamily="var(--font-mono)"
+                                fontSize={noteFontSize}
+                                fontWeight={600}
+                                fill="currentColor"
+                              >
+                                {toneLabel}
+                              </text>
+                            </g>
+                          );
+                        })}
                         {note.finger ? (
                           <text
                             x={x}
@@ -339,6 +551,27 @@ export function TabSystems({
                           >
                             Q.C.
                           </text>
+                        ) : null}
+                        {note.articulation ? (
+                          <text
+                            x={x}
+                            y={fingerY}
+                            textAnchor="middle"
+                            fontFamily="var(--font-sans)"
+                            fontSize={fingerFontSize}
+                            className="fill-ink-500"
+                          >
+                            {note.articulation === "open" ? "开" : "闷"}
+                          </text>
+                        ) : null}
+                        {note.vibrato ? (
+                          <path
+                            d={`M ${x - 8} ${stringY + 11} q 2 -4 4 0 t 4 0 t 4 0 t 4 0`}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1}
+                            className="tab-vibrato"
+                          />
                         ) : null}
                       </g>
                     );

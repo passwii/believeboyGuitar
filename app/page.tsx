@@ -1,19 +1,22 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { practiceWeeks } from "@/content/manifest";
+import { practiceEntries } from "@/content/manifest";
 import { practiceSections, practiceSectionAnchor } from "@/lib/practice-sections";
-import { latestPracticeWeek, practiceHref } from "@/lib/weekly";
+import { latestPracticeWeek, practiceHref } from "@/lib/practice";
 
 export default function HomePage() {
-  const latest = latestPracticeWeek(practiceWeeks);
+  const latest = latestPracticeWeek(practiceEntries);
+  const practiceWeekCount = practiceEntries.filter((entry) => entry.kind === "week").length;
   const sections = latest ? practiceSections(latest.slug) : [];
-  const weekNumber = latest?.label.match(/\d+/)?.[0]?.padStart(2, "0") ?? "—";
+  const weekNumber = latest?.label?.match(/\d+/)?.[0]?.padStart(2, "0") ?? "—";
 
   return (
     <main className="shell flex-1 py-8 sm:py-12">
       <section className="home-hero">
         <div>
-          <p className="text-micro font-medium uppercase text-ink-500">练习台 · {latest?.label}</p>
+          <p className="text-micro font-medium uppercase text-ink-500">
+            练习台 · {latest?.label ?? "当前周"}
+          </p>
           <span className="home-week-number">{weekNumber}</span>
           <h1 className="text-display font-display text-ink-950">{latest?.title ?? "开始练习"}</h1>
           <p className="mt-3 text-body text-ink-700">{latest?.focus}</p>
@@ -36,7 +39,7 @@ export default function HomePage() {
           <strong>{String(sections.length).padStart(2, "0")}</strong>
           <span>本周练习段</span>
           <div>
-            <b>{practiceWeeks.length}</b>
+            <b>{practiceWeekCount}</b>
             <small>个训练周</small>
           </div>
         </aside>
@@ -49,7 +52,7 @@ export default function HomePage() {
               本周谱例
             </h2>
             <Link href="/practice" className="text-label font-medium text-accent-700">
-              全部周次
+              全部练习
             </Link>
           </div>
           <ol className="mt-3 border-t border-rule">

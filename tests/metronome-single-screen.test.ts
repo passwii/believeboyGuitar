@@ -24,7 +24,7 @@ describe("手机单屏节拍器", () => {
     expect(nav).toContain('pathname === "/metronome"');
     expect(nav).toContain('focusMode ? "hidden sm:block " : ""');
     expect(nav).toContain('aria-label="移动端导航"');
-    expect(footer).toContain('pathname.startsWith("/practice/week-")');
+    expect(footer).toContain('pathname.startsWith("/practice/")');
     expect(footer).toContain('focusMode ? "hidden sm:block " : ""');
   });
 

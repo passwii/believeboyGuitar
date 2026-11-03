@@ -6,7 +6,7 @@ Next.js 版本相关的写法参考脚手架生成的 `AGENTS.md`。
 
 ## 硬性约束
 
-- `content/manifest.ts` 是唯一事实来源。周练、资料入口和主页数据都从这里读，不得在别处硬编码列表
+- `content/manifest.ts` 是唯一事实来源。练习条目、资料入口和主页数据都从这里读，不得在别处硬编码列表
 - `content/lessons/*.html` 只写语义标签，以 `<article>` 为根元素。禁止 `<script>`、`<style>`、`<link>`、行内 `style=`、自带导航。样式只写在 `content/content.css` 里
 - slug 是小写 kebab-case，且与文件名严格对应
 - `inbox/` 与 `archive/` 永不纳入版本库：原始资料体积大且涉及版权
@@ -18,7 +18,7 @@ Next.js 版本相关的写法参考脚手架生成的 `AGENTS.md`。
 ## 页面边界
 
 - 顶层只保留 `/`、`/practice`、`/library`、`/metronome` 四个入口。
-- 周练页面位于 `/practice/<slug>`，不再放在资料库下。
+- 练习详情位于 `/practice/<slug>`，不再放在资料库下。
 - 资料库保持简单，不恢复搜索、标签、阶段和难度筛选。
 - 节拍器是唯一独立工具；旧 `/tools/metronome` 仅保留兼容跳转。
 

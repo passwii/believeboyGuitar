@@ -4,8 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { LessonWidget } from "@/components/LessonWidget";
-import { PracticeWeekPicker } from "@/components/PracticeWeekPicker";
-import { practiceWeeks } from "@/content/manifest";
+import { PracticeEntryPicker } from "@/components/PracticeEntryPicker";
+import { practiceEntries } from "@/content/manifest";
 import { splitContentSections } from "@/lib/content-sections";
 import { addLessonHeadingIds } from "@/lib/content-headings";
 import { sanitizeContentHtml } from "@/lib/sanitize-content";
@@ -13,19 +13,25 @@ import { sanitizeContentHtml } from "@/lib/sanitize-content";
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return practiceWeeks.map((week) => ({ slug: week.slug }));
+  return practiceEntries.map((entry) => ({ slug: entry.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const week = practiceWeeks.find((item) => item.slug === slug);
-  return { title: week ? `${week.label}：${week.title}` : "练习" };
+  const entry = practiceEntries.find((item) => item.slug === slug);
+  return {
+    title: entry
+      ? entry.label
+        ? `${entry.label}：${entry.title}`
+        : entry.title
+      : "练习",
+  };
 }
 
-export default async function PracticeWeekPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PracticeEntryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const week = practiceWeeks.find((item) => item.slug === slug);
-  if (!week) notFound();
+  const entry = practiceEntries.find((item) => item.slug === slug);
+  if (!entry) notFound();
 
   const html = await readFile(
     path.join(process.cwd(), "content", "lessons", `${slug}.html`),
@@ -45,13 +51,15 @@ export default async function PracticeWeekPage({ params }: { params: Promise<{ s
         >
           <Icon name="home" className="size-4" />
         </Link>
-        <PracticeWeekPicker items={practiceWeeks} currentSlug={week.slug} />
+        <PracticeEntryPicker items={practiceEntries} currentSlug={entry.slug} />
       </div>
 
       <header className="mt-4">
         <h1 className="text-display font-display text-ink-950">
-          <span className="sm:hidden">{week.label}</span>
-          <span className="max-sm:hidden">{week.label}：{week.title}</span>
+          <span className="sm:hidden">{entry.label ?? entry.title}</span>
+          <span className="max-sm:hidden">
+            {entry.label ? `${entry.label}：` : ""}{entry.title}
+          </span>
         </h1>
       </header>
 

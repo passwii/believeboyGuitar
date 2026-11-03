@@ -775,7 +775,7 @@
     }
   }
 
-  .practice-week-row {
+  .practice-entry-row {
     display: grid;
     min-height: 6rem;
     grid-template-columns: 3rem minmax(0, 1fr) auto;
@@ -784,20 +784,20 @@
     color: var(--color-ink-950);
   }
 
-  .practice-week-row__number {
+  .practice-entry-row__number {
     color: var(--color-ink-300);
     font-family: var(--font-mono);
     font-size: var(--text-meta);
   }
 
-  .practice-week-row strong,
-  .practice-week-row small { display: block; }
+  .practice-entry-row strong,
+  .practice-entry-row small { display: block; }
 
-  .practice-week-row strong {
+  .practice-entry-row strong {
     font-size: var(--text-title);
   }
 
-  .practice-week-row small {
+  .practice-entry-row small {
     margin-top: .35rem;
     color: var(--color-ink-500);
     font-size: var(--text-meta);
@@ -1000,13 +1000,13 @@
     box-shadow: var(--shadow-segment);
   }
 
-  /* 周次选择器：触发按钮宽度固定，菜单容纳任意数量的周次。 */
-  .week-picker {
+  /* 练习选择器：触发按钮宽度固定，菜单容纳任意数量的条目。 */
+  .practice-picker {
     position: relative;
     flex: none;
   }
 
-  .week-picker__trigger {
+  .practice-picker__trigger {
     display: inline-flex;
     min-height: 44px;
     align-items: center;
@@ -1021,16 +1021,16 @@
     font-weight: 600;
   }
 
-  .week-picker__chevron {
+  .practice-picker__chevron {
     transform: rotate(90deg);
     transition: transform 150ms var(--ease-standard);
   }
 
-  .week-picker__trigger[aria-expanded="true"] .week-picker__chevron {
+  .practice-picker__trigger[aria-expanded="true"] .practice-picker__chevron {
     transform: rotate(-90deg);
   }
 
-  .week-picker__menu {
+  .practice-picker__menu {
     position: absolute;
     z-index: 50;
     top: calc(100% + 0.5rem);
@@ -1044,7 +1044,7 @@
     box-shadow: var(--shadow-segment);
   }
 
-  .week-picker__label {
+  .practice-picker__label {
     padding: 0.75rem 0.75rem 0.25rem;
     color: var(--color-ink-500);
     font-size: 0.6875rem;
@@ -1052,14 +1052,14 @@
     letter-spacing: 0.14em;
   }
 
-  .week-picker__grid {
+  .practice-picker__grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.25rem;
     padding: 0.5rem;
   }
 
-  .week-picker__link {
+  .practice-picker__link {
     display: flex;
     min-height: 44px;
     align-items: center;
@@ -1075,13 +1075,13 @@
   }
 
   @media (hover: hover) {
-    .week-picker__link:hover {
+    .practice-picker__link:hover {
       background-color: var(--color-surface-muted);
       color: var(--color-ink-950);
     }
   }
 
-  .week-picker__link--current {
+  .practice-picker__link--current {
     background-color: var(--color-accent-700);
     color: var(--color-on-accent);
   }

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     default: "电吉他练习站",
     template: "%s · 电吉他练习站",
   },
-  description: "个人电吉他练习站：周练、指板音阶与节拍器。",
+  description: "个人电吉他练习站：周练、独立练习、指板音阶与节拍器。",
   applicationName: "电吉他练习站",
   // PWA（BLF-1443 / BLF-1451）：清单在 app/manifest.ts。装到桌面的名字
   // 曾是「节拍器」，站点长出工具间后改回站名——装的是整个资料库，

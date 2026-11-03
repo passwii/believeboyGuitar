@@ -21,7 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "电吉他练习站",
     short_name: "练习站",
-    description: "个人电吉他练习站：周练、指板音阶与节拍器。",
+    description: "个人电吉他练习站：周练、独立练习、指板音阶与节拍器。",
     lang: "zh-CN",
     dir: "ltr",
     start_url: "/",

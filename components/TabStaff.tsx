@@ -1,5 +1,10 @@
 import { TabSystems, type TabSystemLayout } from "@/components/TabSystems";
-import { describeMeasureNotes, describePicking, type TabMeasure } from "@/lib/tab";
+import {
+  describeMeasureAnnotations,
+  describeMeasureNotes,
+  describePicking,
+  type TabMeasure,
+} from "@/lib/tab";
 import {
   TAB_LAYOUT,
   tabMeasureGroupsByWidth,
@@ -60,9 +65,10 @@ function describeMeasureRange(
   return measures
     .map((measure, index) => {
       const picking = describePicking(measure);
+      const annotations = describeMeasureAnnotations(measure);
       return `第 ${startIndex + index + 1} 小节：${describeMeasureNotes(measure)}${
         picking ? `；拨片：${picking}` : ""
-      }`;
+      }${annotations ? `；${annotations}` : ""}`;
     })
     .join("；");
 }

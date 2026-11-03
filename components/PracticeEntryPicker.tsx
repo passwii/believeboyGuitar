@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import type { PracticeWeek } from "@/content/manifest";
+import type { PracticeEntry } from "@/content/manifest";
 
-export function PracticeWeekPicker({
+export function PracticeEntryPicker({
   items,
   currentSlug,
 }: {
-  items: readonly PracticeWeek[];
+  items: readonly PracticeEntry[];
   currentSlug: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -40,27 +40,27 @@ export function PracticeWeekPicker({
 
   if (!current || items.length < 2) return null;
 
-  const currentLabel = current.label;
+  const currentLabel = current.label ?? current.title;
 
   return (
-    <div ref={pickerRef} className="week-picker">
+    <div ref={pickerRef} className="practice-picker">
       <button
         ref={triggerRef}
         type="button"
-        aria-label={`切换训练周次，当前 ${currentLabel}`}
+        aria-label={`切换练习，当前 ${currentLabel}`}
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
-        className="week-picker__trigger"
+        className="practice-picker__trigger"
       >
         <span>{currentLabel}</span>
-        <Icon name="chevron-right" className="week-picker__chevron size-3.5" />
+        <Icon name="chevron-right" className="practice-picker__chevron size-3.5" />
       </button>
 
-      <div id={menuId} hidden={!open} className="week-picker__menu">
-        <p className="week-picker__label">选择周次</p>
-        <nav aria-label="训练周次">
-          <ul className="week-picker__grid">
+      <div id={menuId} hidden={!open} className="practice-picker__menu">
+        <p className="practice-picker__label">选择练习</p>
+        <nav aria-label="练习条目">
+          <ul className="practice-picker__grid">
             {items.map((item) => {
               const isCurrent = item.slug === currentSlug;
               return (
@@ -69,11 +69,11 @@ export function PracticeWeekPicker({
                     href={`/practice/${item.slug}`}
                     aria-current={isCurrent ? "page" : undefined}
                     onClick={() => setOpen(false)}
-                    className={`week-picker__link ${
-                      isCurrent ? "week-picker__link--current" : ""
+                    className={`practice-picker__link ${
+                      isCurrent ? "practice-picker__link--current" : ""
                     }`}
                   >
-                    {item.label}
+                    {item.label ?? item.title}
                   </Link>
                 </li>
               );

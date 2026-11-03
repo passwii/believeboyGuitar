@@ -52,6 +52,13 @@ describe("TAB 谱面几何", () => {
     expect(tabNoteFontSize(TAB_LAYOUT.denseNoteCount)).toBe(TAB_LAYOUT.denseNoteFontSize);
   });
 
+  it("两位数品位在普通密度小节缩小字号以避免相邻重叠", () => {
+    const singleDigit = tabNoteFontSize(8, 1);
+    const multiDigit = tabNoteFontSize(8, 2);
+    expect(multiDigit).toBeLessThan(singleDigit);
+    expect(multiDigit).toBeGreaterThan(TAB_LAYOUT.denseNoteFontSize);
+  });
+
   it("品位数字以弦线为中心", () => {
     const stringY = tabStringY(0, 4);
     const baseline = tabFretBaselineY(stringY);
