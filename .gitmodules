@@ -1,0 +1,3 @@
+[submodule "desktop/native/external/NeuralAmpModelerCore"]
+	path = desktop/native/external/NeuralAmpModelerCore
+	url = https://github.com/sdatkinson/NeuralAmpModelerCore.git
