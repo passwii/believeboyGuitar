@@ -40,7 +40,6 @@ type AppState struct {
 
 type App struct {
 	controller       *Controller
-	list             ui.ListState
 	window           *mygo.Window
 	openDialog       func([]mygo.FileFilter) ([]string, error)
 	saveDialog       func(mygo.SaveDialogOptions) (string, error)
@@ -51,7 +50,7 @@ type App struct {
 func New(engine engine.Engine) *App {
 	a := &App{}
 	a.openDialog = func(filters []mygo.FileFilter) ([]string, error) {
-		return mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.window, Title: "Add audio file", Filters: filters})
+		return mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: a.window, Title: "添加音频文件", Filters: filters})
 	}
 	a.saveDialog = mygo.Dialog.Save
 	a.openPresetDialog = mygo.Dialog.Open
@@ -102,7 +101,7 @@ func (a *App) savePreset() {
 	}
 	path, err := a.saveDialog(mygo.SaveDialogOptions{
 		Parent:      a.window,
-		Title:       "Save preset",
+		Title:       "保存预设",
 		DefaultPath: filepath.Join(presetsDir, "preset.json"),
 		Filters:     presetFilters(),
 	})
@@ -136,7 +135,7 @@ func (a *App) openPresetFile() {
 	}
 	paths, err := a.openPresetDialog(mygo.OpenDialogOptions{
 		Parent:      a.window,
-		Title:       "Open preset",
+		Title:       "打开预设",
 		DefaultPath: presetsDir,
 		Filters:     presetFilters(),
 	})
@@ -175,7 +174,7 @@ func (a *App) presetsDir() (string, error) {
 }
 
 func presetFilters() []mygo.FileFilter {
-	return []mygo.FileFilter{{Name: "Presets", Extensions: []string{"json"}}}
+	return []mygo.FileFilter{{Name: "效果器预设", Extensions: []string{"json"}}}
 }
 
 func resolvePresetPath(presetsDir, path string) (string, error) {

@@ -5,8 +5,9 @@ It is intentionally separate from the NAM interface redesign.
 
 ## Current Status
 
-- No runtime startup failure has been reproduced in this UI-only pass.
-- The native app has not been launched or tested with a physical audio interface here.
+- `go build ./...` passes for `desktop/`.
+- On 2026-11-03, `go run .` from `desktop/` stayed active but emitted JUCE assertions during startup: `juce_CoreMidi_mac.mm:529`, `juce_CoreMidi_mac.mm:1087`, `juce_MidiDeviceListConnectionBroadcaster.cpp:221`, and repeated `juce_AsyncUpdater.cpp:78`. Stopping the process emitted `juce_MidiDeviceListConnectionBroadcaster.cpp:255`.
+- Monitoring was not started, and no physical audio interface was used. The MyGo window was not available in the desktop app inventory, so native-window visual inspection remains open.
 - Keep this list for a later, separate debugging task.
 
 ## Deferred Checks

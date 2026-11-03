@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	mygo.Theme.SetSource(mygo.ThemeSystem)
 	audioEngine, err := engine.NewNative("")
 	if err != nil {
 		log.Fatal(err)
@@ -24,15 +25,17 @@ func main() {
 	})
 	mygo.App.WhenReady(func() {
 		window := mygo.NewWindow(mygo.WindowOptions{
-			Title:     "Guitar Effects",
-			Width:     960,
-			Height:    640,
-			MinWidth:  640,
-			MinHeight: 480,
-			StateKey:  "main",
-			Content:   ui.View(a.View),
+			Title:         "吉他效果器",
+			Width:         960,
+			Height:        640,
+			MinWidth:      640,
+			MinHeight:     480,
+			StateKey:      "main",
+			TitleBarStyle: mygo.TitleBarHiddenInset,
+			Content:       ui.View(a.View),
 		})
 		a.SetWindow(window)
+		mygo.Theme.OnUpdated(func() { window.Update(func() {}) })
 		a.StartPolling(pollDone)
 	})
 	if err := mygo.App.Run(); err != nil {
