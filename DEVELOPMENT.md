@@ -52,10 +52,11 @@ npm run lint           # eslint
 > npm 缓存权限报错时，可临时指定仓库内缓存：
 > `npm ci --cache ./.npm-cache`；安装成功后删除 `.npm-cache/`，不要提交。
 
-## 3. 本地验证（**本仓库没有 CI**）
+## 3. 本地验证与生产部署流水线
 
-**没有 `.github/`，没有 GitHub Actions，不做 CI。** 这是个人自用仓库的刻意选择，
-不要主动添加 `.github/workflows/` 或任何其他 CI 配置，也不要因为「缺少自动化守护」而建议加上。
+**GitHub Actions 只用于生产部署。** `.github/workflows/deploy.yml` 在 `main`
+上执行现有门禁并部署 GHCR 镜像；它不承担 pull request 常规 CI。合并前仍以本地
+手工跑绿为准，不添加面向 pull request 的常规 CI。
 
 合并门禁 = **本地手工跑绿**：
 
@@ -101,7 +102,7 @@ npm run mini:check && npx vitest run tests/miniprogram-*.test.ts
 - 修改练习条目、资料入口或主页数据时，先更新 `content/manifest.ts`；不要在别处硬编码目录。
 - 新增正文或交互 widget 时，遵守 `CLAUDE.md` 的语义标签、widget 登记和人工确认流程。
 - 音位由调弦与乐理推导；指法、音阶图、和弦图等易错内容必须由使用者核对。
-- 不主动添加 `CLAUDE.md`「刻意不做」中列出的功能或 CI 配置。
+- 除 `.github/workflows/deploy.yml` 的生产发布外，不主动添加其他 Actions 或 PR CI。
 
 ## 6. 交付前自检
 
@@ -112,7 +113,7 @@ npm run mini:check && npx vitest run tests/miniprogram-*.test.ts
 - [ ] 没有调试残留：`console.log`、`debugger`、临时 TODO
 - [ ] 视觉改动已打开实际页面看过，不只靠测试绿
 - [ ] commit 信息与分支符合 §4，作者是 `DamonRock <jr.way123@gmail.com>`
-- [ ] 仓库里没有 `.github/workflows/`（本仓库不做 CI）
+- [ ] 部署配置改动已检查 `.github/workflows/deploy.yml`，没有把 PR 常规 CI 混入生产流水线
 - [ ] 发给用户的本机链接是 Tailscale 地址而不是 `localhost`，且已自己打开验证（§7）
 
 ## 7. 本机预览与链接发布（Tailscale）

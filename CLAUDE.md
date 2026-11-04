@@ -55,6 +55,7 @@ npm run typecheck && npm test && npm run build
 练习打卡、进度统计、复习提醒、账号与云同步、PDF 阅读器、曲谱播放、暗色模式。
 不要主动引入这些功能，除非使用者明确要求。
 
-**也不做 CI（GitHub Actions 等）。** 这是个人自用仓库，验证全部在本地手工跑：
-`npm run typecheck && npm test && npm run build`。不要主动添加 `.github/workflows/`
-或任何其他 CI 配置，也不要因为「缺少自动化守护」而建议加上。
+**GitHub Actions 只用于生产部署，不做 PR 常规 CI。**
+生产发布流水线固定在 `.github/workflows/deploy.yml`：在 runner 上完成
+`npm run typecheck && npm test && npm run build`，推送 GHCR，再由 VPS 拉取运行镜像。
+这是部署要求，不改变“个人自用、验证以本地为主”的原则；不要扩展成 pull request CI。

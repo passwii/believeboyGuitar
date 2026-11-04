@@ -724,7 +724,7 @@ Run: `docker rm -f believeboy-guitar-local`
 
 Expected: 测试容器被清理。
 
-- [ ] **Step 6: 提交文档与规则**
+- [x] **Step 6: 提交文档与规则**
 
 ```bash
 git add docs/deployment.md CLAUDE.md DEVELOPMENT.md README.md tests/development-docs.test.ts
