@@ -142,7 +142,7 @@ Nginx 约束：
 - `/_next/static/*` 使用一年 `immutable` 缓存。
 - `/sw.js` 使用 `no-cache`，确保 PWA 能发现新的 Service Worker。
 - HTML 和 `manifest.webmanifest` 不做长缓存。
-- 页面路由按 `$uri`、`$uri/`、`$uri.html` 顺序查找，再回退到 Next.js 导出的
+- 页面路由按 `$uri`、`$uri.html`、`$uri/` 顺序查找，再回退到 Next.js 导出的
   `/404.html`。
 - 开启 gzip，只压缩 HTML、CSS、JavaScript、JSON、SVG 和文本。
 - 不手写 CSP；现有 Next.js 内联资源需要单独验证后再做。

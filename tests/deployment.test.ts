@@ -74,7 +74,7 @@ describe("Nginx 静态托管", () => {
   });
 
   it("支持 Next.js 静态路由和健康检查", () => {
-    expect(nginx).toContain("try_files $uri $uri/ $uri.html =404");
+    expect(nginx).toContain("try_files $uri $uri.html $uri/ =404");
     expect(nginx).toContain("error_page 404 /404.html");
     expect(nginx).toContain("location = /healthz");
   });

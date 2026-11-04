@@ -32,7 +32,7 @@
 - Consumes: 无。
 - Produces: 对 `Dockerfile`、`.github/workflows/deploy.yml`、`deploy/nginx.conf`、`deploy/docker-compose.yml` 和 `docs/deployment.md` 的文本契约检查。
 
-- [ ] **Step 1: 新建部署守护测试**
+- [x] **Step 1: 新建部署守护测试**
 
 ```ts
 import { existsSync, readFileSync } from "node:fs";
@@ -137,7 +137,7 @@ describe("部署手册", () => {
 });
 ```
 
-- [ ] **Step 2: 更新开发文档守护测试，把旧“禁止 CI”断言改成生产部署例外**
+- [x] **Step 2: 更新开发文档守护测试，把旧“禁止 CI”断言改成生产部署例外**
 
 把 `tests/development-docs.test.ts` 中：
 
@@ -158,13 +158,13 @@ it("明确 GitHub Actions 只用于生产部署，不添加 PR 常规 CI", () =>
 });
 ```
 
-- [ ] **Step 3: 运行测试，确认因文件缺失而失败**
+- [x] **Step 3: 运行测试，确认因文件缺失而失败**
 
 Run: `npx vitest run tests/deployment.test.ts tests/development-docs.test.ts`
 
 Expected: `deployment.test.ts` 因 `Dockerfile` 或 `.github/workflows/deploy.yml` 不存在失败；`development-docs.test.ts` 因旧文案断言失败。
 
-- [ ] **Step 4: 提交测试契约**
+- [x] **Step 4: 提交测试契约**
 
 ```bash
 git add tests/deployment.test.ts tests/development-docs.test.ts
@@ -185,7 +185,7 @@ git commit --author="DamonRock <jr.way123@gmail.com>" -m "test(deploy): 固化 V
 - Consumes: `npm run build` 生成的 `out/`。
 - Produces: 监听容器 `80` 的静态站点镜像；Compose 服务名 `web`，宿主端口由 `APP_PORT` 控制，镜像标签由 `IMAGE_TAG` 控制。
 
-- [ ] **Step 1: 创建运行镜像**
+- [x] **Step 1: 创建运行镜像**
 
 `Dockerfile`：
 
@@ -215,7 +215,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 !deploy/nginx.conf
 ```
 
-- [ ] **Step 2: 创建 Nginx 静态配置**
+- [x] **Step 2: 创建 Nginx 静态配置**
 
 `deploy/nginx.conf`：
 
@@ -268,7 +268,7 @@ server {
 
   location / {
     add_header Cache-Control "no-cache" always;
-    try_files $uri $uri/ $uri.html =404;
+    try_files $uri $uri.html $uri/ =404;
   }
 
   error_page 404 /404.html;
@@ -279,7 +279,7 @@ server {
 }
 ```
 
-- [ ] **Step 3: 创建 Compose 与 Caddy 示例**
+- [x] **Step 3: 创建 Compose 与 Caddy 示例**
 
 `deploy/docker-compose.yml`：
 
@@ -318,7 +318,7 @@ guitar.believeboy.com {
 }
 ```
 
-- [ ] **Step 4: 跑测试和 Compose 配置校验**
+- [x] **Step 4: 跑测试和 Compose 配置校验**
 
 Run: `npx vitest run tests/deployment.test.ts`
 
@@ -328,7 +328,7 @@ Run: `docker compose -f deploy/docker-compose.yml config`
 
 Expected: 输出去掉注释后的 Compose YAML，退出码 `0`。
 
-- [ ] **Step 5: 提交运行配置**
+- [x] **Step 5: 提交运行配置**
 
 ```bash
 git add Dockerfile .dockerignore deploy/nginx.conf deploy/docker-compose.yml deploy/Caddyfile.example
@@ -345,7 +345,7 @@ git commit --author="DamonRock <jr.way123@gmail.com>" -m "build(deploy): 新增 
 - Consumes: `out/`、`Dockerfile`、`deploy/docker-compose.yml`。
 - Produces: `ghcr.io/passwii/believeboyguitar:sha-<full commit sha>` 与 `:latest`；SSH 部署至 `DEPLOY_PATH`。
 
-- [ ] **Step 1: 创建工作流**
+- [x] **Step 1: 创建工作流**
 
 `.github/workflows/deploy.yml`：
 
@@ -489,19 +489,19 @@ jobs:
           REMOTE_SCRIPT
 ```
 
-- [ ] **Step 2: 校验工作流文本契约**
+- [x] **Step 2: 校验工作流文本契约**
 
 Run: `npx vitest run tests/deployment.test.ts`
 
 Expected: 全部通过。
 
-- [ ] **Step 3: 检查 GitHub Actions YAML 语法**
+- [x] **Step 3: 检查 GitHub Actions YAML 语法**
 
 Run: `docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest`
 
 Expected: 无输出，退出码 `0`。若本机无法运行 Docker，则记录该限制，并以 GitHub 首次工作流解析结果作为最终校验。
 
-- [ ] **Step 4: 提交工作流**
+- [x] **Step 4: 提交工作流**
 
 ```bash
 git add .github/workflows/deploy.yml
@@ -522,7 +522,7 @@ git commit --author="DamonRock <jr.way123@gmail.com>" -m "ci(deploy): 构建并�
 - Consumes: Task 2 的 Compose/Caddy 配置与 Task 3 的 Secrets 名称。
 - Produces: 首次部署、日常发布、DNS、Caddy、GHCR、排障和回滚步骤。
 
-- [ ] **Step 1: 编写部署手册**
+- [x] **Step 1: 编写部署手册**
 
 `docs/deployment.md` 必须包含以下完整章节和命令：
 
@@ -666,7 +666,7 @@ curl -fsS http://127.0.0.1:8080/healthz
 - 证书失败：确认 DNS 已生效、`80`/`443` 可达，并查看 `journalctl -u caddy`。
 ```
 
-- [ ] **Step 2: 更新项目规则**
+- [x] **Step 2: 更新项目规则**
 
 在 `CLAUDE.md` 的“刻意不做”末尾，把禁止任何 CI 的段落替换为：
 
@@ -698,19 +698,19 @@ curl -fsS http://127.0.0.1:8080/healthz
 生产部署、Caddy 与 GHCR 配置见 [docs/deployment.md](./docs/deployment.md)。
 ```
 
-- [ ] **Step 3: 运行文档与部署测试**
+- [x] **Step 3: 运行文档与部署测试**
 
 Run: `npx vitest run tests/deployment.test.ts tests/development-docs.test.ts`
 
 Expected: 全部通过。
 
-- [ ] **Step 4: 运行完整门禁**
+- [x] **Step 4: 运行完整门禁**
 
 Run: `npm run typecheck && npm test && npm run build`
 
 Expected: 所有命令退出码 `0`，静态导出生成 `out/`。
 
-- [ ] **Step 5: 本地检查运行镜像**
+- [x] **Step 5: 本地检查运行镜像**
 
 Run: `docker build -t believeboy-guitar:local .`
 
