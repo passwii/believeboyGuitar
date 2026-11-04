@@ -43,9 +43,10 @@ describe("DEVELOPMENT.md 存在且是开发流程入口", () => {
 describe("DEVELOPMENT.md 覆盖本仓库的关键开发约定", () => {
   const doc = read("DEVELOPMENT.md");
 
-  it("明确本仓库不做 CI", () => {
-    expect(doc).toContain("没有 GitHub Actions");
-    expect(doc).toContain(".github/workflows/");
+  it("明确 GitHub Actions 只用于生产部署，不添加 PR 常规 CI", () => {
+    expect(doc).toContain("GitHub Actions 只用于生产部署");
+    expect(doc).toContain(".github/workflows/deploy.yml");
+    expect(doc).toContain("不添加面向 pull request 的常规 CI");
   });
 
   it("本地 npm 缓存目录不会被误提交", () => {
