@@ -158,8 +158,54 @@ npm run deploy:local
 
 ## GitHub Actions 备用发布
 
-`.github/workflows/deploy.yml` 不再随 `main` push 自动运行，只能在 Actions 页面
-手动运行 `Deploy production`，且只能从 `main` 触发。
+`.github/workflows/deploy.yml` 不再随 `main` push 自动运行，只能通过 Actions 页面
+或 GitHub CLI 手动运行 `Deploy production`，且只能从 `main` 触发。
+
+### 触发条件
+
+- 要发布的提交必须已经合入 GitHub 上的 `main`。
+- Actions 看不到 Mac 上未提交或未推送的代码。Mac 不可用时，先在 GitHub 网页合并
+  已经推送的 Pull Request，再触发工作流。
+- 当前工作流没有输入参数，不需要填写版本号或镜像标签。
+
+### 方式 A：从浏览器触发
+
+1. 打开：
+
+   ```text
+   https://github.com/passwii/believeboyGuitar/actions/workflows/deploy.yml
+   ```
+
+2. 在左侧选择 **Deploy production**。
+3. 点击右侧 **Run workflow**。
+4. Branch 选择 `main`，再点击绿色的 **Run workflow**。
+5. 等待本次运行完成，并确认构建、推送、SSH 部署和健康检查步骤全部为绿色。
+
+### 方式 B：用 GitHub CLI 触发
+
+任意一台机器安装并登录 GitHub CLI 后，都可以在仓库目录或任意目录执行：
+
+```bash
+gh auth status
+gh workflow run deploy.yml --ref main --repo passwii/believeboyGuitar
+gh run list --workflow deploy.yml --repo passwii/believeboyGuitar --limit 3
+```
+
+找到刚启动的 Run ID 后跟踪结果：
+
+```bash
+gh run watch <run-id> --repo passwii/believeboyGuitar --exit-status
+```
+
+失败时查看失败日志：
+
+```bash
+gh run view <run-id> --repo passwii/believeboyGuitar --log-failed
+```
+
+`gh workflow run` 只是触发 GitHub 上的远程构建，不会把 Mac 本地未提交的内容上传。
+工作流会在 GitHub Runner 上依次完成与本地发布相同的门禁、GHCR 推送、VPS 拉取切换
+和健康检查；健康检查失败时同样尝试回滚到上一 SHA 镜像。
 
 仓库或 `production` Environment 配置：
 

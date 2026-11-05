@@ -134,4 +134,17 @@ describe("部署手册", () => {
       expect(doc).toContain(text);
     }
   });
+
+  it("说明 Mac 不可用时如何手动触发 GitHub Actions 备用发布", () => {
+    const doc = read("docs/deployment.md");
+
+    expect(doc).toContain(
+      "https://github.com/passwii/believeboyGuitar/actions/workflows/deploy.yml",
+    );
+    expect(doc).toContain(
+      "gh workflow run deploy.yml --ref main --repo passwii/believeboyGuitar",
+    );
+    expect(doc).toContain("gh run watch <run-id>");
+    expect(doc).toContain("未提交或未推送");
+  });
 });
