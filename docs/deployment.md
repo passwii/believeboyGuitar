@@ -187,6 +187,16 @@ ssh-keyscan -H guitar.believeboy.com
 使用非默认 SSH 端口时加上 `-p <port>`。核对 VPS 主机密钥指纹后，把完整输出保存
 到对应的 GitHub Secret。
 
+首次使用 Actions 推送私有 GHCR 包前，还必须打开：
+
+```text
+https://github.com/users/passwii/packages/container/believeboyguitar/settings
+```
+
+在 **Manage Actions access** 中添加 `passwii/believeboyGuitar`，并把角色设为
+**Write**。默认的 **Read** 只能拉取镜像，不能推送。若推送时报
+`denied: permission_denied: read_package`，优先检查这里，而不是改用个人 PAT。
+
 ## 部署后检查
 
 ```bash
@@ -215,7 +225,7 @@ curl -fsS http://127.0.0.1:8080/healthz
 ## 排障
 
 - 本地脚本拒绝发布：检查 tracked 改动、当前分支和 `origin/main` 是否一致。
-- `denied` 或 `manifest unknown`：确认本地有 GHCR 写权限，VPS 有 `read:packages`，镜像名小写。
+- `denied` 或 `manifest unknown`：确认本地有 GHCR 写权限，VPS 有 `read:packages`，镜像名小写；Actions 推送还要确认 GHCR 包的 **Manage Actions access** 已把当前仓库设为 **Write**。
 - `permission denied` 访问 Docker：确认部署账号在 `docker` 组，并重新登录使其生效。
 - `Host key verification failed`：核对主机指纹并更新本地 SSH 配置；Actions 则更新 `SSH_KNOWN_HOSTS`。
 - 健康检查失败：执行 `docker compose logs --tail=200 web` 和 `docker inspect believeboy-guitar`。
