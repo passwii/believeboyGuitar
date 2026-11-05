@@ -2,6 +2,9 @@
 
 生产域名：`guitar.believeboy.com`
 
+日常构建、发布、检查和回滚的详细操作见
+[deployment-runbook.md](./deployment-runbook.md)。
+
 ## 架构
 
 本地部署是主路径，GitHub Actions 是手动备用路径。两条路径都生成同一个极简
