@@ -389,7 +389,43 @@ GitHub Actions → Deploy production → Run workflow → main
 | `APP_PORT` | `8080` |
 | `DOCKER_PLATFORM` | `linux/amd64` |
 
-当前状态：工作流代码已存在，但 GitHub Secrets 和首次手动备用发布尚未验证。
+当前状态：Secrets 和 Variables 已配置，手动备用发布已验证通过。首次推送曾因
+GHCR 包权限不足失败，按 9.1 授予仓库访问权限后，同一工作流已成功完成构建、
+推送、VPS 部署和健康检查。
+
+### 9.1 GHCR 包 Actions 写权限
+
+私有 GHCR 包首次由本地 PAT 创建时，仓库的 `GITHUB_TOKEN` 不会自动获得写权限。
+即使工作流已经声明 `packages: write`，Actions 仍可能在推送阶段报错：
+
+```text
+denied: permission_denied: read_package
+```
+
+在 GitHub 网页配置：
+
+1. 打开 `https://github.com/users/passwii/packages/container/believeboyguitar/settings`
+2. 在 **Manage Actions access** 中选择 **Add Repository**
+3. 添加 `passwii/believeboyGuitar`
+4. 把仓库角色从默认的 **Read** 改为 **Write**
+
+当前还按用户要求授予了以下仓库对该包的 **Write** 权限：
+
+- `passwii/believeboyDashboard`
+- `passwii/digitalProjectManagement`
+
+不要选择 **Admin**；镜像发布只需要 **Write**。配置完成后应看到所有目标仓库的
+角色均为 **Write**，再重新运行失败的 `Deploy production` 工作流。
+
+2026-11-05 验证记录：
+
+```text
+工作流: Deploy production
+提交:   848ab031009ed822d54ea86b818efe7998904c27
+结果:   success
+部署镜像: ghcr.io/passwii/believeboyguitar:sha-848ab031009ed822d54ea86b818efe7998904c27
+生产检查: 首页 200，/healthz ok，容器 running/healthy
+```
 
 ## 10. 已知故障与处理
 
@@ -447,7 +483,21 @@ ssh -t guitar-vps 'docker login ghcr.io -u passwii'
 
 Mac Token 需要 `write:packages`；VPS Token 只需要 `read:packages`。
 
-### 10.4 Caddy 返回 502
+### 10.4 GitHub Actions 推送 GHCR 被拒绝
+
+报错：
+
+```text
+denied: permission_denied: read_package
+```
+
+这不是 SSH 或 VPS 问题，也不是 `GITHUB_TOKEN` 的 workflow 权限语法问题，而是
+私有 GHCR 包没有把当前仓库加入 **Manage Actions access**。按 9.1 添加仓库并设为
+**Write** 后，重新运行失败的工作流。
+
+不要改用个人 PAT 绕过此配置，备用路径应继续使用仓库作用域的 `GITHUB_TOKEN`。
+
+### 10.5 Caddy 返回 502
 
 含义是 Caddy 正常，但 `127.0.0.1:8080` 没有可连接的应用。
 
@@ -461,7 +511,7 @@ ssh guitar-vps '
 '
 ```
 
-### 10.5 页面路由错误
+### 10.6 页面路由错误
 
 Nginx 的页面查找顺序必须是：
 
