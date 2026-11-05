@@ -29,7 +29,7 @@ describe("GitHub Actions 生产发布", () => {
 
   it("在 runner 上验证和构建，再调用共享远程部署脚本", () => {
     expect(workflow).toContain(
-      "npm run typecheck && npm test && npm run build -- --webpack",
+      "npm run typecheck && npm test && npm run build -- --webpack && npm run verify:css",
     );
     expect(workflow).toContain("packages: write");
     expect(workflow).toContain("type=sha,format=long");
@@ -58,6 +58,18 @@ describe("VPS 运行配置", () => {
 });
 
 describe("本地主发布", () => {
+  it("发布前验证静态 CSS 已完成 Tailwind 编译", () => {
+    const pkg = JSON.parse(read("package.json")) as {
+      scripts: Record<string, string>;
+    };
+    const script = read("scripts/deploy-local.sh");
+
+    expect(pkg.scripts["verify:css"]).toBe(
+      "node scripts/verify-static-css.mjs",
+    );
+    expect(script).toContain("npm run verify:css");
+  });
+
   it("提供 npm 入口并拒绝部署未进入 main 的提交", () => {
     const pkg = JSON.parse(read("package.json")) as {
       scripts: Record<string, string>;

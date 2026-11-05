@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run mini:core && next build",
+    "verify:css": "node scripts/verify-static-css.mjs",
     "lint": "eslint",
     "test": "npm run mini:core && vitest run",
     "typecheck": "npm run mini:core && tsc --noEmit && tsc -p miniprogram/tsconfig.json --noEmit",
@@ -19,7 +20,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
+    "@tailwindcss/postcss": "^4.3.4",
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
