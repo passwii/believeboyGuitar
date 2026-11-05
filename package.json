@@ -10,6 +10,7 @@
     "typecheck": "npm run mini:core && tsc --noEmit && tsc -p miniprogram/tsconfig.json --noEmit",
     "mini:core": "tsc -p packages/guitar-core/tsconfig.build.json",
     "mini:check": "npm run mini:core && tsc -p miniprogram/tsconfig.json --noEmit",
+    "deploy:local": "bash scripts/deploy-local.sh",
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {

@@ -30,6 +30,8 @@ npm run build
 ```
 
 开发流程、提交规范与交付检查见 [DEVELOPMENT.md](./DEVELOPMENT.md)。
+生产部署、Caddy 与 GHCR 配置见 [docs/deployment.md](./docs/deployment.md)。
+本地主发布使用 `npm run deploy:local`。
 
 ## 内容约定
 
