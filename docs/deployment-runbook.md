@@ -76,8 +76,10 @@ Caddy
 | --- | --- |
 | `scripts/deploy-local.sh` | 本地主发布入口 |
 | `scripts/deploy-remote.sh` | Mac 与 Actions 共用的 VPS 部署逻辑 |
+| `scripts/verify-static-css.mjs` | 构建后检查 Tailwind 是否已编译 |
 | `Dockerfile` | 生成只包含 Nginx 和 `out/` 的运行镜像 |
 | `.dockerignore` | 防止源码、依赖和本地资料进入镜像 |
+| `postcss.config.mjs` | webpack 与 Turbopack 共用的 Tailwind 编译入口 |
 | `deploy/nginx.conf` | 静态文件、缓存、路由回退和健康检查 |
 | `deploy/docker-compose.yml` | VPS 单容器运行配置 |
 | `deploy/Caddyfile.example` | Caddy 站点块示例 |
@@ -95,19 +97,31 @@ Caddy
 npm run typecheck
 npm test
 npm run build -- --webpack
+npm run verify:css
 ```
 
 当前基线：
 
 ```text
 测试文件: 40
-测试用例: 443
+测试用例: 444
 静态页面: 12 个路由
 ```
 
-`next build` 使用 webpack 分支，是因为当前 macOS 沙箱下 Turbopack 的 webpack
-loader 子进程曾出现 `Operation not permitted` 端口绑定错误。Actions 备用路径也
-使用同一个 webpack 构建参数，避免两端产出方式不同。
+`next build` 使用 webpack 分支，是因为当前 macOS 沙箱下 Turbopack 曾出现
+`Operation not permitted` 端口绑定错误。Actions 备用路径也使用同一个 webpack
+参数，避免两端产出方式不同。
+
+Tailwind v4 通过 `postcss.config.mjs` 和 `@tailwindcss/postcss` 编译，因此 webpack
+与 Turbopack 开发模式使用同一条 CSS 管线。不要再把 Tailwind 配置成只挂在
+`turbopack.rules` 上，否则 `next build --webpack` 会把 `@theme`、`@tailwind`
+等指令原样发布，页面会只剩未套用样式的 HTML。
+
+`npm run verify:css` 会检查：
+
+- `out/_next/static/css/` 至少存在一份 CSS
+- CSS 中不再残留 `@theme` 或 `@tailwind utilities`
+- 关键布局和工具类，例如 `.shell`、`.home-hero`、`.text-ink-950` 已生成
 
 ### 4.2 静态导出
 
@@ -521,6 +535,29 @@ $uri → $uri.html → $uri/
 
 不能先匹配 `$uri/`，因为 Next.js 导出的详情页同时会生成同名辅助目录。先匹配目录
 会导致 `/practice/<slug>` 被错误 301 到带斜杠地址。
+
+### 10.7 页面只有文字，没有样式
+
+先检查构建产物：
+
+```bash
+npm run build -- --webpack
+npm run verify:css
+```
+
+如果 CSS 文件返回 `200`，但内容中仍有 `@theme` 或 `@tailwind utilities`，说明
+Tailwind 没有参与构建。确认项目根目录存在 `postcss.config.mjs`：
+
+```js
+export default {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+```
+
+并且 `app/globals.css` 以 `@import "tailwindcss";` 开头。不要再使用仅在
+Turbopack 生效的 `turbopack.rules` 作为唯一 Tailwind 处理方式。
 
 ## 11. 安全与维护
 

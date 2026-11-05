@@ -147,11 +147,12 @@ npm run deploy:local
 3. 必要时执行 `npm ci`。
 4. 执行 `npm run typecheck && npm test`。
 5. 执行 `npm run build -- --webpack`，静态导出到 `out/`。
-6. 根据 VPS 架构执行 `docker buildx build --platform ... --push`。
-7. 推送 `sha-<full commit sha>` 和 `latest` 标签到 GHCR。
-8. 通过 `scp` 同步 `deploy/docker-compose.yml`，不拉取整个仓库。
-9. 通过 SSH 执行 `scripts/deploy-remote.sh`：拉取、重启、健康检查。
-10. 健康检查失败且存在上一 SHA 镜像时，自动尝试回滚。
+6. 执行 `npm run verify:css`，拒绝发布未编译的 Tailwind CSS。
+7. 根据 VPS 架构执行 `docker buildx build --platform ... --push`。
+8. 推送 `sha-<full commit sha>` 和 `latest` 标签到 GHCR。
+9. 通过 `scp` 同步 `deploy/docker-compose.yml`，不拉取整个仓库。
+10. 通过 SSH 执行 `scripts/deploy-remote.sh`：拉取、重启、健康检查。
+11. 健康检查失败且存在上一 SHA 镜像时，自动尝试回滚。
 
 本地产生未跟踪文件时脚本会警告，但不会阻止发布；未跟踪文件不属于当前 commit。
 
@@ -231,3 +232,4 @@ curl -fsS http://127.0.0.1:8080/healthz
 - 健康检查失败：执行 `docker compose logs --tail=200 web` 和 `docker inspect believeboy-guitar`。
 - 证书失败：确认 DNS 已生效、`80`/`443` 可达，并查看 `journalctl -u caddy`。
 - 本地构建遇到 Turbopack `Operation not permitted`：部署脚本已固定使用 `next build --webpack`，与 Actions 备用构建保持一致。
+- 页面只有文字没有样式：运行 `npm run verify:css`；确认 `postcss.config.mjs` 使用 `@tailwindcss/postcss`，且不要只通过 `turbopack.rules` 编译 Tailwind。
