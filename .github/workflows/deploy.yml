@@ -1,8 +1,6 @@
 name: Deploy production
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -40,7 +38,7 @@ jobs:
         run: npm ci
 
       - name: Verify and build static export
-        run: npm run typecheck && npm test && npm run build
+        run: npm run typecheck && npm test && npm run build -- --webpack
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -117,21 +115,5 @@ jobs:
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
             -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" \
-            "IMAGE_TAG='$IMAGE_TAG' DEPLOY_PATH='$DEPLOY_PATH' APP_PORT='$APP_PORT' bash -s" <<'REMOTE_SCRIPT'
-          set -euo pipefail
-          cd "$DEPLOY_PATH"
-          docker compose pull web
-          docker compose up -d --no-build web
-
-          for attempt in $(seq 1 15); do
-            if curl -fsS --max-time 3 "http://127.0.0.1:${APP_PORT}/healthz" >/dev/null; then
-              echo "Deployment healthy after ${attempt} attempt(s)."
-              exit 0
-            fi
-            sleep 2
-          done
-
-          docker compose ps
-          docker compose logs --tail=100 web
-          exit 1
-          REMOTE_SCRIPT
+            "IMAGE_TAG='$IMAGE_TAG' DEPLOY_PATH='$DEPLOY_PATH' APP_PORT='$APP_PORT' bash -s" \
+            < scripts/deploy-remote.sh

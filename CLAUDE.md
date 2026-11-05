@@ -56,6 +56,6 @@ npm run typecheck && npm test && npm run build
 不要主动引入这些功能，除非使用者明确要求。
 
 **GitHub Actions 只用于生产部署，不做 PR 常规 CI。**
-生产发布流水线固定在 `.github/workflows/deploy.yml`：在 runner 上完成
-`npm run typecheck && npm test && npm run build`，推送 GHCR，再由 VPS 拉取运行镜像。
-这是部署要求，不改变“个人自用、验证以本地为主”的原则；不要扩展成 pull request CI。
+生产发布以本地 `npm run deploy:local` 为主路径：在 Mac 上完成校验、构建和 GHCR
+推送，再由 VPS 拉取运行镜像。`.github/workflows/deploy.yml` 仅保留
+`workflow_dispatch` 手动备用发布，不随 `main` push 自动部署，也不扩展成 pull request CI。

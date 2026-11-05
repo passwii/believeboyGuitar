@@ -2,7 +2,7 @@
 
 日期：2026-11-04
 
-状态：用户已批准
+状态：已由 `2026-11-05-local-first-vps-deployment-design.md` 取代
 
 范围：GitHub Actions 构建静态站点并发布到 GHCR，VPS 拉取镜像后由现有 Caddy 对外提供
 `guitar.believeboy.com`

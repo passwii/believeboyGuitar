@@ -1,5 +1,8 @@
 # VPS + GHCR 自动部署 Implementation Plan
 
+> 状态：基础镜像与远程部署已落地；发布触发方式已由
+> `docs/superpowers/specs/2026-11-05-local-first-vps-deployment-design.md` 调整。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 由 GitHub Actions 构建纯静态站点并推送 GHCR，VPS 只拉取运行镜像并由现有 Caddy 提供 `guitar.believeboy.com`。

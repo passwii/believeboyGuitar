@@ -54,9 +54,11 @@ npm run lint           # eslint
 
 ## 3. 本地验证与生产部署流水线
 
-**GitHub Actions 只用于生产部署。** `.github/workflows/deploy.yml` 在 `main`
-上执行现有门禁并部署 GHCR 镜像；它不承担 pull request 常规 CI。合并前仍以本地
-手工跑绿为准，不添加面向 pull request 的常规 CI。
+**GitHub Actions 只用于生产部署，并且只是手动备用；本地部署是生产主路径。**
+合并到 `main` 后运行 `npm run deploy:local`，由本地完成门禁、静态构建、GHCR
+推送和 VPS 健康检查。
+`.github/workflows/deploy.yml` 只保留 `workflow_dispatch`，不随 push 自动部署，
+不添加面向 pull request 的常规 CI。部署细节见 [docs/deployment.md](./docs/deployment.md)。
 
 合并门禁 = **本地手工跑绿**：
 
@@ -102,7 +104,7 @@ npm run mini:check && npx vitest run tests/miniprogram-*.test.ts
 - 修改练习条目、资料入口或主页数据时，先更新 `content/manifest.ts`；不要在别处硬编码目录。
 - 新增正文或交互 widget 时，遵守 `CLAUDE.md` 的语义标签、widget 登记和人工确认流程。
 - 音位由调弦与乐理推导；指法、音阶图、和弦图等易错内容必须由使用者核对。
-- 除 `.github/workflows/deploy.yml` 的生产发布外，不主动添加其他 Actions 或 PR CI。
+- 除 `.github/workflows/deploy.yml` 的手动备用发布外，不主动添加其他 Actions 或 PR CI。
 
 ## 6. 交付前自检
 

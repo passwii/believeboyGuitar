@@ -21,28 +21,22 @@ describe("生产运行镜像", () => {
 describe("GitHub Actions 生产发布", () => {
   const workflow = read(".github/workflows/deploy.yml");
 
-  it("只从 main 自动发布，并支持手动触发", () => {
+  it("只作为 main 的手动备用发布，不随 push 自动部署", () => {
     expect(workflow).toContain("workflow_dispatch:");
-    expect(workflow).toContain("branches: [main]");
+    expect(workflow).not.toContain("push:\n    branches:");
     expect(workflow).toContain("github.ref == 'refs/heads/main'");
   });
 
-  it("在 runner 上验证和构建，再把不可变标签推到 GHCR", () => {
-    expect(workflow).toContain("npm run typecheck && npm test && npm run build");
+  it("在 runner 上验证和构建，再调用共享远程部署脚本", () => {
+    expect(workflow).toContain(
+      "npm run typecheck && npm test && npm run build -- --webpack",
+    );
     expect(workflow).toContain("packages: write");
     expect(workflow).toContain("type=sha,format=long");
     expect(workflow).toContain("docker/build-push-action");
-    expect(workflow.indexOf("Build and push")).toBeLessThan(
-      workflow.indexOf("Deploy over SSH"),
-    );
-  });
-
-  it("使用系统 ssh，并在部署后检查健康端点", () => {
     expect(workflow).toContain("ssh ");
     expect(workflow).toContain("StrictHostKeyChecking=yes");
-    expect(workflow).toContain("/healthz");
-    expect(workflow).toContain("docker compose pull web");
-    expect(workflow).toContain("docker compose up -d --no-build web");
+    expect(workflow).toContain("scripts/deploy-remote.sh");
   });
 });
 
@@ -60,6 +54,37 @@ describe("VPS 运行配置", () => {
     expect(compose).toContain(
       "image: ghcr.io/passwii/believeboyguitar:${IMAGE_TAG:-latest}",
     );
+  });
+});
+
+describe("本地主发布", () => {
+  it("提供 npm 入口并拒绝部署未进入 main 的提交", () => {
+    const pkg = JSON.parse(read("package.json")) as {
+      scripts: Record<string, string>;
+    };
+    const script = read("scripts/deploy-local.sh");
+
+    expect(pkg.scripts["deploy:local"]).toBe("bash scripts/deploy-local.sh");
+    expect(script).toContain("git merge-base --is-ancestor");
+    expect(script).toContain("origin/main");
+    expect(script).toContain("DEPLOY_HOST");
+  });
+
+  it("本地构建、推送不可变镜像并调用共享部署脚本", () => {
+    const script = read("scripts/deploy-local.sh");
+    expect(script).toContain("npm run build -- --webpack");
+    expect(script).toContain("docker buildx build");
+    expect(script).toContain("--push");
+    expect(script).toContain("sha-$SHA");
+    expect(script).toContain("scripts/deploy-remote.sh");
+  });
+
+  it("共享远程脚本执行健康检查并支持 SHA 回滚", () => {
+    const script = read("scripts/deploy-remote.sh");
+    expect(script).toContain("docker compose pull web");
+    expect(script).toContain("docker compose up -d --no-build web");
+    expect(script).toContain("/healthz");
+    expect(script).toContain("Rolling back");
   });
 });
 
@@ -91,6 +116,8 @@ describe("部署手册", () => {
       "docker login ghcr.io",
       "caddy validate",
       "IMAGE_TAG=sha-",
+      "npm run deploy:local",
+      "workflow_dispatch",
     ]) {
       expect(doc).toContain(text);
     }

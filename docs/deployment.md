@@ -4,9 +4,26 @@
 
 ## 架构
 
-GitHub Actions 在 runner 上运行类型检查、测试和静态构建，再把 `out/` 与 Nginx
-打包成 `ghcr.io/passwii/believeboyguitar`。VPS 只拉取镜像并运行容器，现有 Caddy
-负责域名和 HTTPS。
+本地部署是主路径，GitHub Actions 是手动备用路径。两条路径都生成同一个极简
+Nginx 镜像，并调用同一份远程部署脚本。
+
+```text
+本地 Mac（主路径）
+  git main → typecheck → test → static build
+  → docker buildx --push
+  ↓
+GHCR: ghcr.io/passwii/believeboyguitar:sha-<commit>
+  ↓ SSH
+VPS: docker compose pull → restart → /healthz
+  ↓
+Caddy: guitar.believeboy.com → 127.0.0.1:8080
+
+GitHub Actions（备用路径）
+  workflow_dispatch → 相同校验与镜像 → 相同远程部署脚本
+```
+
+VPS 不 clone Git 仓库，不安装 Node.js，也不执行 `npm`、`next build` 或源码构建。
+VPS 只保存 Compose 文件、Caddy 配置、GHCR 只读凭据和 Docker 镜像。
 
 ## VPS 前提
 
@@ -15,6 +32,7 @@ GitHub Actions 在 runner 上运行类型检查、测试和静态构建，再把
 - 部署账号能执行 `docker compose`，推荐加入 `docker` 用户组。
 - `curl` 可供健康检查使用。
 - `80`、`443` 对公网开放；应用端口 `8080` 只监听回环地址。
+- VPS 架构为 `x86_64` 或 `arm64`；本地脚本会通过 `uname -m` 自动选择镜像平台。
 
 ## DNS 与 Caddy
 
@@ -33,16 +51,15 @@ GitHub Actions 在 runner 上运行类型检查、测试和静态构建，再把
    sudo systemctl reload caddy
    ```
 
-Caddy 会自动申请和续期证书。应用容器不处理 TLS。
+Caddy 自动申请和续期证书；应用容器不处理 TLS。
 
-## 首次准备
+## 首次准备 VPS
 
 ```bash
 sudo install -d -o "$USER" -g "$USER" -m 755 /opt/believeboy-guitar
-cd /opt/believeboy-guitar
 ```
 
-如果镜像保持私有，在 VPS 创建只读 GHCR token，并执行：
+镜像保持私有时，在 VPS 创建只具备 `read:packages` 的 GitHub token，并登录：
 
 ```bash
 read -rsp "GHCR read token: " GHCR_TOKEN
@@ -51,31 +68,96 @@ printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u passwii --password-stdin
 unset GHCR_TOKEN
 ```
 
-token 只授予 `read:packages`。不要把 token 写入 Compose、脚本或 shell 历史。
+凭据由 Docker 保存。不要把 token 写入 Compose、仓库或 shell 历史。
 
-## SSH 部署凭据
+## 首次准备本地 Mac
 
-在可信机器生成只用于 GitHub Actions 的密钥：
+### 1. 配置 SSH 别名
 
-```bash
-ssh-keygen -t ed25519 -C "github-actions-guitar" -f ~/.ssh/believeboy-guitar_deploy
+在 `~/.ssh/config` 增加或确认已有目标，例如：
+
+```sshconfig
+Host guitar-vps
+  HostName <VPS 地址>
+  User <部署账号>
+  Port 22
+  IdentityFile ~/.ssh/<部署私钥>
+  IdentitiesOnly yes
 ```
 
-把生成的 `.pub` 内容加入 VPS 部署账号的 `~/.ssh/authorized_keys`。私钥内容保存到
-GitHub Secret `SSH_PRIVATE_KEY`。
-
-生成 `SSH_KNOWN_HOSTS`：
+验证：
 
 ```bash
-ssh-keyscan -H guitar.believeboy.com
+ssh guitar-vps true
 ```
 
-使用非默认 SSH 端口时加上 `-p <port>`。核对 VPS 主机密钥指纹后，把完整输出保存到
-GitHub Secret `SSH_KNOWN_HOSTS`。
+### 2. 登录 GHCR 写入权限
 
-## GitHub Secrets
+本地需要能推送镜像的 GitHub token，授予 `read:packages` 和 `write:packages`：
 
-在仓库或 `production` Environment 配置：
+```bash
+read -rsp "GHCR write token: " GHCR_TOKEN
+echo
+printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u passwii --password-stdin
+unset GHCR_TOKEN
+```
+
+### 3. 创建本地部署配置
+
+```bash
+mkdir -p ~/.config/believeboy-guitar
+cp deploy/local.env.example ~/.config/believeboy-guitar/deploy.env
+chmod 600 ~/.config/believeboy-guitar/deploy.env
+$EDITOR ~/.config/believeboy-guitar/deploy.env
+```
+
+默认配置：
+
+```dotenv
+DEPLOY_HOST=guitar-vps
+DEPLOY_PATH=/opt/believeboy-guitar
+APP_PORT=8080
+```
+
+`DEPLOY_HOST` 必须是 SSH 别名。需要覆盖 VPS 架构检测时，再设置
+`DEPLOY_PLATFORM=linux/amd64` 或 `linux/arm64`。
+
+## 日常发布
+
+先把代码合入 `main` 并同步本地：
+
+```bash
+git switch main
+git pull --ff-only origin main
+```
+
+然后执行：
+
+```bash
+npm run deploy:local
+```
+
+脚本按以下顺序执行：
+
+1. 拒绝带未提交 tracked 改动的发布。
+2. 拉取 `origin/main`，要求当前 HEAD 必须精确等于最新 `origin/main`。
+3. 必要时执行 `npm ci`。
+4. 执行 `npm run typecheck && npm test`。
+5. 执行 `npm run build -- --webpack`，静态导出到 `out/`。
+6. 根据 VPS 架构执行 `docker buildx build --platform ... --push`。
+7. 推送 `sha-<full commit sha>` 和 `latest` 标签到 GHCR。
+8. 通过 `scp` 同步 `deploy/docker-compose.yml`，不拉取整个仓库。
+9. 通过 SSH 执行 `scripts/deploy-remote.sh`：拉取、重启、健康检查。
+10. 健康检查失败且存在上一 SHA 镜像时，自动尝试回滚。
+
+本地产生未跟踪文件时脚本会警告，但不会阻止发布；未跟踪文件不属于当前 commit。
+
+## GitHub Actions 备用发布
+
+`.github/workflows/deploy.yml` 不再随 `main` push 自动运行，只能在 Actions 页面
+手动运行 `Deploy production`，且只能从 `main` 触发。
+
+仓库或 `production` Environment 配置：
 
 | Secret | 内容 |
 | --- | --- |
@@ -93,16 +175,14 @@ GitHub Secret `SSH_KNOWN_HOSTS`。
 | `APP_PORT` | `8080` | VPS 回环端口，必须与 Caddy 一致 |
 | `DOCKER_PLATFORM` | `linux/amd64` | VPS 不是 x86_64 时改成 `linux/arm64` |
 
-## 发布
+生成 `SSH_KNOWN_HOSTS`：
 
-合并到 `main` 后，`.github/workflows/deploy.yml` 自动执行。也可在 Actions 页面手动
-运行 `Deploy production`。流水线依次：
+```bash
+ssh-keyscan -H guitar.believeboy.com
+```
 
-1. 运行 `npm ci`。
-2. 运行 `npm run typecheck && npm test && npm run build`。
-3. 推送 `sha-<full commit sha>` 与 `latest` 镜像。
-4. 同步 Compose 文件到 `DEPLOY_PATH`。
-5. 拉取 SHA 镜像、重启 `web`、检查 `/healthz`。
+使用非默认 SSH 端口时加上 `-p <port>`。核对 VPS 主机密钥指纹后，把完整输出保存
+到对应的 GitHub Secret。
 
 ## 部署后检查
 
@@ -116,9 +196,9 @@ curl -fsSI https://guitar.believeboy.com/
 
 浏览器确认首页、`/practice`、`/library`、`/metronome` 和 PWA 资源正常。
 
-## 回滚
+## 手动回滚
 
-在 Actions 历史中找到上一个成功版本的 commit SHA，在 VPS 上执行：
+自动回滚只在上一容器使用 `sha-*` 标签时生效。手动回滚命令：
 
 ```bash
 cd /opt/believeboy-guitar
@@ -131,8 +211,10 @@ curl -fsS http://127.0.0.1:8080/healthz
 
 ## 排障
 
-- `denied` 或 `manifest unknown`：在 VPS 重新登录 GHCR，确认 token 有 `read:packages`，并确认镜像名小写。
+- 本地脚本拒绝发布：检查 tracked 改动、当前分支和 `origin/main` 是否一致。
+- `denied` 或 `manifest unknown`：确认本地有 GHCR 写权限，VPS 有 `read:packages`，镜像名小写。
 - `permission denied` 访问 Docker：确认部署账号在 `docker` 组，并重新登录使其生效。
-- `Host key verification failed`：重新核对主机指纹并更新 `SSH_KNOWN_HOSTS`。
+- `Host key verification failed`：核对主机指纹并更新本地 SSH 配置；Actions 则更新 `SSH_KNOWN_HOSTS`。
 - 健康检查失败：执行 `docker compose logs --tail=200 web` 和 `docker inspect believeboy-guitar`。
 - 证书失败：确认 DNS 已生效、`80`/`443` 可达，并查看 `journalctl -u caddy`。
+- 本地构建遇到 Turbopack `Operation not permitted`：部署脚本已固定使用 `next build --webpack`，与 Actions 备用构建保持一致。
