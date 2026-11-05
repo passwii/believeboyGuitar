@@ -385,6 +385,33 @@ GitHub Actions → Deploy production → Run workflow → main
 
 该工作流不会随 `main` push 自动运行。
 
+前提是待发布提交已经进入 GitHub 上的 `main`。工作流看不到 Mac 上未提交或未推送
+的内容；如果 Mac 不可用，先在 GitHub 网页合并已经推送的 Pull Request。
+
+浏览器入口：
+
+```text
+https://github.com/passwii/believeboyGuitar/actions/workflows/deploy.yml
+```
+
+打开后选择 **Deploy production** → **Run workflow** → Branch 选择 `main` →
+再次点击 **Run workflow**。工作流没有输入参数。
+
+也可以在任意已登录 GitHub CLI 的机器上执行：
+
+```bash
+gh auth status
+gh workflow run deploy.yml --ref main --repo passwii/believeboyGuitar
+gh run list --workflow deploy.yml --repo passwii/believeboyGuitar --limit 3
+gh run watch <run-id> --repo passwii/believeboyGuitar --exit-status
+```
+
+失败时查看失败日志：
+
+```bash
+gh run view <run-id> --repo passwii/believeboyGuitar --log-failed
+```
+
 需要在 GitHub 仓库或 `production` Environment 配置：
 
 | Secret | 内容 |
