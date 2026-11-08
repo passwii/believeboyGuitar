@@ -77,6 +77,8 @@ Caddy
 | `scripts/deploy-local.sh` | 本地主发布入口 |
 | `scripts/deploy-remote.sh` | Mac 与 Actions 共用的 VPS 部署逻辑 |
 | `scripts/verify-static-css.mjs` | 构建后检查 Tailwind 是否已编译 |
+| `scripts/verify-static-export.mjs` | 构建后检查 Pages 路由、PWA 资源和缓存头产物 |
+| `public/_headers` | Cloudflare Pages 缓存头契约 |
 | `Dockerfile` | 生成只包含 Nginx 和 `out/` 的运行镜像 |
 | `.dockerignore` | 防止源码、依赖和本地资料进入镜像 |
 | `postcss.config.mjs` | webpack 与 Turbopack 共用的 Tailwind 编译入口 |
@@ -98,13 +100,14 @@ npm run typecheck
 npm test
 npm run build -- --webpack
 npm run verify:css
+npm run verify:export
 ```
 
 当前基线：
 
 ```text
-测试文件: 40
-测试用例: 444
+测试文件: 41
+测试用例: 450
 静态页面: 12 个路由
 ```
 
@@ -122,6 +125,10 @@ Tailwind v4 通过 `postcss.config.mjs` 和 `@tailwindcss/postcss` 编译，因�
 - `out/_next/static/css/` 至少存在一份 CSS
 - CSS 中不再残留 `@theme` 或 `@tailwind utilities`
 - 关键布局和工具类，例如 `.shell`、`.home-hero`、`.text-ink-950` 已生成
+
+`npm run verify:export` 会检查关键路由 HTML、`404.html`、PWA 资源、`_next/static`
+以及 `out/_headers` 与 `public/_headers` 是否一致。Cloudflare Pages 上线前的路由与
+响应头预检见 [cloudflare-pages.md](./cloudflare-pages.md)；当前生产仍是 VPS + Nginx。
 
 ### 4.2 静态导出
 
@@ -215,12 +222,13 @@ npm run deploy:local
 3. 必要时执行 `npm ci`
 4. 执行类型检查和测试
 5. 执行 webpack 静态构建
-6. 通过 SSH 检查 VPS 架构
-7. 构建 `linux/amd64` 镜像
-8. 推送 SHA 标签和 `latest` 到 GHCR
-9. 把 Compose 文件复制到 VPS
-10. 在 VPS 拉取新镜像并替换容器
-11. 每两秒检查一次 `/healthz`，最多 15 次
+6. 检查 Tailwind CSS 和静态导出路由/PWA/缓存头产物
+7. 通过 SSH 检查 VPS 架构
+8. 构建 `linux/amd64` 镜像
+9. 推送 SHA 标签和 `latest` 到 GHCR
+10. 把 Compose 文件复制到 VPS
+11. 在 VPS 拉取新镜像并替换容器
+12. 每两秒检查一次 `/healthz`，最多 15 次
 
 成功输出示例：
 
@@ -237,6 +245,8 @@ Deployed https://guitar.believeboy.com from sha-<commit>
 npm run typecheck
 npm test
 npm run build -- --webpack
+npm run verify:css
+npm run verify:export
 ```
 
 只构建 Docker 镜像、不推送：

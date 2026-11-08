@@ -73,6 +73,7 @@ npm run typecheck
 npm test
 npm run build -- --webpack
 npm run verify:css
+npm run verify:export
 
 IMAGE_TAG="sha-$SHA"
 echo "Building $IMAGE_NAME:$IMAGE_TAG for $PLATFORM..."

@@ -39,6 +39,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Cloudflare Pages local emulator
+.wrangler/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,0 +1,13 @@
+# Cloudflare Pages cache contract.
+#
+# Pages already revalidates HTML and other unlisted static files. These rules
+# preserve the production Nginx behavior for PWA updates and Next.js assets.
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

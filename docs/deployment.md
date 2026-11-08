@@ -5,6 +5,10 @@
 日常构建、发布、检查和回滚的详细操作见
 [deployment-runbook.md](./deployment-runbook.md)。
 
+Cloudflare Pages 的静态路由与 `_headers` 上线前契约见
+[cloudflare-pages.md](./cloudflare-pages.md)。当前生产仍是 VPS + Nginx，该文档不代表
+Cloudflare 已经上线。
+
 ## 架构
 
 本地部署是主路径，GitHub Actions 是手动备用路径。两条路径都生成同一个极简
@@ -148,11 +152,12 @@ npm run deploy:local
 4. 执行 `npm run typecheck && npm test`。
 5. 执行 `npm run build -- --webpack`，静态导出到 `out/`。
 6. 执行 `npm run verify:css`，拒绝发布未编译的 Tailwind CSS。
-7. 根据 VPS 架构执行 `docker buildx build --platform ... --push`。
-8. 推送 `sha-<full commit sha>` 和 `latest` 标签到 GHCR。
-9. 通过 `scp` 同步 `deploy/docker-compose.yml`，不拉取整个仓库。
-10. 通过 SSH 执行 `scripts/deploy-remote.sh`：拉取、重启、健康检查。
-11. 健康检查失败且存在上一 SHA 镜像时，自动尝试回滚。
+7. 执行 `npm run verify:export`，检查 Pages 路由、PWA 资源和缓存头产物。
+8. 根据 VPS 架构执行 `docker buildx build --platform ... --push`。
+9. 推送 `sha-<full commit sha>` 和 `latest` 标签到 GHCR。
+10. 通过 `scp` 同步 `deploy/docker-compose.yml`，不拉取整个仓库。
+11. 通过 SSH 执行 `scripts/deploy-remote.sh`：拉取、重启、健康检查。
+12. 健康检查失败且存在上一 SHA 镜像时，自动尝试回滚。
 
 本地产生未跟踪文件时脚本会警告，但不会阻止发布；未跟踪文件不属于当前 commit。
 
@@ -279,3 +284,4 @@ curl -fsS http://127.0.0.1:8080/healthz
 - 证书失败：确认 DNS 已生效、`80`/`443` 可达，并查看 `journalctl -u caddy`。
 - 本地构建遇到 Turbopack `Operation not permitted`：部署脚本已固定使用 `next build --webpack`，与 Actions 备用构建保持一致。
 - 页面只有文字没有样式：运行 `npm run verify:css`；确认 `postcss.config.mjs` 使用 `@tailwindcss/postcss`，且不要只通过 `turbopack.rules` 编译 Tailwind。
+- 静态导出缺路由或缓存头文件：运行 `npm run verify:export`，按报错检查 `out/` 与 `public/_headers`；Cloudflare Pages 上线前的完整检查见 `docs/cloudflare-pages.md`。

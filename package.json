@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "npm run mini:core && next build",
     "verify:css": "node scripts/verify-static-css.mjs",
+    "verify:export": "node scripts/verify-static-export.mjs",
     "lint": "eslint",
     "test": "npm run mini:core && vitest run",
     "typecheck": "npm run mini:core && tsc --noEmit && tsc -p miniprogram/tsconfig.json --noEmit",
