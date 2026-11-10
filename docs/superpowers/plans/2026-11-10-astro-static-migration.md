@@ -131,13 +131,13 @@ export default defineConfig({
 
 ## Task 5：迁移交互页面与 React islands
 
-**Files:** Create astro/pages/metronome.astro、astro/pages/library/fretboard-scale.astro、astro/pages/tools/metronome.astro；Modify components/Metronome.tsx、components/FretboardScale.tsx、tests/pwa.test.ts、tests/install-prompt.test.ts、tests/practice-week-picker.test.ts。
+**Files:** Create astro/pages/metronome.astro、astro/pages/library/fretboard-scale.astro、astro/pages/tools/metronome.astro；Modify astro/layouts/BaseLayout.astro、components/Metronome.tsx、components/FretboardScale.tsx、tests/astro-routes.test.ts、tests/pwa.test.ts、tests/install-prompt.test.ts、tests/practice-week-picker.test.ts。
 
-- [ ] Step 1：测试先断言四入口从 Astro SiteNav 输出；metronome/fretboard 路由存在；旧 /tools/metronome 页保留链接和 meta refresh。
-- [ ] Step 2：RED。Run: npm test -- tests/pwa.test.ts tests/astro-routes.test.ts。Expected: 新路线和导航文件缺失时失败。
-- [ ] Step 3：主节拍器页静态渲染标题、MetronomeGuide；Metronome 使用 client:load，InstallPrompt 使用 client:load。指板页使用 FretboardScale client:load。旧路由保留无需 JS 的兼容页。
-- [ ] Step 4：把 Metronome.tsx、FretboardScale.tsx 的 next/link 替换成 a href；保留所有 use client 指令与旧 React SiteNav/SiteFooter，确保共享 Next fallback 在 Task 7 前仍可构建。Astro 的水合由 client:* directive 控制；PracticeEntryPicker 已在 Task 4 接入。
-- [ ] Step 5：GREEN。Run: npm test -- tests/pwa.test.ts tests/astro-routes.test.ts tests/install-prompt.test.ts tests/practice-week-picker.test.ts tests/metronome-a11y.test.ts tests/metronome-keyboard.test.ts tests/fretboard-scale.test.ts。Expected: 组件纯逻辑与键盘/可访问性合同通过。
+- [x] Step 1：测试先断言四入口从 Astro SiteNav 输出；metronome/fretboard 路由存在；旧 /tools/metronome 页保留链接、meta refresh 与 /metronome canonical。
+- [x] Step 2：RED。Run: npm test -- tests/pwa.test.ts tests/astro-routes.test.ts。Expected: 新路线和导航文件缺失时失败。
+- [x] Step 3：主节拍器页静态渲染标题、MetronomeGuide；Metronome 使用 client:load，InstallPrompt 使用 client:load。指板页使用 FretboardScale client:load。旧路由保留无需 JS 的兼容页。
+- [x] Step 4：把 Metronome.tsx、FretboardScale.tsx 的 next/link 替换成 a href；保留所有 use client 指令与旧 React SiteNav/SiteFooter，确保共享 Next fallback 在 Task 7 前仍可构建。Astro 的水合由 client:* directive 控制；PracticeEntryPicker 已在 Task 4 接入。
+- [x] Step 5：GREEN。Run: npm test -- tests/pwa.test.ts tests/astro-routes.test.ts tests/install-prompt.test.ts tests/practice-week-picker.test.ts tests/metronome-a11y.test.ts tests/metronome-keyboard.test.ts tests/fretboard-scale.test.ts。Expected: 组件纯逻辑与键盘/可访问性合同通过。
 - [ ] Step 6：Commit：feat(astro): hydrate only interactive practice tools。
 
 ## Task 6：迁移 PWA manifest 和 Service Worker

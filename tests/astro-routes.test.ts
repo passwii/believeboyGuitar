@@ -7,6 +7,9 @@ const requiredPages = [
   "astro/pages/index.astro",
   "astro/pages/practice/index.astro",
   "astro/pages/library/index.astro",
+  "astro/pages/metronome.astro",
+  "astro/pages/library/fretboard-scale.astro",
+  "astro/pages/tools/metronome.astro",
   "astro/pages/404.astro",
 ];
 
@@ -71,5 +74,32 @@ describe("Astro static route shell", () => {
     const picker = readFileSync(root + "/components/PracticeEntryPicker.tsx", "utf8");
     expect(picker).not.toContain("next/link");
     expect(picker).toContain("<a");
+  });
+
+  it("maps the interactive tool pages to React islands and keeps the legacy path", () => {
+    const metronomePath = root + "/astro/pages/metronome.astro";
+    const fretboardPath = root + "/astro/pages/library/fretboard-scale.astro";
+    const legacyPath = root + "/astro/pages/tools/metronome.astro";
+    for (const path of [metronomePath, fretboardPath, legacyPath]) {
+      expect(existsSync(path)).toBe(true);
+    }
+    if (![metronomePath, fretboardPath, legacyPath].every(existsSync)) return;
+
+    const metronome = read("astro/pages/metronome.astro");
+    const fretboard = read("astro/pages/library/fretboard-scale.astro");
+    const legacy = read("astro/pages/tools/metronome.astro");
+    expect(metronome).toContain("<Metronome client:load");
+    expect(metronome).toContain("<InstallPrompt client:load");
+    expect(metronome).toContain("MetronomeGuide");
+    expect(fretboard).toContain("<FretboardScale client:load");
+    expect(legacy).toContain("http-equiv=\"refresh\"");
+    expect(legacy).toContain("href=\"/metronome\"");
+    expect(legacy).toContain("canonical=\"/metronome\"");
+  });
+
+  it("keeps hydrated shared tools independent from the Next router", () => {
+    for (const file of ["components/Metronome.tsx", "components/FretboardScale.tsx"]) {
+      expect(read(file)).not.toContain("next/link");
+    }
   });
 });

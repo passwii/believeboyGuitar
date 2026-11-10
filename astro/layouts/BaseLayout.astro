@@ -9,11 +9,13 @@ import "@/content/content.css";
 interface Props {
   title?: string;
   description?: string;
+  canonical?: string;
 }
 
 const {
   title,
   description = "个人电吉他练习站：周练、独立练习、指板音阶与节拍器。",
+  canonical,
 } = Astro.props;
 const documentTitle = title ? title + " · 电吉他练习站" : "电吉他练习站";
 
@@ -43,6 +45,7 @@ const pathname = canonicalPath(Astro.url.pathname);
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    {canonical && <link rel="canonical" href={canonical} />}
     <title>{documentTitle}</title>
     <script is:inline set:html={INSTALL_CAPTURE_SCRIPT}></script>
   </head>

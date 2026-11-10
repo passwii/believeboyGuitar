@@ -1,0 +1,9 @@
+---
+import { FretboardScale } from "@/components/FretboardScale";
+import BaseLayout from "@/astro/layouts/BaseLayout.astro";
+---
+<BaseLayout title="指板音阶">
+  <main class="shell flex-1 py-4 sm:py-8">
+    <FretboardScale client:load />
+  </main>
+</BaseLayout>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BpmDial } from "@/components/BpmDial";
 import { TempoWave } from "@/components/TempoWave";
@@ -183,14 +182,14 @@ function MobileMetronomeView({
             />
             {status}
           </p>
-          <Link
+          <a
             href="/"
             aria-label="返回首页"
             title="返回首页"
             className="grid size-11 place-items-center rounded-full border border-rule/80 bg-surface/70 text-ink-700"
           >
             <Icon name="home" className="size-4" />
-          </Link>
+          </a>
         </div>
 
         <ol className="mt-2 flex gap-1.5" aria-hidden="true">

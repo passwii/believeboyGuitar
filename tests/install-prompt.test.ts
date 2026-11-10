@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -29,7 +29,8 @@ const dial = read("components/BpmDial.tsx");
 const nav = read("astro/components/SiteNav.astro");
 const globals = read("astro/styles/global.css");
 const layout = read("astro/layouts/BaseLayout.astro");
-  const metronomePage = read("app/metronome/page.tsx");
+const metronomePagePath = root + "/astro/pages/metronome.astro";
+const metronomePage = existsSync(metronomePagePath) ? read("astro/pages/metronome.astro") : "";
 const installPrompt = read("components/InstallPrompt.tsx");
 
 describe("调速交互不触发页面滚动（BLF-1448）", () => {
@@ -120,7 +121,7 @@ describe("安装入口：为什么之前「PW 没触发」", () => {
    * 入口不在。这组测试锁住「入口真的存在且会调 prompt()」。
    */
   it("页面里真的挂了安装入口", () => {
-    expect(metronomePage).toContain("<InstallPrompt />");
+    expect(metronomePage).toContain("<InstallPrompt client:load");
   });
 
   it("点击会调用 deferred prompt 的 prompt()，并等 userChoice 落定", () => {

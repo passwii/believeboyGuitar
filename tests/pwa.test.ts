@@ -25,7 +25,7 @@ describe("四入口 PWA", () => {
   });
 
   it("顶层导航只有四个入口", () => {
-    const nav = read("components/SiteNav.tsx");
+    const nav = read("astro/components/SiteNav.astro");
     expect(nav.match(/label: "/g) ?? []).toHaveLength(4);
     expect(nav).toContain('href: "/practice"');
     expect(nav).toContain('href: "/library"');
