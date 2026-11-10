@@ -77,7 +77,7 @@ describe("Astro static configuration", () => {
 ~~~
 
 - [ ] Step 2：RED。Run: npm test -- tests/astro-config.test.ts。Expected: 缺少 astro.config.mjs 与 scripts 的断言失败。
-- [ ] Step 3：安装工具。Run: npm install astro @astrojs/react && npm install --save-dev @astrojs/check。保留 Next 包直至所有旧 imports/路由已迁完。
+- [ ] Step 3：安装兼容当前 React 19 的工具。Run: npm install --save-dev astro@^6.4.8 @astrojs/react@^5.0.7 @astrojs/check --cache ./.npm-cache --maxsockets=1。Astro 与 integration 是 build-time 工具；保留 Next 包直至所有旧 imports/路由已迁完。
 - [ ] Step 4：写 astro.config.mjs，内容如下。
 
 ~~~js
