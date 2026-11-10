@@ -120,23 +120,23 @@ export default defineConfig({
 
 ## Task 4：迁移练习详情与 HTML widget
 
-**Files:** Create astro/pages/practice/[slug].astro；Modify tests/astro-routes.test.ts；Reuse content/manifest.ts、content/lessons/*.html、content/widgets.ts、lib/content-sections.ts、lib/content-headings.ts、lib/sanitize-content.ts、components/LessonWidget.tsx。
+**Files:** Create astro/pages/practice/[slug].astro；Modify components/PracticeEntryPicker.tsx、tests/astro-routes.test.ts；Reuse content/manifest.ts、content/lessons/*.html、content/widgets.ts、lib/content-sections.ts、lib/content-headings.ts、lib/sanitize-content.ts、components/LessonWidget.tsx。
 
-- [ ] Step 1：测试首先要求每个 practiceEntries slug 都有匹配 HTML，页面通过 getStaticPaths 枚举 entries，使用 sanitizer/heading ids/section splitter 与 LessonWidget。
-- [ ] Step 2：RED。Run: npm test -- tests/astro-routes.test.ts tests/content.test.ts tests/content-sections.test.ts。Expected: Astro detail route 不存在，路由断言失败；原内容一致性测试继续通过。
-- [ ] Step 3：在 astro/pages/practice/[slug].astro 以 import.meta.glob("../../../content/lessons/*.html", { eager: true, query: "?raw", import: "default" }) 载入原始 HTML。getStaticPaths 返回每个 entry 的 params.slug 与 props.entry。
-- [ ] Step 4：构建期按 slug 读取 HTML，顺序调用 sanitizeContentHtml、addLessonHeadingIds、splitContentSections；prose 使用 set:html 注入清理后的 HTML，widget 使用 LessonWidget 的 React integration，并按页面位置使用 client:visible。
-- [ ] Step 5：GREEN。Run: npm test -- tests/astro-routes.test.ts tests/content.test.ts tests/content-sections.test.ts tests/sanitize-content.test.ts && npm run astro:build。Expected: 每个 manifest slug 生成扁平 .html 文件；正文和 widget 顺序正确，未登记 widget/违规 HTML 仍失败。
-- [ ] Step 6：Commit：feat(astro): render manifest-driven practice pages。
+- [x] Step 1：测试首先要求每个 practiceEntries slug 都有匹配 HTML，页面通过 getStaticPaths 枚举 entries，使用 sanitizer/heading ids/section splitter 与 LessonWidget；同时要求 PracticeEntryPicker 可在 Astro React island 中水合，不依赖 Next router。
+- [x] Step 2：RED。Run: npm test -- tests/astro-routes.test.ts tests/content.test.ts tests/content-sections.test.ts。Expected: Astro detail route 不存在且 picker 仍导入 next/link，合同测试失败；原内容一致性测试继续通过。
+- [x] Step 3：在 astro/pages/practice/[slug].astro 以 import.meta.glob("../../../content/lessons/*.html", { eager: true, query: "?raw", import: "default" }) 载入原始 HTML。getStaticPaths 返回每个 entry 的 params.slug 与 props.entry。
+- [x] Step 4：构建期按 slug 读取 HTML，顺序调用 sanitizeContentHtml、addLessonHeadingIds、splitContentSections；prose 使用 set:html 注入清理后的 HTML，widget 使用 LessonWidget 的 React integration 并按位置 client:visible；PracticeEntryPicker 使用 client:load，组件内部 next/link 换成标准 a href，保留 use client 以维持 Next fallback。
+- [x] Step 5：GREEN。Run: npm test -- tests/astro-routes.test.ts tests/content.test.ts tests/content-sections.test.ts tests/sanitize-content.test.ts tests/practice-week-picker.test.ts && npm run astro:check && npm run astro:build。Expected: 每个 manifest slug 生成扁平 .html 文件；正文、widget、picker 水合顺序正确，未登记 widget/违规 HTML 仍失败。
+- [x] Step 6：Commit：feat(astro): render manifest-driven practice pages。
 
 ## Task 5：迁移交互页面与 React islands
 
-**Files:** Create astro/pages/metronome.astro、astro/pages/library/fretboard-scale.astro、astro/pages/tools/metronome.astro；Modify components/Metronome.tsx、components/FretboardScale.tsx、components/PracticeEntryPicker.tsx、tests/pwa.test.ts、tests/install-prompt.test.ts、tests/practice-week-picker.test.ts。
+**Files:** Create astro/pages/metronome.astro、astro/pages/library/fretboard-scale.astro、astro/pages/tools/metronome.astro；Modify components/Metronome.tsx、components/FretboardScale.tsx、tests/pwa.test.ts、tests/install-prompt.test.ts、tests/practice-week-picker.test.ts。
 
 - [ ] Step 1：测试先断言四入口从 Astro SiteNav 输出；metronome/fretboard 路由存在；旧 /tools/metronome 页保留链接和 meta refresh。
 - [ ] Step 2：RED。Run: npm test -- tests/pwa.test.ts tests/astro-routes.test.ts。Expected: 新路线和导航文件缺失时失败。
 - [ ] Step 3：主节拍器页静态渲染标题、MetronomeGuide；Metronome 使用 client:load，InstallPrompt 使用 client:load。指板页使用 FretboardScale client:load。旧路由保留无需 JS 的兼容页。
-- [ ] Step 4：把 Metronome.tsx、FretboardScale.tsx、PracticeEntryPicker.tsx 的 next/link 替换成 a href；保留所有 use client 指令与旧 React SiteNav/SiteFooter，确保共享 Next fallback 在 Task 7 前仍可构建。Astro 的水合由 client:* directive 控制；PracticeEntryPicker 保持 React island，音频和算法 lib 不改。
+- [ ] Step 4：把 Metronome.tsx、FretboardScale.tsx 的 next/link 替换成 a href；保留所有 use client 指令与旧 React SiteNav/SiteFooter，确保共享 Next fallback 在 Task 7 前仍可构建。Astro 的水合由 client:* directive 控制；PracticeEntryPicker 已在 Task 4 接入。
 - [ ] Step 5：GREEN。Run: npm test -- tests/pwa.test.ts tests/astro-routes.test.ts tests/install-prompt.test.ts tests/practice-week-picker.test.ts tests/metronome-a11y.test.ts tests/metronome-keyboard.test.ts tests/fretboard-scale.test.ts。Expected: 组件纯逻辑与键盘/可访问性合同通过。
 - [ ] Step 6：Commit：feat(astro): hydrate only interactive practice tools。
 

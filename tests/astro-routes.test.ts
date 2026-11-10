@@ -56,4 +56,20 @@ describe("Astro static route shell", () => {
     expect(home).toContain("libraryEntries.length");
     expect(home).not.toContain("指板音阶 · 1 份");
   });
+
+  it("generates lesson pages from manifest entries and preserves the content pipeline", () => {
+    const routePath = root + "/astro/pages/practice/[slug].astro";
+    expect(existsSync(routePath)).toBe(true);
+    if (!existsSync(routePath)) return;
+    const route = read("astro/pages/practice/[slug].astro");
+    for (const contract of ["getStaticPaths", "practiceEntries", "import.meta.glob", "sanitizeContentHtml", "addLessonHeadingIds", "splitContentSections", "LessonWidget", "PracticeEntryPicker"]) {
+      expect(route).toContain(contract);
+    }
+  });
+
+  it("keeps the hydrated practice picker independent of the Next router", () => {
+    const picker = readFileSync(root + "/components/PracticeEntryPicker.tsx", "utf8");
+    expect(picker).not.toContain("next/link");
+    expect(picker).toContain("<a");
+  });
 });
