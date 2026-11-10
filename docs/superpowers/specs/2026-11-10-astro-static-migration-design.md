@@ -60,7 +60,7 @@ Cloudflare Pages Git integration 会为 PR 创建预览部署，并从生产分�
 - /manifest.webmanifest 保持 id、start_url、scope、图标、快捷入口和当前主题色；图标仍放在 public/icons/。
 - 保留 head 中最先运行的 beforeinstallprompt 捕获脚本，确保它在其他延迟脚本与 React 水合前执行。
 - /sw.js 的必需壳仍是 / 与 /metronome；manifest 和图标仍作为可选壳。
-- 移除 Service Worker 对 /_next/static/ 的假设。构建壳页面时从 script/link URL 收集 Astro build 实际生成的同源 CSS/JS 资源；运行期按 Astro 哈希资源路径缓存。壳资源缺失仍让新 Worker 安装失败，保留旧 Worker 的缓存回退保障。
+- 移除 Service Worker 对 /_next/static/ 的假设。构建壳页面时从 script src、stylesheet href，以及 astro-island component-url/renderer-url 收集 Astro build 实际生成的同源 CSS/JS 资源；运行期按 Astro 哈希资源路径缓存。壳资源缺失仍让新 Worker 安装失败，保留旧 Worker 的缓存回退保障。
 - 更新 Service Worker cache version；保留在线导航 network-first、静态构建资源 cache-first、图标与 manifest stale-while-revalidate，以及旧节拍器地址离线映射。
 - Pages 的 _headers 保留 /sw.js 与 manifest 的重新验证策略，并让不可变构建资源长期缓存。发布后确认 Cloudflare 输出的 Content-Type 与缓存头。
 

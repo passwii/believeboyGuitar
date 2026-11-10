@@ -1,0 +1,29 @@
+<script>
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  if (!import.meta.env.PROD) {
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) =>
+        Promise.all(registrations.map((registration) => registration.unregister())),
+      )
+      .catch(() => {});
+    return;
+  }
+
+  const register = () => {
+    void navigator.serviceWorker
+      .register("/sw.js", { scope: "/", updateViaCache: "none" })
+      .catch(() => {});
+  };
+
+  if (document.readyState === "complete") {
+    register();
+    return;
+  }
+  window.addEventListener("load", register, { once: true });
+}
+
+registerServiceWorker();
+</script>

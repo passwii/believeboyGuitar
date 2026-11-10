@@ -1,6 +1,6 @@
 ---
 import { INSTALL_CAPTURE_SCRIPT } from "@/lib/install-prompt";
-import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import ServiceWorkerRegistration from "@/astro/components/ServiceWorkerRegistration.astro";
 import SiteNav from "@/astro/components/SiteNav.astro";
 import SiteFooter from "@/astro/components/SiteFooter.astro";
 import "@/astro/styles/global.css";
@@ -53,6 +53,6 @@ const pathname = canonicalPath(Astro.url.pathname);
     <SiteNav pathname={pathname} />
     <slot />
     <SiteFooter pathname={pathname} />
-    <ServiceWorkerRegistration client:load />
+    <ServiceWorkerRegistration />
   </body>
 </html>

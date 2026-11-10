@@ -144,13 +144,13 @@ export default defineConfig({
 
 **Files:** Create lib/pwa-manifest.ts、astro/pages/manifest.webmanifest.ts、astro/components/ServiceWorkerRegistration.astro、public/_headers、tests/service-worker.test.ts；Modify public/sw.js、tests/pwa.test.ts、BaseLayout.astro、app/manifest.ts；保留 components/ServiceWorkerRegistration.tsx 至 Task 7。
 
-- [ ] Step 1：先写 PWA 测试：使用 existsSync 断言 lib/pwa-manifest.ts 与 manifest endpoint 将存在，检查 Worker 必需壳仍为 / 与 /metronome、旧路由仍映射，并通过 VM harness 验证含 /_astro/app.js 与 /_astro/site.css 的 shell HTML 会发现两个资源。不要在新模块创建前静态 import 它，避免把 module-not-found 当作预期 RED。
-- [ ] Step 2：RED。Run: npm test -- tests/pwa.test.ts tests/service-worker.test.ts。Expected: manifest 路径仍指向 Next，Worker 仍只处理 /_next/static，新增 Astro 资源测试失败。
-- [ ] Step 3：将 manifest object 移到 lib/pwa-manifest.ts；静态 endpoint 输出 application/manifest+json；BaseLayout 链接根路径 manifest 与 icons，保留主题色和 Apple metadata。让 app/manifest.ts 继续从 lib/pwa-manifest.ts 返回 Next-compatible metadata route 数据；更新 tests/pwa.test.ts 从共享模块导入数据。
-- [ ] Step 4：Worker 的 buildAssets 解析 shell HTML 的 script src 与 stylesheet href，只缓存同源 CSS/JS；fetch cache branch 覆盖 Astro 哈希目录；更新 VERSION。必需壳抓取失败时删除新缓存并抛错，使旧 worker 保持服务。
-- [ ] Step 5：将 Astro 的 Service Worker 注册迁到 astro/components/ServiceWorkerRegistration.astro；仅在生产构建注册 /sw.js，监听 window load，保留 scope=/ 与 updateViaCache=none。保留原 components/ServiceWorkerRegistration.tsx 给旧 Next app/layout.tsx，等 Task 7 删除 Next app 后再移除。
-- [ ] Step 6：在 public/_headers 为 /sw.js 设置 no-cache/no-store/must-revalidate，为 manifest 设置 no-cache，为 /_astro/* 设置一年 immutable。
-- [ ] Step 7：GREEN。Run: npm test -- tests/pwa.test.ts tests/service-worker.test.ts tests/install-prompt.test.ts。Expected: manifest、资源发现、旧路径、注册条件和捕获时序通过。
+- [x] Step 1：先写 PWA 测试：使用 existsSync 断言 lib/pwa-manifest.ts 与 manifest endpoint 将存在，检查 Worker 必需壳仍为 / 与 /metronome、旧路由仍映射，并通过 VM harness 验证含 astro-island component-url/renderer-url 与 stylesheet href 的 HTML 会发现 Astro JS/CSS 资源并跳过外站资源。不要在新模块创建前静态 import 它，避免把 module-not-found 当作预期 RED。
+- [x] Step 2：RED。Run: npm test -- tests/pwa.test.ts tests/service-worker.test.ts。Expected: manifest 路径仍指向 Next，Worker 仍只处理 /_next/static，新增 Astro 资源测试失败。
+- [x] Step 3：将 manifest object 移到 lib/pwa-manifest.ts；静态 endpoint 输出 application/manifest+json；BaseLayout 链接根路径 manifest 与 icons，保留主题色和 Apple metadata。让 app/manifest.ts 继续从 lib/pwa-manifest.ts 返回 Next-compatible metadata route 数据；更新 tests/pwa.test.ts 从共享模块导入数据。
+- [x] Step 4：Worker 的 buildAssets 解析 shell HTML 的 script src、stylesheet href 与 astro-island component-url/renderer-url，只缓存同源 /_astro/*.js|css；fetch cache branch 覆盖 Astro 哈希目录；更新 VERSION。必需壳抓取失败时删除新缓存并抛错，使旧 worker 保持服务。
+- [x] Step 5：将 Astro 的 Service Worker 注册迁到 astro/components/ServiceWorkerRegistration.astro；仅在生产构建注册 /sw.js，监听 window load，保留 scope=/ 与 updateViaCache=none。保留原 components/ServiceWorkerRegistration.tsx 给旧 Next app/layout.tsx，等 Task 7 删除 Next app 后再移除。
+- [x] Step 6：在 public/_headers 为 /sw.js 设置 no-cache/no-store/must-revalidate，为 manifest 设置 no-cache，为 /_astro/* 设置一年 immutable。
+- [x] Step 7：GREEN。Run: npm test -- tests/pwa.test.ts tests/service-worker.test.ts tests/install-prompt.test.ts。Expected: manifest、资源发现、旧路径、注册条件和捕获时序通过。
 - [ ] Step 8：Commit：fix(pwa): preserve offline shell on Astro assets。
 
 ## Task 7：切换默认 build、移除 Next 并保留 VPS fallback
