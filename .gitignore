@@ -13,8 +13,9 @@
 # testing
 /coverage
 
-# next.js
+# framework generated files
 /.next/
+/.astro/
 /out/
 
 # production

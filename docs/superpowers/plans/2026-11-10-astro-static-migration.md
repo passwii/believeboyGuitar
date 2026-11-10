@@ -100,7 +100,7 @@ export default defineConfig({
 });
 ~~~
 
-- [ ] Step 5：新增 src/env.d.ts，引用 astro/client；tsconfig.json 继承 astro/tsconfigs/strict，保留 strict、@/* 根别名、Node 与小程序类型，删掉 Next plugin/next-env/.next 类型路径。添加 astro:dev、astro:build、astro:check scripts；暂时保留现有 dev/build。
+- [ ] Step 5：新增 src/env.d.ts，引用 astro/client；tsconfig.json 继承 astro/tsconfigs/strict，保留 strict、@/* 根别名、Node 与小程序类型，删掉 Next plugin/next-env/.next 类型路径。为 CommonJS 输出 target 保持兼容，在 packages/guitar-core/tsconfig.build.json 与 miniprogram/tsconfig.json 覆盖 verbatimModuleSyntax=false；只在会 emit JS 的 guitar-core 配置中设 allowImportingTsExtensions=false。添加 astro:dev、astro:build、astro:check scripts；暂时保留现有 dev/build。
 - [ ] Step 6：GREEN。Run: npm test -- tests/astro-config.test.ts && npm run astro:check。Expected: Astro 配置测试通过，Next 页面仍能由旧 build 构建。
 - [ ] Step 7：Commit：feat(astro): add static Astro toolchain。
 
