@@ -38,7 +38,7 @@ jobs:
         run: npm ci
 
       - name: Verify and build static export
-        run: npm run typecheck && npm test && npm run build -- --webpack && npm run verify:css
+        run: npm run typecheck && npm test && npm run build && npm run verify:css
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

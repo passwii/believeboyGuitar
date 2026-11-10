@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import type { PracticeEntry } from "@/content/manifest";

@@ -71,7 +71,7 @@ fi
 
 npm run typecheck
 npm test
-npm run build -- --webpack
+npm run build
 npm run verify:css
 
 IMAGE_TAG="sha-$SHA"

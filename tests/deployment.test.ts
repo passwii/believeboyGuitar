@@ -12,7 +12,7 @@ describe("生产运行镜像", () => {
   it("只包含静态导出与 Nginx，不在运行镜像里安装 Node.js", () => {
     const dockerfile = read("Dockerfile");
     expect(dockerfile).toMatch(/FROM nginx:[^\n]+alpine/);
-    expect(dockerfile).toContain("COPY out/ /usr/share/nginx/html/");
+    expect(dockerfile).toContain("COPY dist/ /usr/share/nginx/html/");
     expect(dockerfile).not.toContain("FROM node");
     expect(dockerfile).not.toContain("npm ci");
   });
@@ -29,7 +29,7 @@ describe("GitHub Actions 生产发布", () => {
 
   it("在 runner 上验证和构建，再调用共享远程部署脚本", () => {
     expect(workflow).toContain(
-      "npm run typecheck && npm test && npm run build -- --webpack && npm run verify:css",
+      "npm run typecheck && npm test && npm run build && npm run verify:css",
     );
     expect(workflow).toContain("packages: write");
     expect(workflow).toContain("type=sha,format=long");
@@ -84,7 +84,8 @@ describe("本地主发布", () => {
 
   it("本地构建、推送不可变镜像并调用共享部署脚本", () => {
     const script = read("scripts/deploy-local.sh");
-    expect(script).toContain("npm run build -- --webpack");
+    expect(script).toContain("npm run build");
+    expect(script).not.toContain("--webpack");
     expect(script).toContain("docker buildx build");
     expect(script).toContain("--push");
     expect(script).toContain("sha-$SHA");
@@ -106,11 +107,11 @@ describe("Nginx 静态托管", () => {
   it("保护 PWA 更新与不可变资源缓存", () => {
     expect(nginx).toContain("location = /sw.js");
     expect(nginx).toContain("no-cache");
-    expect(nginx).toContain("location /_next/static/");
+    expect(nginx).toContain("location /_astro/");
     expect(nginx).toContain("immutable");
   });
 
-  it("支持 Next.js 静态路由和健康检查", () => {
+  it("支持 Astro 扁平静态路由和健康检查", () => {
     expect(nginx).toContain("try_files $uri $uri.html $uri/ =404");
     expect(nginx).toContain("error_page 404 /404.html");
     expect(nginx).toContain("location = /healthz");
@@ -146,5 +147,31 @@ describe("部署手册", () => {
     );
     expect(doc).toContain("gh run watch <run-id>");
     expect(doc).toContain("未提交或未推送");
+  });
+});
+
+describe("Astro static build output", () => {
+  it("guards the Pages and VPS routes in dist/", () => {
+    const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
+    const verifierPath = path.join(root, "scripts/verify-astro-output.mjs");
+    expect(pkg.scripts.build).toContain("astro build");
+    expect(pkg.scripts.build).toContain("verify-astro-output.mjs");
+    expect(existsSync(verifierPath)).toBe(true);
+    if (!existsSync(verifierPath)) return;
+    const verifier = read("scripts/verify-astro-output.mjs");
+    for (const file of ["dist/index.html", "dist/practice.html", "dist/library.html", "dist/metronome.html", "dist/404.html", "dist/manifest.webmanifest", "dist/sw.js"]) {
+      expect(verifier).toContain(file);
+    }
+  });
+});
+
+describe("Next retirement", () => {
+  it("removes Next runtime packages and route configuration after Astro migration", () => {
+    const pkg = JSON.parse(read("package.json"));
+    expect(pkg.dependencies).not.toHaveProperty("next");
+    expect(pkg.devDependencies).not.toHaveProperty("eslint-config-next");
+    for (const name of ["next.config.ts", "next-env.d.ts", "app"]) {
+      expect(existsSync(path.join(root, name)), name).toBe(false);
+    }
   });
 });

@@ -73,9 +73,9 @@ describe("跨模块契约仍然导出", () => {
 
 describe("被测试与页面共用的模块不会被误判为死文件", () => {
   it("lib/sanitize-content.ts 同时被页面与测试引用", () => {
-    const consumers = ["app", "components", "tests"].flatMap((dir) =>
+    const consumers = ["astro", "components", "tests"].flatMap((dir) =>
       readdirSync(path.join(root, dir), { recursive: true, encoding: "utf8" })
-        .filter((name) => /\.(tsx?)$/.test(name))
+        .filter((name) => /\.(tsx?|astro)$/.test(name))
         .map((name) => path.join(root, dir, name)),
     );
 
@@ -83,7 +83,7 @@ describe("被测试与页面共用的模块不会被误判为死文件", () => {
       readFileSync(file, "utf8").includes("@/lib/sanitize-content"),
     );
 
-    const hasPage = referencing.some((file) => file.startsWith(path.join(root, "app")));
+    const hasPage = referencing.some((file) => file.startsWith(path.join(root, "astro")));
     const hasTest = referencing.some((file) => file.startsWith(path.join(root, "tests")));
     expect(hasPage, "缺少页面引用").toBe(true);
     expect(hasTest, "缺少测试引用").toBe(true);

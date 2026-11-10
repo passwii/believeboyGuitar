@@ -18,10 +18,6 @@ describe("四入口 PWA", () => {
     ]);
   });
 
-  it("Next transition route delegates to the shared manifest object", () => {
-    expect(read("app/manifest.ts")).toContain("pwaManifest");
-  });
-
   it("Service Worker 缓存首页与节拍器，并兼容旧节拍器地址", () => {
     const worker = read("public/sw.js");
     expect(worker).toContain('REQUIRED_SHELL = ["/", "/metronome"]');

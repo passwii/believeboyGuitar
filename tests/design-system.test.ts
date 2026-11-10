@@ -17,7 +17,7 @@ const css = readFileSync(globalsPath, "utf8");
 /** @theme 块是令牌「声明」处，不能拿它自己当「使用」证据 */
 const cssBody = css.replace(/@theme\s*\{[\s\S]*?\n\}/, "");
 
-const SOURCES = ["app", "astro", "components", "content"].flatMap((dir) =>
+const SOURCES = ["astro", "components", "content"].flatMap((dir) =>
   readdirSync(path.join(root, dir), { recursive: true, encoding: "utf8" })
     .filter((name) => /\.(tsx?|css|astro|html)$/.test(name))
     .map((name) => ({

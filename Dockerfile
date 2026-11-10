@@ -5,7 +5,7 @@ LABEL org.opencontainers.image.description="Static guitar practice site"
 
 RUN rm -rf /usr/share/nginx/html/*
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
-COPY out/ /usr/share/nginx/html/
+COPY dist/ /usr/share/nginx/html/
 
 EXPOSE 80
 

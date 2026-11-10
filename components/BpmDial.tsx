@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useRef, type KeyboardEvent, type PointerEvent } from "react";
 import {
   BPM_MAX,

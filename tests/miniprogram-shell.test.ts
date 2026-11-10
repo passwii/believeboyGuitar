@@ -22,8 +22,8 @@ describe("mini program shell", () => {
     expect(project.libVersion).toBe("2.19.0");
   });
 
-  it("generates the shared core before the Next production build", () => {
+  it("generates the shared core before the Astro production build", () => {
     const pkg = JSON.parse(read("package.json"));
-    expect(pkg.scripts.build).toBe("npm run mini:core && next build");
+    expect(pkg.scripts.build).toBe("npm run mini:core && astro build && node scripts/verify-astro-output.mjs");
   });
 });

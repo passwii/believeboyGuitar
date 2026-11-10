@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-const cssDirectory = path.join(process.cwd(), "out", "_next", "static", "css");
+const cssDirectory = path.join(process.cwd(), "dist", "_astro");
 const files = (await readdir(cssDirectory))
   .filter((file) => file.endsWith(".css"))
   .sort();

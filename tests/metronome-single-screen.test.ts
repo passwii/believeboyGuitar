@@ -12,20 +12,20 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
 
-const page = read("app/metronome/page.tsx");
-const globals = read("app/globals.css");
+const page = read("astro/pages/metronome.astro");
+const globals = read("astro/styles/global.css");
 const metronome = read("components/Metronome.tsx");
 const dial = read("components/BpmDial.tsx");
-const nav = read("components/SiteNav.tsx");
-const footer = read("components/SiteFooter.tsx");
+const nav = read("astro/components/SiteNav.astro");
+const footer = read("astro/components/SiteFooter.astro");
 
 describe("手机单屏节拍器", () => {
   it("窄屏隐藏站点顶部栏、底部 dock 与页脚", () => {
     expect(nav).toContain('pathname === "/metronome"');
-    expect(nav).toContain('focusMode ? "hidden sm:block " : ""');
+    expect(nav).toContain('focusMode && "hidden sm:block"');
     expect(nav).toContain('aria-label="移动端导航"');
     expect(footer).toContain('pathname.startsWith("/practice/")');
-    expect(footer).toContain('focusMode ? "hidden sm:block " : ""');
+    expect(footer).toContain('focusMode && "hidden sm:block"');
   });
 
   it("专注外壳占满 svh 且禁止页面滚动，同时保留安全区", () => {
@@ -34,8 +34,8 @@ describe("手机单屏节拍器", () => {
     expect(globals).toMatch(
       /\.metronome-focus__panel\s*\{[^}]*env\(safe-area-inset-top\)[^}]*env\(safe-area-inset-bottom\)/,
     );
-    expect(page).toContain('className="metronome-focus"');
-    expect(page).toContain('className="metronome-focus__panel"');
+    expect(page).toContain('class="metronome-focus"');
+    expect(page).toContain('class="metronome-focus__panel"');
   });
 
   it("三个区域都在：顶部四拍、中央圆盘、底部 transport", () => {
