@@ -18,7 +18,7 @@ Cloudflare Pages Git integration 会为 PR 创建预览部署，并从生产分�
 
 ### 1. 静态 Astro，不启用服务端渲染
 
-- 使用 Astro 6，output 为 static。
+- 使用 Astro 6，output 为 static；Astro 源目录设置为 astro/，避免 Next.js 在过渡期把 src/pages 识别成 Pages Router。
 - 使用 build.format 为 file、trailingSlash 为 never，让构建文件保持 practice.html、practice/<slug>.html 这种扁平映射；Cloudflare Pages 以干净 URL 提供页面，并在预览中验证 URL 与重定向行为。
 - Cloudflare Pages 构建命令为 npm run build，输出目录为 dist/。
 - 不加入 @astrojs/cloudflare SSR adapter，不新增 Worker、Pages Functions、D1、KV 或 API 路由。只有产品未来出现请求期逻辑时才重新评估运行时。
@@ -27,15 +27,15 @@ Cloudflare Pages Git integration 会为 PR 创建预览部署，并从生产分�
 
 | URL | Astro 页面 | 行为 |
 | --- | --- | --- |
-| / | src/pages/index.astro | 当前周练习首页 |
-| /practice | src/pages/practice/index.astro | 练习目录 |
-| /practice/<slug> | src/pages/practice/[slug].astro | 从目录生成静态练习详情 |
-| /library | src/pages/library/index.astro | 资料目录 |
-| /library/fretboard-scale | src/pages/library/fretboard-scale.astro | 指板音阶交互页 |
-| /metronome | src/pages/metronome.astro | 主节拍器页 |
-| /tools/metronome | src/pages/tools/metronome.astro | 保留静态兼容页与离线回退语义 |
-| 未匹配 URL | src/pages/404.astro | 中文 404 页面，生成 404.html |
-| /manifest.webmanifest | src/pages/manifest.webmanifest.ts | 生成 PWA JSON manifest |
+| / | astro/pages/index.astro | 当前周练习首页 |
+| /practice | astro/pages/practice/index.astro | 练习目录 |
+| /practice/<slug> | astro/pages/practice/[slug].astro | 从目录生成静态练习详情 |
+| /library | astro/pages/library/index.astro | 资料目录 |
+| /library/fretboard-scale | astro/pages/library/fretboard-scale.astro | 指板音阶交互页 |
+| /metronome | astro/pages/metronome.astro | 主节拍器页 |
+| /tools/metronome | astro/pages/tools/metronome.astro | 保留静态兼容页与离线回退语义 |
+| 未匹配 URL | astro/pages/404.astro | 中文 404 页面，生成 404.html |
+| /manifest.webmanifest | astro/pages/manifest.webmanifest.ts | 生成 PWA JSON manifest |
 
 路径、导航、metadata 与 404 输出必须在 Cloudflare Pages 预览中检查。兼容路径不能只依赖在线 HTTP redirect，因为已安装 PWA 的 Service Worker 还要离线映射 /tools/metronome。
 
@@ -67,7 +67,7 @@ Cloudflare Pages Git integration 会为 PR 创建预览部署，并从生产分�
 ### 6. Tailwind 与共享小程序构建
 
 - 保留 Tailwind v4、@theme 设计令牌、content/content.css 和现有组件样式；不做视觉重设计。
-- 将 CSS 入口接到 Astro/Vite，并确保 Tailwind 扫描 src/**/*.astro、React .tsx 以及 content/lessons/*.html 中使用的 utility class。
+- 将 CSS 入口接到 Astro/Vite，并确保 Tailwind 扫描 astro/**/*.astro、React .tsx 以及 content/lessons/*.html 中使用的 utility class。
 - 将静态 CSS 验证脚本改为检查 dist/ 的实际输出，继续拒绝未处理的 Tailwind 指令和缺失的核心 selector。
 - packages/guitar-core、miniprogram/ 与 mini:core 构建保持独立可用。web 框架迁移不得改变小程序生成文件和运行行为。
 

@@ -1,0 +1,55 @@
+---
+import { INSTALL_CAPTURE_SCRIPT } from "@/lib/install-prompt";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import SiteNav from "@/astro/components/SiteNav.astro";
+import SiteFooter from "@/astro/components/SiteFooter.astro";
+import "@/astro/styles/global.css";
+import "@/content/content.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = "个人电吉他练习站：周练、独立练习、指板音阶与节拍器。",
+} = Astro.props;
+const documentTitle = title ? title + " · 电吉他练习站" : "电吉他练习站";
+
+function canonicalPath(pathname: string): string {
+  if (pathname === "/" || pathname === "/index.html") return "/";
+  const withoutIndex = pathname.replace(/\/index\.html$/, "/");
+  const withoutExtension = withoutIndex.replace(/\.html$/, "");
+  if (withoutExtension === "" || withoutExtension === "/") return "/";
+  return withoutExtension.endsWith("/")
+    ? withoutExtension.slice(0, -1)
+    : withoutExtension;
+}
+
+const pathname = canonicalPath(Astro.url.pathname);
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content={description} />
+    <meta name="application-name" content="电吉他练习站" />
+    <meta name="theme-color" content="#f1f2ec" />
+    <meta name="color-scheme" content="light" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="练习站" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <title>{documentTitle}</title>
+    <script is:inline set:html={INSTALL_CAPTURE_SCRIPT}></script>
+  </head>
+  <body class="flex min-h-svh flex-col">
+    <SiteNav pathname={pathname} />
+    <slot />
+    <SiteFooter pathname={pathname} />
+    <ServiceWorkerRegistration client:load />
+  </body>
+</html>

@@ -26,9 +26,9 @@ const root = process.cwd();
 const read = (relative: string) => readFileSync(`${root}/${relative}`, "utf8");
 
 const dial = read("components/BpmDial.tsx");
-const nav = read("components/SiteNav.tsx");
-const globals = read("app/globals.css");
-const layout = read("app/layout.tsx");
+const nav = read("astro/components/SiteNav.astro");
+const globals = read("astro/styles/global.css");
+const layout = read("astro/layouts/BaseLayout.astro");
   const metronomePage = read("app/metronome/page.tsx");
 const installPrompt = read("components/InstallPrompt.tsx");
 
@@ -103,13 +103,13 @@ describe("安全区（BLF-1448）", () => {
 
   it("页脚底部安全区仍然保留（不被这轮改动带走）", () => {
     // BLF-1451 页脚拆成了 SiteFooter（要跟着工具区换皮）；dock 让位也在这层做
-    const footer = read("components/SiteFooter.tsx");
+    const footer = read("astro/components/SiteFooter.astro");
     expect(footer).toContain("env(safe-area-inset-bottom)");
     expect(footer).toContain("--dock-h");
   });
 
   it("viewport-fit=cover 是 env() 生效的前提，不能删", () => {
-    expect(layout).toContain('viewportFit: "cover"');
+    expect(layout).toContain("viewport-fit=cover");
   });
 });
 

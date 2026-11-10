@@ -4,6 +4,7 @@ import react from "@astrojs/react";
 
 export default defineConfig({
   output: "static",
+  srcDir: "./astro",
   trailingSlash: "never",
   build: { format: "file" },
   integrations: [react()],

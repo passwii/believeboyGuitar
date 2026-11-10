@@ -12,6 +12,7 @@ describe("Astro static build configuration", () => {
 
     const config = readFileSync(configPath, "utf8");
     expect(config).toContain('output: "static"');
+    expect(config).toContain('srcDir: "./astro"');
     expect(config).toContain('format: "file"');
     expect(config).toContain('trailingSlash: "never"');
     expect(config).toContain("@astrojs/react");

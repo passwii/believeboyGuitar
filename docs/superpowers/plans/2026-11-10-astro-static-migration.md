@@ -25,11 +25,11 @@
 
 ## 文件职责
 
-- astro.config.mjs：Astro 静态模式、React integration、file routes、根目录别名。
-- src/pages/：Astro 路由、manifest endpoint 和 404。
-- src/layouts/BaseLayout.astro：metadata、PWA head、共享壳、CSS 与早期安装捕获脚本。
-- src/components/SiteNav.astro、SiteFooter.astro：基于当前路径静态渲染的导航和页脚。
-- src/styles/global.css：Tailwind v4 入口和现有令牌；content/content.css 保留正文排版。
+- astro.config.mjs：Astro 静态模式、srcDir=./astro（避开 Next 的 src/pages 路由发现）、React integration、file routes、根目录别名。
+- astro/pages/：Astro 路由、manifest endpoint 和 404。
+- astro/layouts/BaseLayout.astro：metadata、PWA head、共享壳、CSS 与早期安装捕获脚本。
+- astro/components/SiteNav.astro、SiteFooter.astro：基于当前路径静态渲染的导航和页脚。
+- astro/styles/global.css：Tailwind v4 入口和现有令牌；content/content.css 保留正文排版。
 - components/*.tsx、lib/*.ts：React islands 与共享纯逻辑；不重写音频/乐理/指板实现。
 - public/sw.js、public/_headers：离线策略与 Cloudflare 静态缓存头。
 - tests/、scripts/verify-static-css.mjs、scripts/verify-astro-output.mjs：框架、PWA、CSS 和构建产物守护。
@@ -40,14 +40,14 @@
 
 **Files:** 无源码改动；安装只写入当前隔离 worktree 的 node_modules/。
 
-- [ ] Step 1：安装锁文件依赖。Run: npm ci。Expected: exit 0，package-lock.json 无改动。
-- [ ] Step 2：记录原始基线。Run: npm run typecheck && npm test && npm run build。Expected: 三项成功；若失败，先记录原失败再开始迁移。
+- [x] Step 1：安装锁文件依赖。Run: npm ci --cache ./.npm-cache --maxsockets=1；仓库 npm cache 权限异常时用该本地缓存，安装完成后删除 .npm-cache/。Expected: exit 0，package-lock.json 无改动。
+- [x] Step 2：记录原始基线。Run: npm run typecheck && npm test && npm run build。Expected: 三项成功；若仓库已加入预期 RED 的新迁移测试，应确认其余 40 个测试文件/445 项通过，并单独运行完整 Next build 记录静态路由。
 
 ## Task 2：先测试 Astro 配置，再接入工具链
 
-**Files:** Create tests/astro-config.test.ts、astro.config.mjs、src/env.d.ts；Modify package.json、package-lock.json、tsconfig.json。
+**Files:** Create tests/astro-config.test.ts、astro.config.mjs、astro/env.d.ts；Modify .gitignore、package.json、package-lock.json、tsconfig.json、packages/guitar-core/tsconfig.build.json、miniprogram/tsconfig.json。
 
-- [ ] Step 1：在 tests/astro-config.test.ts 先写配置合同。
+- [x] Step 1：在 tests/astro-config.test.ts 先写配置合同。
 
 ~~~ts
 import { existsSync, readFileSync } from "node:fs";
@@ -63,6 +63,7 @@ describe("Astro static configuration", () => {
     if (!existsSync(configPath)) return;
     const config = readFileSync(configPath, "utf8");
     expect(config).toContain('output: "static"');
+    expect(config).toContain('srcDir: "./astro"');
     expect(config).toContain('format: "file"');
     expect(config).toContain('trailingSlash: "never"');
     expect(config).toContain("@astrojs/react");
@@ -76,9 +77,9 @@ describe("Astro static configuration", () => {
 });
 ~~~
 
-- [ ] Step 2：RED。Run: npm test -- tests/astro-config.test.ts。Expected: 缺少 astro.config.mjs 与 scripts 的断言失败。
-- [ ] Step 3：安装兼容当前 React 19 的工具。Run: npm install --save-dev astro@^6.4.8 @astrojs/react@^5.0.7 @astrojs/check --cache ./.npm-cache --maxsockets=1。Astro 与 integration 是 build-time 工具；保留 Next 包直至所有旧 imports/路由已迁完。
-- [ ] Step 4：写 astro.config.mjs，内容如下。
+- [x] Step 2：RED。Run: npm test -- tests/astro-config.test.ts。Expected: 缺少 astro.config.mjs、srcDir 与 scripts 的断言失败。
+- [x] Step 3：安装兼容当前 React 19 的工具。Run: npm install --save-dev astro@^6.4.8 @astrojs/react@^5.0.7 @astrojs/check --cache ./.npm-cache --maxsockets=1。Astro 与 integration 是 build-time 工具；保留 Next 包直至所有旧 imports/路由已迁完。
+- [x] Step 4：写 astro.config.mjs，内容如下。
 
 ~~~js
 import { fileURLToPath } from "node:url";
@@ -87,6 +88,7 @@ import react from "@astrojs/react";
 
 export default defineConfig({
   output: "static",
+  srcDir: "./astro",
   trailingSlash: "never",
   build: { format: "file" },
   integrations: [react()],
@@ -100,60 +102,60 @@ export default defineConfig({
 });
 ~~~
 
-- [ ] Step 5：新增 src/env.d.ts，引用 astro/client；tsconfig.json 继承 astro/tsconfigs/strict，保留 strict、@/* 根别名、Node 与小程序类型，删掉 Next plugin/next-env/.next 类型路径。为 CommonJS 输出 target 保持兼容，在 packages/guitar-core/tsconfig.build.json 与 miniprogram/tsconfig.json 覆盖 verbatimModuleSyntax=false；只在会 emit JS 的 guitar-core 配置中设 allowImportingTsExtensions=false。添加 astro:dev、astro:build、astro:check scripts；暂时保留现有 dev/build。
-- [ ] Step 6：GREEN。Run: npm test -- tests/astro-config.test.ts && npm run astro:check。Expected: Astro 配置测试通过，Next 页面仍能由旧 build 构建。
-- [ ] Step 7：Commit：feat(astro): add static Astro toolchain。
+- [x] Step 5：新增 astro/env.d.ts，引用 astro/client；tsconfig.json 继承 astro/tsconfigs/strict，保留 strict、@/* 根别名、Node 与小程序类型，删掉 Next plugin/next-env/.next 类型路径。为 CommonJS 输出 target 保持兼容，在 packages/guitar-core/tsconfig.build.json 与 miniprogram/tsconfig.json 覆盖 verbatimModuleSyntax=false；只在会 emit JS 的 guitar-core 配置中设 allowImportingTsExtensions=false。添加 astro:dev、astro:build、astro:check scripts；暂时保留现有 dev/build。
+- [x] Step 6：GREEN。Run: npm test -- tests/astro-config.test.ts && npm run astro:check。Expected: Astro 配置测试通过，Next 页面仍能由旧 build 构建。
+- [x] Step 7：Commit：feat(astro): add static Astro toolchain。
 
 ## Task 3：迁移静态布局、样式和目录页面
 
-**Files:** Create src/layouts/BaseLayout.astro、src/components/SiteNav.astro、src/components/SiteFooter.astro、src/styles/global.css、src/pages/index.astro、src/pages/practice/index.astro、src/pages/library/index.astro、src/pages/404.astro、tests/astro-routes.test.ts；Modify tests/design-system.test.ts、tests/install-prompt.test.ts；Delete components/SiteNav.tsx、components/SiteFooter.tsx。
+**Files:** Create astro/layouts/BaseLayout.astro、astro/components/SiteNav.astro、astro/components/SiteFooter.astro、astro/styles/global.css、astro/pages/index.astro、astro/pages/practice/index.astro、astro/pages/library/index.astro、astro/pages/404.astro、tests/astro-routes.test.ts；Modify tests/design-system.test.ts、tests/install-prompt.test.ts。
 
-- [ ] Step 1：先在 tests/astro-routes.test.ts 写失败断言：目标 Astro 路由/布局存在；BaseLayout 包含 lang=zh-CN、manifest href、theme-color、viewport-fit=cover；首页和目录页引用 content/manifest.ts。
-- [ ] Step 2：RED。Run: npm test -- tests/astro-routes.test.ts。Expected: 页面/布局文件不存在，测试失败。
-- [ ] Step 3：将 app/globals.css 内容原样移到 src/styles/global.css；不改 @theme token。BaseLayout 导入全局 CSS 与 content/content.css，输出站点 metadata、PWA metadata、共享外壳和 slot。
-- [ ] Step 4：将 SiteNav/SiteFooter 转成 Astro 组件；以 Astro.url.pathname 决定当前入口与专注模式，保持移动端 dock、安全区与 aria-current。迁移完成后删除旧 components/SiteNav.tsx 与 components/SiteFooter.tsx。
-- [ ] Step 5：移植首页、练习目录、资料目录和 404 的结构；使用 content/manifest.ts、lib/practice.ts、lib/practice-sections.ts；站内导航改为标准 href。
-- [ ] Step 6：更新设计系统与安装测试的文件路径及扫描目录，纳入 .astro 与 src/styles。GREEN。Run: npm test -- tests/astro-routes.test.ts tests/design-system.test.ts tests/install-prompt.test.ts。Expected: 路由、令牌、对比度、安全区、安装捕获脚本合同通过。
-- [ ] Step 7：Commit：feat(astro): add static site shell and directories。
+- [x] Step 1：先在 tests/astro-routes.test.ts 写失败断言：目标 Astro 路由/布局存在；BaseLayout 包含 lang=zh-CN、manifest href、theme-color、viewport-fit=cover；首页和目录页引用 content/manifest.ts。
+- [x] Step 2：RED。Run: npm test -- tests/astro-routes.test.ts。Expected: 页面/布局文件不存在，测试失败。
+- [x] Step 3：将 app/globals.css 内容原样移到 astro/styles/global.css；不改 @theme token。BaseLayout 导入全局 CSS 与 content/content.css，输出站点 metadata、PWA metadata、共享外壳和 slot。
+- [x] Step 4：将 SiteNav/SiteFooter 转成 Astro 组件；以 Astro.url.pathname 决定当前入口与专注模式，保持移动端 dock、安全区与 aria-current。迁移期间保留原 React 版本供当前 Next fallback 使用，Task 7 移除 Next 时再删除。
+- [x] Step 5：移植首页、练习目录、资料目录和 404 的结构；使用 content/manifest.ts、lib/practice.ts、lib/practice-sections.ts；站内导航改为标准 href。
+- [x] Step 6：更新设计系统与安装测试的文件路径及扫描目录；设计系统测试在过渡期同时扫描 app 与 astro 的页面类，纳入 .astro 与 astro/styles，直到 Task 7 清除 app/。GREEN。Run: npm test -- tests/astro-routes.test.ts tests/design-system.test.ts tests/install-prompt.test.ts。Expected: 路由、令牌、对比度、安全区、安装捕获脚本合同通过。
+- [x] Step 7：Commit：feat(astro): add static site shell and directories。
 
 ## Task 4：迁移练习详情与 HTML widget
 
-**Files:** Create src/pages/practice/[slug].astro；Modify tests/astro-routes.test.ts；Reuse content/manifest.ts、content/lessons/*.html、content/widgets.ts、lib/content-sections.ts、lib/content-headings.ts、lib/sanitize-content.ts、components/LessonWidget.tsx。
+**Files:** Create astro/pages/practice/[slug].astro；Modify tests/astro-routes.test.ts；Reuse content/manifest.ts、content/lessons/*.html、content/widgets.ts、lib/content-sections.ts、lib/content-headings.ts、lib/sanitize-content.ts、components/LessonWidget.tsx。
 
 - [ ] Step 1：测试首先要求每个 practiceEntries slug 都有匹配 HTML，页面通过 getStaticPaths 枚举 entries，使用 sanitizer/heading ids/section splitter 与 LessonWidget。
 - [ ] Step 2：RED。Run: npm test -- tests/astro-routes.test.ts tests/content.test.ts tests/content-sections.test.ts。Expected: Astro detail route 不存在，路由断言失败；原内容一致性测试继续通过。
-- [ ] Step 3：在 src/pages/practice/[slug].astro 以 import.meta.glob("../../../content/lessons/*.html", { eager: true, query: "?raw", import: "default" }) 载入原始 HTML。getStaticPaths 返回每个 entry 的 params.slug 与 props.entry。
+- [ ] Step 3：在 astro/pages/practice/[slug].astro 以 import.meta.glob("../../../content/lessons/*.html", { eager: true, query: "?raw", import: "default" }) 载入原始 HTML。getStaticPaths 返回每个 entry 的 params.slug 与 props.entry。
 - [ ] Step 4：构建期按 slug 读取 HTML，顺序调用 sanitizeContentHtml、addLessonHeadingIds、splitContentSections；prose 使用 set:html 注入清理后的 HTML，widget 使用 LessonWidget 的 React integration，并按页面位置使用 client:visible。
 - [ ] Step 5：GREEN。Run: npm test -- tests/astro-routes.test.ts tests/content.test.ts tests/content-sections.test.ts tests/sanitize-content.test.ts && npm run astro:build。Expected: 每个 manifest slug 生成扁平 .html 文件；正文和 widget 顺序正确，未登记 widget/违规 HTML 仍失败。
 - [ ] Step 6：Commit：feat(astro): render manifest-driven practice pages。
 
 ## Task 5：迁移交互页面与 React islands
 
-**Files:** Create src/pages/metronome.astro、src/pages/library/fretboard-scale.astro、src/pages/tools/metronome.astro；Modify components/Metronome.tsx、components/FretboardScale.tsx、components/PracticeEntryPicker.tsx、tests/pwa.test.ts、tests/install-prompt.test.ts、tests/practice-week-picker.test.ts。
+**Files:** Create astro/pages/metronome.astro、astro/pages/library/fretboard-scale.astro、astro/pages/tools/metronome.astro；Modify components/Metronome.tsx、components/FretboardScale.tsx、components/PracticeEntryPicker.tsx、tests/pwa.test.ts、tests/install-prompt.test.ts、tests/practice-week-picker.test.ts。
 
 - [ ] Step 1：测试先断言四入口从 Astro SiteNav 输出；metronome/fretboard 路由存在；旧 /tools/metronome 页保留链接和 meta refresh。
 - [ ] Step 2：RED。Run: npm test -- tests/pwa.test.ts tests/astro-routes.test.ts。Expected: 新路线和导航文件缺失时失败。
 - [ ] Step 3：主节拍器页静态渲染标题、MetronomeGuide；Metronome 使用 client:load，InstallPrompt 使用 client:load。指板页使用 FretboardScale client:load。旧路由保留无需 JS 的兼容页。
-- [ ] Step 4：把 Metronome.tsx、FretboardScale.tsx、PracticeEntryPicker.tsx 的 next/link 替换成 a href；删除仍保留的八个交互组件中的 use client 指令，确保没有 usePathname 引用。SiteNav/SiteFooter 的 React 版本已在 Task 3 删除。PracticeEntryPicker 继续作为需要水合的 React island；音频和算法 lib 不改。
+- [ ] Step 4：把 Metronome.tsx、FretboardScale.tsx、PracticeEntryPicker.tsx 的 next/link 替换成 a href；保留所有 use client 指令与旧 React SiteNav/SiteFooter，确保共享 Next fallback 在 Task 7 前仍可构建。Astro 的水合由 client:* directive 控制；PracticeEntryPicker 保持 React island，音频和算法 lib 不改。
 - [ ] Step 5：GREEN。Run: npm test -- tests/pwa.test.ts tests/astro-routes.test.ts tests/install-prompt.test.ts tests/practice-week-picker.test.ts tests/metronome-a11y.test.ts tests/metronome-keyboard.test.ts tests/fretboard-scale.test.ts。Expected: 组件纯逻辑与键盘/可访问性合同通过。
 - [ ] Step 6：Commit：feat(astro): hydrate only interactive practice tools。
 
 ## Task 6：迁移 PWA manifest 和 Service Worker
 
-**Files:** Create lib/pwa-manifest.ts、src/pages/manifest.webmanifest.ts、src/components/ServiceWorkerRegistration.astro、public/_headers、tests/service-worker.test.ts；Modify public/sw.js、tests/pwa.test.ts、BaseLayout.astro；Delete app/manifest.ts、components/ServiceWorkerRegistration.tsx。
+**Files:** Create lib/pwa-manifest.ts、astro/pages/manifest.webmanifest.ts、astro/components/ServiceWorkerRegistration.astro、public/_headers、tests/service-worker.test.ts；Modify public/sw.js、tests/pwa.test.ts、BaseLayout.astro、app/manifest.ts；保留 components/ServiceWorkerRegistration.tsx 至 Task 7。
 
 - [ ] Step 1：先写 PWA 测试：使用 existsSync 断言 lib/pwa-manifest.ts 与 manifest endpoint 将存在，检查 Worker 必需壳仍为 / 与 /metronome、旧路由仍映射，并通过 VM harness 验证含 /_astro/app.js 与 /_astro/site.css 的 shell HTML 会发现两个资源。不要在新模块创建前静态 import 它，避免把 module-not-found 当作预期 RED。
 - [ ] Step 2：RED。Run: npm test -- tests/pwa.test.ts tests/service-worker.test.ts。Expected: manifest 路径仍指向 Next，Worker 仍只处理 /_next/static，新增 Astro 资源测试失败。
-- [ ] Step 3：将 manifest object 移到 lib/pwa-manifest.ts；静态 endpoint 输出 application/manifest+json；BaseLayout 链接根路径 manifest 与 icons，保留主题色和 Apple metadata。更新 tests/pwa.test.ts 从 lib/pwa-manifest.ts 导入数据。
+- [ ] Step 3：将 manifest object 移到 lib/pwa-manifest.ts；静态 endpoint 输出 application/manifest+json；BaseLayout 链接根路径 manifest 与 icons，保留主题色和 Apple metadata。让 app/manifest.ts 继续从 lib/pwa-manifest.ts 返回 Next-compatible metadata route 数据；更新 tests/pwa.test.ts 从共享模块导入数据。
 - [ ] Step 4：Worker 的 buildAssets 解析 shell HTML 的 script src 与 stylesheet href，只缓存同源 CSS/JS；fetch cache branch 覆盖 Astro 哈希目录；更新 VERSION。必需壳抓取失败时删除新缓存并抛错，使旧 worker 保持服务。
-- [ ] Step 5：将 Service Worker 注册迁到 src/components/ServiceWorkerRegistration.astro 的 Astro script；仅在生产构建注册 /sw.js，监听 window load，保留 scope=/ 与 updateViaCache=none。
+- [ ] Step 5：将 Astro 的 Service Worker 注册迁到 astro/components/ServiceWorkerRegistration.astro；仅在生产构建注册 /sw.js，监听 window load，保留 scope=/ 与 updateViaCache=none。保留原 components/ServiceWorkerRegistration.tsx 给旧 Next app/layout.tsx，等 Task 7 删除 Next app 后再移除。
 - [ ] Step 6：在 public/_headers 为 /sw.js 设置 no-cache/no-store/must-revalidate，为 manifest 设置 no-cache，为 /_astro/* 设置一年 immutable。
 - [ ] Step 7：GREEN。Run: npm test -- tests/pwa.test.ts tests/service-worker.test.ts tests/install-prompt.test.ts。Expected: manifest、资源发现、旧路径、注册条件和捕获时序通过。
 - [ ] Step 8：Commit：fix(pwa): preserve offline shell on Astro assets。
 
 ## Task 7：切换默认 build、移除 Next 并保留 VPS fallback
 
-**Files:** Modify package.json、package-lock.json、tsconfig.json、eslint.config.mjs、scripts/verify-static-css.mjs、Dockerfile、deploy/nginx.conf、scripts/deploy-local.sh、.github/workflows/deploy.yml、tests/miniprogram-shell.test.ts、tests/deployment.test.ts；Create scripts/verify-astro-output.mjs；Delete next.config.ts、next-env.d.ts、app/ 下已迁移文件。scripts/deploy-remote.sh 保持不变。
+**Files:** Modify package.json、package-lock.json、tsconfig.json、eslint.config.mjs、scripts/verify-static-css.mjs、Dockerfile、deploy/nginx.conf、scripts/deploy-local.sh、.github/workflows/deploy.yml、components/Metronome.tsx、components/FretboardScale.tsx、components/PracticeEntryPicker.tsx、tests/miniprogram-shell.test.ts、tests/deployment.test.ts；Create scripts/verify-astro-output.mjs；Delete next.config.ts、next-env.d.ts、app/、components/SiteNav.tsx、components/SiteFooter.tsx、components/ServiceWorkerRegistration.tsx。scripts/deploy-remote.sh 保持不变。
 
 - [ ] Step 1：测试先要求 build 为 npm run mini:core && astro build && node scripts/verify-astro-output.mjs，Docker copy dist/，Nginx 处理 /_astro/、sw.js、manifest、file routes 与 404，VPS workflow 仍为手动且不传 --webpack。
 - [ ] Step 2：RED。Run: npm test -- tests/miniprogram-shell.test.ts tests/deployment.test.ts。Expected: 当前 package/Docker/Nginx/Workflow 的 Next 字符串使新断言失败。
@@ -161,7 +163,7 @@ export default defineConfig({
 - [ ] Step 4：将 build 改为 npm run mini:core && astro build && node scripts/verify-astro-output.mjs；typecheck 加入 astro check、tsc --noEmit、小程序 tsc；dev 改为 astro dev；test 保持 mini:core + vitest。
 - [ ] Step 5：CSS verifier 递归读取 dist/_astro/*.css；Dockerfile 拷贝 dist/；Nginx 给 /_astro/ immutable、sw.js no-store、manifest no-cache，并保留 $uri.html 与 404 回退。
 - [ ] Step 6：本地与 Actions 的 VPS fallback 移除 next build --webpack，只运行 Astro 的 typecheck/test/build/verify:css；保留 GHCR、SSH、health check、回滚、workflow_dispatch 行为。
-- [ ] Step 7：检查源码无 Next imports 后运行 npm uninstall next eslint-config-next，并安装 typescript-eslint、eslint-plugin-react-hooks、eslint-plugin-jsx-a11y；删除 Next 配置、生成类型与旧 app pages；用 TypeScript、React hooks 与 JSX accessibility 推荐规则重写 eslint.config.mjs。运行 npm install --package-lock-only 与 npm ci 验证锁文件。
+- [ ] Step 7：检查 Astro 路由完成后运行 npm uninstall next eslint-config-next，并安装 typescript-eslint、eslint-plugin-react-hooks、eslint-plugin-jsx-a11y；删除 Next 配置、生成类型、旧 app/ 与 Next-only SiteNav/SiteFooter/ServiceWorkerRegistration；从保留的交互组件移除 use client 标记。用 TypeScript、React hooks 与 JSX accessibility 推荐规则重写 eslint.config.mjs。运行 npm install --package-lock-only 与 npm ci 验证锁文件。
 - [ ] Step 8：GREEN。Run: npm test -- tests/miniprogram-shell.test.ts tests/deployment.test.ts && npm run typecheck && npm test && npm run build && npm run verify:css && npm run mini:check。Expected: 全部 exit 0，dist 路由检查通过，小程序目录行为不变。
 - [ ] Step 9：Commit：build(astro): switch static build and VPS fallback to dist。
 
