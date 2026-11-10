@@ -105,7 +105,7 @@ npm run verify:css
 
 ```text
 测试文件: 43
-测试用例: 460
+测试用例: 463
 静态页面: 11 个（含 /manifest.webmanifest）
 ```
 
