@@ -12,7 +12,7 @@
 - 背景与目录说明：[README.md](./README.md)
 - 设计与实现方案：[docs/superpowers/](./docs/superpowers/)
 
-仓库现实：纯前端 Next.js 静态导出，无后端、无数据库、无账号。唯一的部署产物是 `out/` 目录里的静态文件。
+仓库现实：纯前端 Astro 静态站点，无后端、无数据库、无账号。唯一的部署产物是 `dist/` 目录里的静态文件；Cloudflare Pages 直接发布它，VPS 用 Nginx 镜像承载它。
 
 ## 0. 规则优先级
 
@@ -29,7 +29,7 @@
 | `content/lessons/*.html` | 每篇正文，只写语义标签，不带样式与脚本 |
 | `content/content.css` | 内容区排版样式（正文样式的唯一出口） |
 | `content/widgets.ts` | 正文可嵌入的交互组件名清单 |
-| `app/` | 页面外壳：首页、练习、资料库、节拍器 |
+| `astro/` | Astro 页面外壳：布局、首页、练习、资料库、节拍器与 PWA manifest |
 | `components/` | 导航、TAB、指板音阶、节拍器等组件 |
 | `lib/` | 纯函数：练习目录、音位、TAB、节拍与内容一致性校验 |
 | `miniprogram/` | 微信原生小程序：节拍器与调音器 |
@@ -45,7 +45,7 @@ npm ci                 # 首次或依赖变动后，按 package-lock.json 安装
 npm run dev            # 默认端口 3000；对外分享预览见 §7
 npm run typecheck      # tsc --noEmit
 npm test               # vitest run，含清单/正文一致性校验
-npm run build          # 静态导出到 out/
+npm run build          # Astro 静态导出到 dist/，并校验产物完整性
 npm run lint           # eslint
 ```
 
@@ -58,7 +58,7 @@ npm run lint           # eslint
 合并到 `main` 后运行 `npm run deploy:local`，由本地完成门禁、静态构建、GHCR
 推送和 VPS 健康检查。
 `.github/workflows/deploy.yml` 只保留 `workflow_dispatch`，不随 push 自动部署，
-不添加面向 pull request 的常规 CI。部署细节见 [docs/deployment.md](./docs/deployment.md)。
+不添加面向 pull request 的常规 CI。VPS 回退细节见 [docs/deployment.md](./docs/deployment.md)，Cloudflare Pages 发布见 [docs/cloudflare-pages.md](./docs/cloudflare-pages.md)。
 
 合并门禁 = **本地手工跑绿**：
 
@@ -69,7 +69,7 @@ npm run typecheck && npm test && npm run build
 - `npm test` 不只是单测：它检查 `content/manifest.ts` 与 `content/lessons/*.html` 是否一一对应、
   正文是否符合「只写语义标签」的约定、widget 名字是否登记、令牌有没有死掉。
   **改了 `content/` 下任何文件都必须跑一遍。**
-- `npm run build` 会实际执行 Next.js 静态导出，验证预渲染与路由构建；它和 `npm run typecheck` 检查的范围不同。
+- `npm run build` 会实际执行 Astro 静态导出并校验 `dist/` 产物（路由、PWA 资源、`/_astro` 资源），它和 `npm run typecheck` 检查的范围不同。
 - 改设计令牌或页面结构时，额外跑 `npm run lint`。
 - 涉及指法、音阶图、和弦图的改动要**打开实际页面截图确认**，不能只看测试绿。
 

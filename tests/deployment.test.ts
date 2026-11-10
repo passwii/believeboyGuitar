@@ -175,3 +175,31 @@ describe("Next retirement", () => {
     }
   });
 });
+
+describe("Cloudflare Pages 发布手册", () => {
+  it("记录 Pages Git 集成所需的构建配置与切换边界", () => {
+    const docPath = path.join(root, "docs/cloudflare-pages.md");
+    expect(existsSync(docPath)).toBe(true);
+    if (!existsSync(docPath)) return;
+    const doc = read("docs/cloudflare-pages.md");
+    for (const text of [
+      "Connect to Git",
+      "npm run build",
+      "构建输出目录",
+      "NODE_VERSION=22",
+      "404.html",
+      "public/_headers",
+      "不需要",
+    ]) {
+      expect(doc, "缺少：" + text).toContain(text);
+    }
+    expect(doc).toContain("guitar.believeboy.com");
+    expect(doc).toContain("切换顺序");
+  });
+
+  it("README 与开发流程都指向 Cloudflare Pages 手册", () => {
+    for (const file of ["README.md", "DEVELOPMENT.md"]) {
+      expect(read(file)).toContain("docs/cloudflare-pages.md");
+    }
+  });
+});

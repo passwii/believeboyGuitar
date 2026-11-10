@@ -99,16 +99,23 @@ describe("AGENTS.md 指向 DEVELOPMENT.md", () => {
     }
   });
 
-  it("自定义规则独立于 Next.js 托管块，更新托管块不会删掉提醒", () => {
+  it("AGENTS.md 不再包含 Next.js 托管块", () => {
     const agents = read("AGENTS.md");
-    const start = agents.indexOf("<!-- BEGIN:nextjs-agent-rules -->");
-    const end = agents.indexOf("<!-- END:nextjs-agent-rules -->");
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(end).toBeGreaterThan(start);
+    expect(agents).not.toContain("nextjs-agent-rules");
+    expect(agents).not.toContain("node_modules/next/dist/docs/");
+    expect(agents).toContain("每次启动先把本地代码更新到最新");
+    expect(agents).toContain("[DEVELOPMENT.md](./DEVELOPMENT.md)");
+  });
 
-    const endOfMarker = end + "<!-- END:nextjs-agent-rules -->".length;
-    const custom = agents.slice(0, start) + agents.slice(endOfMarker);
-    expect(custom).toContain("每次启动先把本地代码更新到最新");
-    expect(custom).toContain("[DEVELOPMENT.md](./DEVELOPMENT.md)");
+  it("文档描述的是 Astro 静态构建而不是 Next.js 导出", () => {
+    for (const file of ["README.md", "CLAUDE.md", "DEVELOPMENT.md"]) {
+      const doc = read(file);
+      expect(doc, `${file} 仍在描述 Next.js`).not.toContain("Next.js App Router");
+      expect(doc, `${file} 仍在引用 app/globals.css`).not.toContain("app/globals.css");
+    }
+    expect(read("README.md")).toContain("Astro 6 静态站点");
+    expect(read("DEVELOPMENT.md")).toContain("dist/");
+    expect(read("CLAUDE.md")).toContain('srcDir: "./astro"');
+    expect(existsSync(path.join(root, "docs/cloudflare-pages.md"))).toBe(true);
   });
 });

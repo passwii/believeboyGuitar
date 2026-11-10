@@ -41,7 +41,7 @@
 Mac（主发布路径）
   git main
   → typecheck + test
-  → next build --webpack
+  → astro build（输出 dist/）
   → docker buildx build --platform linux/amd64
   → push GHCR
   → scp docker-compose.yml
@@ -66,7 +66,7 @@ Caddy
 - Mac 负责所有校验、静态构建和镜像构建。
 - GHCR 保存不可变镜像，供 VPS 拉取和回滚。
 - VPS 不 clone Git 仓库。
-- VPS 不安装 Node.js，不执行 `npm` 或 `next build`。
+- VPS 不安装 Node.js，不执行 `npm` 或 `astro build`。
 - Caddy 负责公网入口、域名和 TLS。
 - GitHub Actions 只作为手动备用路径。
 
@@ -77,9 +77,10 @@ Caddy
 | `scripts/deploy-local.sh` | 本地主发布入口 |
 | `scripts/deploy-remote.sh` | Mac 与 Actions 共用的 VPS 部署逻辑 |
 | `scripts/verify-static-css.mjs` | 构建后检查 Tailwind 是否已编译 |
-| `Dockerfile` | 生成只包含 Nginx 和 `out/` 的运行镜像 |
+| `scripts/verify-astro-output.mjs` | 构建后检查路由、PWA 与 `/_astro` 产物是否齐全 |
+| `Dockerfile` | 生成只包含 Nginx 和 `dist/` 的运行镜像 |
 | `.dockerignore` | 防止源码、依赖和本地资料进入镜像 |
-| `postcss.config.mjs` | webpack 与 Turbopack 共用的 Tailwind 编译入口 |
+| `postcss.config.mjs` | Astro/Vite 的 Tailwind 编译入口 |
 | `deploy/nginx.conf` | 静态文件、缓存、路由回退和健康检查 |
 | `deploy/docker-compose.yml` | VPS 单容器运行配置 |
 | `deploy/Caddyfile.example` | Caddy 站点块示例 |
@@ -96,55 +97,58 @@ Caddy
 ```bash
 npm run typecheck
 npm test
-npm run build -- --webpack
+npm run build
 npm run verify:css
 ```
 
 当前基线：
 
 ```text
-测试文件: 40
-测试用例: 444
-静态页面: 12 个路由
+测试文件: 43
+测试用例: 460
+静态页面: 11 个（含 /manifest.webmanifest）
 ```
 
-`next build` 使用 webpack 分支，是因为当前 macOS 沙箱下 Turbopack 曾出现
-`Operation not permitted` 端口绑定错误。Actions 备用路径也使用同一个 webpack
-参数，避免两端产出方式不同。
+`astro build` 是唯一构建入口，本地与 Actions 备用路径完全一致，不再有
+webpack / Turbopack 双分支。
 
-Tailwind v4 通过 `postcss.config.mjs` 和 `@tailwindcss/postcss` 编译，因此 webpack
-与 Turbopack 开发模式使用同一条 CSS 管线。不要再把 Tailwind 配置成只挂在
-`turbopack.rules` 上，否则 `next build --webpack` 会把 `@theme`、`@tailwind`
-等指令原样发布，页面会只剩未套用样式的 HTML。
+Tailwind v4 通过 `postcss.config.mjs` 和 `@tailwindcss/postcss` 编译，Astro
+（Vite）与 PostCSS 共用同一条 CSS 管线；Vite 只负责打包，不接管 Tailwind 指令。
 
 `npm run verify:css` 会检查：
 
-- `out/_next/static/css/` 至少存在一份 CSS
+- `dist/_astro/` 至少存在一份 CSS
 - CSS 中不再残留 `@theme` 或 `@tailwind utilities`
 - 关键布局和工具类，例如 `.shell`、`.home-hero`、`.text-ink-950` 已生成
 
 ### 4.2 静态导出
 
-Next.js 配置：
+Astro 配置（`astro.config.mjs`）：
 
-```ts
-output: "export"
+```js
+output: "static"
+srcDir: "./astro"
+build: { format: "file" }
+trailingSlash: "never"
 ```
 
 构建完成后，静态文件位于：
 
 ```text
-out/
+dist/
 ```
 
 其中包含：
 
-- 顶层页面 HTML
-- `/_next/static/*`
-- `sw.js`
+- 扁平页面 HTML（`index.html`、`practice.html`、`practice/<slug>.html`）
+- `/_astro/*`（带内容哈希的 CSS / JS）
+- `sw.js`、`_headers`
 - `manifest.webmanifest`
 - 图标和静态资源
-- Next.js 静态路由辅助文件
+- `404.html`
+
+`scripts/verify-astro-output.mjs` 会在构建后核对上述产物，并检查
+`dist/practice/*.html` 与 `content/lessons/*.html` 数量一致。
 
 ### 4.3 运行镜像
 
@@ -159,7 +163,7 @@ nginx:1.29-alpine
 - Node.js
 - npm
 - `node_modules`
-- Next.js 源码
+- Astro 源码（`astro/`）
 - Git 仓库
 - SSH 凭据
 - GHCR Token
@@ -214,7 +218,7 @@ npm run deploy:local
 2. 检查 Git 状态与 `origin/main`
 3. 必要时执行 `npm ci`
 4. 执行类型检查和测试
-5. 执行 webpack 静态构建
+5. 执行 Astro 静态构建
 6. 通过 SSH 检查 VPS 架构
 7. 构建 `linux/amd64` 镜像
 8. 推送 SHA 标签和 `latest` 到 GHCR
@@ -236,7 +240,7 @@ Deployed https://guitar.believeboy.com from sha-<commit>
 ```bash
 npm run typecheck
 npm test
-npm run build -- --webpack
+npm run build
 ```
 
 只构建 Docker 镜像、不推送：
@@ -560,15 +564,15 @@ Nginx 的页面查找顺序必须是：
 $uri → $uri.html → $uri/
 ```
 
-不能先匹配 `$uri/`，因为 Next.js 导出的详情页同时会生成同名辅助目录。先匹配目录
-会导致 `/practice/<slug>` 被错误 301 到带斜杠地址。
+不能先匹配 `$uri/`：Astro 用 `build.format: "file"` 输出扁平 HTML，先匹配目录会把
+`/practice/<slug>` 错误 301 到带斜杠的地址。
 
 ### 10.7 页面只有文字，没有样式
 
 先检查构建产物：
 
 ```bash
-npm run build -- --webpack
+npm run build
 npm run verify:css
 ```
 
@@ -584,7 +588,8 @@ export default {
 ```
 
 并且 `app/globals.css` 以 `@import "tailwindcss";` 开头。不要再使用仅在
-Turbopack 生效的 `turbopack.rules` 作为唯一 Tailwind 处理方式。
+Vite 内部插件配置作为唯一 Tailwind 处理方式。样式入口现在是
+`astro/styles/global.css`，它由 `astro/layouts/BaseLayout.astro` 导入。
 
 ## 11. 安全与维护
 

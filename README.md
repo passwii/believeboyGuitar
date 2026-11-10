@@ -11,12 +11,12 @@
 
 ## 技术结构
 
-- Next.js App Router，纯静态导出。
+- Astro 6 静态站点：页面与练习正文在构建期预渲染，只有交互组件按岛水合。
 - `content/manifest.ts` 是练习与资料目录的唯一事实来源。
 - 练习正文位于 `content/lessons/*.html`，只写语义标签，不带样式或脚本。
 - 交互组件通过 `<lesson-widget name="…">` 嵌入正文。
 - 音位与节奏数据由 `lib/` 下的纯函数生成或校验。
-- 样式入口是 `app/globals.css`（界面）和 `content/content.css`（正文）。
+- 样式入口是 `astro/styles/global.css`（界面）和 `content/content.css`（正文）。
 
 ## 常用命令
 
@@ -31,6 +31,7 @@ npm run build
 
 开发流程、提交规范与交付检查见 [DEVELOPMENT.md](./DEVELOPMENT.md)。
 生产部署、Caddy 与 GHCR 配置见 [docs/deployment.md](./docs/deployment.md)。
+Cloudflare Pages 发布路径见 [docs/cloudflare-pages.md](./docs/cloudflare-pages.md)。
 构建与部署的日常运行手册见 [docs/deployment-runbook.md](./docs/deployment-runbook.md)。
 本地主发布使用 `npm run deploy:local`。
 
