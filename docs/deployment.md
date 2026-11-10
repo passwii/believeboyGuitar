@@ -25,7 +25,7 @@ GitHub Actions（备用路径）
   workflow_dispatch → 相同校验与镜像 → 相同远程部署脚本
 ```
 
-VPS 不 clone Git 仓库，不安装 Node.js，也不执行 `npm`、`next build` 或源码构建。
+VPS 不 clone Git 仓库，不安装 Node.js，也不执行 `npm`、`astro build` 或源码构建。
 VPS 只保存 Compose 文件、Caddy 配置、GHCR 只读凭据和 Docker 镜像。
 
 ## VPS 前提
@@ -146,7 +146,7 @@ npm run deploy:local
 2. 拉取 `origin/main`，要求当前 HEAD 必须精确等于最新 `origin/main`。
 3. 必要时执行 `npm ci`。
 4. 执行 `npm run typecheck && npm test`。
-5. 执行 `npm run build -- --webpack`，静态导出到 `out/`。
+5. 执行 `npm run build`，Astro 静态导出到 `dist/` 并校验产物完整性。
 6. 执行 `npm run verify:css`，拒绝发布未编译的 Tailwind CSS。
 7. 根据 VPS 架构执行 `docker buildx build --platform ... --push`。
 8. 推送 `sha-<full commit sha>` 和 `latest` 标签到 GHCR。
@@ -277,5 +277,5 @@ curl -fsS http://127.0.0.1:8080/healthz
 - `Host key verification failed`：核对主机指纹并更新本地 SSH 配置；Actions 则更新 `SSH_KNOWN_HOSTS`。
 - 健康检查失败：执行 `docker compose logs --tail=200 web` 和 `docker inspect believeboy-guitar`。
 - 证书失败：确认 DNS 已生效、`80`/`443` 可达，并查看 `journalctl -u caddy`。
-- 本地构建遇到 Turbopack `Operation not permitted`：部署脚本已固定使用 `next build --webpack`，与 Actions 备用构建保持一致。
+- 本地 `astro build` 报依赖缺失：先跑 `npm ci --cache ./.npm-cache` 重建 `node_modules`，再重试；Astro 构建不再有 Turbopack/webpack 双分支。
 - 页面只有文字没有样式：运行 `npm run verify:css`；确认 `postcss.config.mjs` 使用 `@tailwindcss/postcss`，且不要只通过 `turbopack.rules` 编译 Tailwind。

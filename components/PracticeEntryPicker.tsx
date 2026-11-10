@@ -1,6 +1,3 @@
-"use client";
-
-import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import type { PracticeEntry } from "@/content/manifest";
@@ -65,7 +62,7 @@ export function PracticeEntryPicker({
               const isCurrent = item.slug === currentSlug;
               return (
                 <li key={item.slug}>
-                  <Link
+                  <a
                     href={`/practice/${item.slug}`}
                     aria-current={isCurrent ? "page" : undefined}
                     onClick={() => setOpen(false)}
@@ -74,7 +71,7 @@ export function PracticeEntryPicker({
                     }`}
                   >
                     {item.label ?? item.title}
-                  </Link>
+                  </a>
                 </li>
               );
             })}

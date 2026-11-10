@@ -1,6 +1,3 @@
-"use client";
-
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { PracticeMetronome } from "@/components/PracticeMetronome";
@@ -197,13 +194,13 @@ export function FretboardScale() {
   return (
     <div className={`fretboard-scale ${landscape ? "fretboard-scale--landscape" : ""}`}>
       <header className="fretboard-scale__header">
-        <Link
+        <a
           href="/library"
           aria-label="返回资料库"
           className="grid size-11 place-items-center rounded-full border border-rule bg-surface text-ink-700"
         >
           <Icon name="back" className="size-4" />
-        </Link>
+        </a>
         <div className="min-w-0 flex-1">
           <h1 className="text-title text-ink-950">指板音阶</h1>
           <p className="text-micro uppercase text-ink-500">C major · 15 frets</p>

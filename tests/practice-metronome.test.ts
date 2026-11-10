@@ -10,7 +10,7 @@ import { BPM_STEP } from "@/lib/metronome";
 const componentPath = path.join(process.cwd(), "components", "PracticeMetronome.tsx");
 const source = existsSync(componentPath) ? readFileSync(componentPath, "utf8") : "";
 const tabDrillSource = readFileSync(path.join(process.cwd(), "components", "TabDrill.tsx"), "utf8");
-const styles = readFileSync(path.join(process.cwd(), "app", "globals.css"), "utf8");
+const styles = readFileSync(path.join(process.cwd(), "astro", "styles", "global.css"), "utf8");
 const practiceHtml = renderToStaticMarkup(createElement(PracticeMetronome));
 const tabDrillHtml = renderToStaticMarkup(createElement(WeekOneTabDrill));
 

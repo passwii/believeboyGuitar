@@ -1,0 +1,21 @@
+---
+import BaseLayout from "@/astro/layouts/BaseLayout.astro";
+---
+<BaseLayout title="节拍器已迁移" canonical="/metronome">
+  <main class="shell flex-1 py-16 sm:py-24">
+    <div class="measure">
+      <p class="text-micro font-medium uppercase text-ink-500">已迁移</p>
+      <h1 class="mt-3 text-display font-display text-ink-950">节拍器已移到主入口</h1>
+      <p class="mt-4 text-body text-ink-700">正在前往 /metronome。</p>
+      <p class="mt-6">
+        <a
+          href="/metronome"
+          class="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-medium text-on-accent"
+        >
+          立即前往
+        </a>
+      </p>
+      <meta http-equiv="refresh" content="0;url=/metronome" />
+    </div>
+  </main>
+</BaseLayout>

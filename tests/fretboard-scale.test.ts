@@ -9,7 +9,7 @@ const scaleSource = readFileSync(
   "utf8",
 );
 const stylesSource = readFileSync(
-  path.join(process.cwd(), "app", "globals.css"),
+  path.join(process.cwd(), "astro", "styles", "global.css"),
   "utf8",
 );
 const nextFretboardString = (

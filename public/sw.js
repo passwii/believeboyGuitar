@@ -3,7 +3,7 @@
  *
  * 安装后从首页启动，同时保留节拍器的离线能力。策略刻意保守——
  *
- * - `_next/static/*` 是带内容哈希的不可变资源，缓存优先；
+ * - `/_astro/*` 是带内容哈希的不可变资源，缓存优先；
  * - 页面导航走网络优先，在线时永远拿最新构建，断网才落回缓存；
  * - 旧节拍器地址在导航兜底里映射到已缓存的规范页：
  *   已安装实例的 start_url 可能还是 /tools/metronome，而 activate 会删掉
@@ -11,23 +11,23 @@
  * - 图标与清单走 stale-while-revalidate；
  * - 只处理同源 GET，不碰 POST、跨域和浏览器扩展请求。
  *
- * 没有构建步骤：`public/sw.js` 原样拷贝到 `out/sw.js`。改了本文件就改
+ * 没有构建步骤：`public/sw.js` 原样拷贝到 `dist/sw.js`。改了本文件就改
  * `VERSION`，激活时会清掉旧版本的缓存。
  *
  * 安装阶段有两类预缓存，失败语义不同：
  *
- * - **必需壳**（`REQUIRED_SHELL`）：首页与节拍器的 HTML 加它们引用的 `_next/static/*`。
+ * - **必需壳**（`REQUIRED_SHELL`）：首页与节拍器的 HTML 加它们引用的 `/_astro/*`。
  *   任何一个拿不到就让 install 失败，旧 worker 与旧缓存继续服务——用户最多晚
  *   一次更新，不会出现「HTML 回来了、JS 却 404」的半截离线壳。
  * - **可选壳**（`OPTIONAL_SHELL`）：清单与图标，404 只影响安装外观，不该让整次
  *   安装失败（否则连离线节拍器都没有）。
  *
  * 构建产物必须在安装时自己抓一遍：首次访问时 SW 在 `load` 之后才注册，页面自己
- * 的 `/_next/static/*` 请求早已绕过 SW 发出，而 `cacheFirst` 只在页面受控之后才
+ * 的 `/_astro/*` 请求早已绕过 SW 发出，而 `cacheFirst` 只在页面受控之后才
  * 命中。只缓存 HTML 的话，装完直接断网启动会拿到一张没有 JS 的页面。
  */
 
-const VERSION = "2026-10-31-1";
+const VERSION = "2026-11-10-astro-1";
 const SHELL_CACHE = `shell-${VERSION}`;
 const STATIC_CACHE = `static-${VERSION}`;
 
@@ -57,14 +57,23 @@ const OPTIONAL_SHELL = [
 ];
 
 /**
- * 从页面 HTML 里挑出同源构建产物：`<script src>` 与 `<link href>` 指向的
- * `/_next/static/*`。安装时照着清单逐个抓，不依赖浏览器 HTTP 缓存碰巧命中。
+ * 从页面 HTML 里挑出同源 Astro 构建产物：script src、stylesheet href，以及
+ * astro-island 的 component-url/renderer-url 指向的 /_astro/*.js 或 /_astro/*.css。
+ * 安装时照清单逐个抓，不依赖浏览器 HTTP 缓存碰巧命中。
  */
 function buildAssets(html) {
   const assets = new Set();
-  const pattern = /(?:src|href)=["'](\/_next\/static\/[^"']+)["']/g;
+  const pattern = /(?:src|href|component-url|renderer-url)\s*=\s*["']([^"']+)["']/gi;
   for (const match of html.matchAll(pattern)) {
-    assets.add(match[1]);
+    try {
+      const url = new URL(match[1], self.location.origin);
+      if (url.origin !== self.location.origin) continue;
+      if (!url.pathname.startsWith("/_astro/")) continue;
+      if (!/\.(?:js|css)$/.test(url.pathname)) continue;
+      assets.add(url.pathname + url.search);
+    } catch {
+      // 无法解析的属性不是可预缓存的本站构建资源
+    }
   }
   return [...assets];
 }
@@ -84,7 +93,7 @@ async function precacheRequiredShell() {
     const assets = buildAssets(await response.text());
     // 一条构建产物都没有，说明拿到的不是这次导出的页面，不能当壳用
     if (assets.length === 0) {
-      throw new Error(`预缓存 ${url} 失败：HTML 里没有 _next/static 资源`);
+      throw new Error(`预缓存 ${url} 失败：HTML 里没有 Astro 构建资源`);
     }
 
     for (const asset of assets) {
@@ -215,7 +224,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/_next/static/")) {
+  if (url.pathname.startsWith("/_astro/")) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }

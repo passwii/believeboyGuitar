@@ -1,0 +1,24 @@
+---
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { Metronome } from "@/components/Metronome";
+import { MetronomeGuide } from "@/components/MetronomeGuide";
+import BaseLayout from "@/astro/layouts/BaseLayout.astro";
+---
+<BaseLayout title="节拍器">
+  <main class="metronome-focus">
+    <div class="metronome-focus__inner">
+      <h1 class="metronome-focus__desktop-only text-display font-display text-ink-950 text-balance">
+        节拍器
+      </h1>
+      <div class="metronome-focus__panel">
+        <Metronome client:load />
+      </div>
+      <div class="metronome-focus__desktop-only mt-8 empty:hidden">
+        <InstallPrompt client:load />
+      </div>
+      <div class="metronome-focus__desktop-only">
+        <MetronomeGuide />
+      </div>
+    </div>
+  </main>
+</BaseLayout>

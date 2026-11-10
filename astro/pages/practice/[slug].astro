@@ -1,0 +1,74 @@
+---
+import { Icon } from "@/components/icons";
+import { LessonWidget } from "@/components/LessonWidget";
+import { PracticeEntryPicker } from "@/components/PracticeEntryPicker";
+import { practiceEntries, type PracticeEntry } from "@/content/manifest";
+import { addLessonHeadingIds } from "@/lib/content-headings";
+import { splitContentSections } from "@/lib/content-sections";
+import { sanitizeContentHtml } from "@/lib/sanitize-content";
+import BaseLayout from "@/astro/layouts/BaseLayout.astro";
+
+interface Props {
+  entry: PracticeEntry;
+  html: string;
+}
+
+export function getStaticPaths() {
+  const lessonFiles = import.meta.glob<string>("../../../content/lessons/*.html", {
+    eager: true,
+    query: "?raw",
+    import: "default",
+  });
+
+  return practiceEntries.map((entry) => {
+    const path = "../../../content/lessons/" + entry.slug + ".html";
+    const html = lessonFiles[path];
+    if (typeof html !== "string") {
+      throw new Error("练习正文不存在：" + entry.slug);
+    }
+    return {
+      params: { slug: entry.slug },
+      props: { entry, html },
+    };
+  });
+}
+
+const { entry, html } = Astro.props as Props;
+const content = addLessonHeadingIds(sanitizeContentHtml(html));
+const sections = splitContentSections(content.html);
+const title = entry.label ? entry.label + "：" + entry.title : entry.title;
+---
+<BaseLayout title={title}>
+  <main class="practice-focus shell flex-1 py-4 sm:py-10">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <a
+        href="/"
+        aria-label="返回首页"
+        title="返回首页"
+        class="grid size-11 place-items-center rounded-full border border-rule bg-surface text-ink-700"
+      >
+        <Icon name="home" className="size-4" />
+      </a>
+      <PracticeEntryPicker client:load items={practiceEntries} currentSlug={entry.slug} />
+    </div>
+
+    <header class="mt-4">
+      <h1 class="text-display font-display text-ink-950">
+        <span class="sm:hidden">{entry.label ?? entry.title}</span>
+        <span class="max-sm:hidden">{entry.label ? entry.label + "：" : ""}{entry.title}</span>
+      </h1>
+    </header>
+
+    <article class="mt-4 min-w-0">
+      <div class="space-y-4 sm:space-y-6">
+        {sections.map((section) =>
+          section.kind === "prose" ? (
+            <div class="lesson measure" set:html={section.html} />
+          ) : (
+            <LessonWidget name={section.name} client:visible />
+          ),
+        )}
+      </div>
+    </article>
+  </main>
+</BaseLayout>

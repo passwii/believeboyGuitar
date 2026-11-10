@@ -3,32 +3,40 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "npm run mini:core && next build",
+    "dev": "astro dev",
+    "astro:dev": "astro dev",
+    "astro:build": "astro build",
+    "astro:check": "astro check",
+    "build": "npm run mini:core && astro build && node scripts/verify-astro-output.mjs",
     "verify:css": "node scripts/verify-static-css.mjs",
     "lint": "eslint",
     "test": "npm run mini:core && vitest run",
-    "typecheck": "npm run mini:core && tsc --noEmit && tsc -p miniprogram/tsconfig.json --noEmit",
+    "typecheck": "npm run mini:core && astro check && tsc --noEmit && tsc -p miniprogram/tsconfig.json --noEmit",
     "mini:core": "tsc -p packages/guitar-core/tsconfig.build.json",
     "mini:check": "npm run mini:core && tsc -p miniprogram/tsconfig.json --noEmit",
     "deploy:local": "bash scripts/deploy-local.sh",
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
-    "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@astrojs/react": "^5.0.7",
     "@tailwindcss/postcss": "^4.3.4",
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "astro": "^6.4.8",
     "eslint": "^9",
-    "eslint-config-next": "16.4.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "miniprogram-api-typings": "5.2.3",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^7.3.8",
     "vitest": "^5.0.5"
   }
 }

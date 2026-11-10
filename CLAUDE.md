@@ -1,8 +1,8 @@
 # 项目约束
 
-个人电吉他练习 PWA。纯前端 Next.js 静态导出，无后端、无数据库、无账号。
+个人电吉他练习 PWA。纯前端 Astro 静态站点（`output: "static"`），无后端、无数据库、无账号。
 更完整的背景见 `README.md`，设计与实现文档见 `docs/superpowers/`。
-Next.js 版本相关的写法参考脚手架生成的 `AGENTS.md`。
+Astro 版本相关的写法以 `astro.config.mjs` 与 `node_modules/astro/` 的实际类型为准。
 
 ## 硬性约束
 
@@ -10,8 +10,9 @@ Next.js 版本相关的写法参考脚手架生成的 `AGENTS.md`。
 - `content/lessons/*.html` 只写语义标签，以 `<article>` 为根元素。禁止 `<script>`、`<style>`、`<link>`、行内 `style=`、自带导航。样式只写在 `content/content.css` 里
 - slug 是小写 kebab-case，且与文件名严格对应
 - `inbox/` 与 `archive/` 永不纳入版本库：原始资料体积大且涉及版权
-- 页面组件不要用 `LayoutProps<"...">` / `PageProps<"...">` 这类构建后生成的全局类型，`tsc --noEmit` 会失败。显式写 `{ params: Promise<{ slug: string }> }`
-- `next.config.ts` 不得开启 `cacheComponents`：会让访问 `params` 的动态路由在预渲染时报错，静态导出失败
+- Astro 源目录固定在 `astro/`（`srcDir`）。页面放 `astro/pages/`，不要在根目录另建 `src/pages`
+- `astro.config.mjs` 必须保持 `output: "static"`、`srcDir: "./astro"`、`build.format: "file"`、`trailingSlash: "never"`；改成 SSR 或目录格式会让 Cloudflare Pages 路由与 Service Worker 离线壳失配
+- 会输出 CommonJS 的 `packages/guitar-core` 与 `miniprogram` 两个 tsconfig 必须显式关闭 `verbatimModuleSyntax`，不要依赖它继承 Astro 的 strict preset
 - `@types/node` 必须保持 `^24` 以上，`vitest@5` 的 peer 要求
 - 曲谱的记谱法只做简谱，不做五线谱。此前也没有做过五线谱（第 1 周曲谱原书是「五线谱 + TAB」双行谱，页面只保留了 TAB）
 

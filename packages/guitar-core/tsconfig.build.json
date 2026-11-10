@@ -2,6 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": false,
     "declaration": true,
     "module": "CommonJS",
     "moduleResolution": "node",

@@ -7,26 +7,26 @@ import { describe, expect, it } from "vitest";
  *
  * 这一组防的不是「写错代码」，而是「设计系统慢慢漏气」：死令牌越积越多、
  * 字号阶梯被随手加一档、触摸目标被悄悄改小。规则来自 DESIGN.md，
- * 实现来自 app/globals.css。
+ * 实现来自 astro/styles/global.css。
  */
 
 const root = process.cwd();
-const globalsPath = path.join(root, "app", "globals.css");
+const globalsPath = path.join(root, "astro", "styles", "global.css");
 const css = readFileSync(globalsPath, "utf8");
 
 /** @theme 块是令牌「声明」处，不能拿它自己当「使用」证据 */
 const cssBody = css.replace(/@theme\s*\{[\s\S]*?\n\}/, "");
 
-const SOURCES = ["app", "components", "content"].flatMap((dir) =>
+const SOURCES = ["astro", "components", "content"].flatMap((dir) =>
   readdirSync(path.join(root, dir), { recursive: true, encoding: "utf8" })
-    .filter((name) => /\.(tsx?|css)$/.test(name))
+    .filter((name) => /\.(tsx?|css|astro|html)$/.test(name))
     .map((name) => ({
       file: path.join(dir, name),
       text: readFileSync(path.join(root, dir, name), "utf8"),
     })),
 );
 
-const CONSUMERS = [...SOURCES, { file: "app/globals.css", text: cssBody }];
+const CONSUMERS = [...SOURCES, { file: "astro/styles/global.css", text: cssBody }];
 
 /**
  * 令牌 → 判定「被使用」的正则。
@@ -110,7 +110,7 @@ describe("排版阶梯", () => {
   it("界面代码不出现任意字号（阶梯漏气的典型迹象）", () => {
     const offenders: string[] = [];
     for (const { file, text } of SOURCES) {
-      if (!file.endsWith(".tsx")) continue;
+      if (!file.endsWith(".tsx") && !file.endsWith(".astro")) continue;
       for (const match of text.matchAll(/\btext-\[[^\]]+\]/g)) {
         offenders.push(`${file}: ${match[0]}`);
       }

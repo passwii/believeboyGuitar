@@ -13,9 +13,9 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
+# framework generated files
+/.astro/
+/dist/
 
 # production
 /build
@@ -41,7 +41,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # 原始资料：体积大且涉及版权，不纳入版本库
 /inbox/
