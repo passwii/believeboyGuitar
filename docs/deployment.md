@@ -7,8 +7,10 @@
 
 ## 架构
 
-本地部署是主路径，GitHub Actions 是手动备用路径。两条路径都生成同一个极简
-Nginx 镜像，并调用同一份远程部署脚本。
+**当前生产入口是 Cloudflare Pages**（见 [cloudflare-pages.md](./cloudflare-pages.md)）。
+本文描述的是回滚路径：本地 `npm run deploy:local` 生成极简 Nginx 镜像并部署到 VPS，
+GitHub Actions 是同一流程的手动备用。两条路径都生成同一个镜像，并调用同一份远程部署脚本。
+DNS 切回 VPS 的 A 记录即可回退。
 
 ```text
 本地 Mac（主路径）

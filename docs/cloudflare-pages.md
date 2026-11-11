@@ -3,8 +3,10 @@
 本仓库的网站是 Astro 静态站（`output: "static"`），产物在 `dist/`，没有 Worker、Pages Functions、
 数据库或账号。Cloudflare Pages 只是静态托管，不需要 `@astrojs/cloudflare` 适配器。
 
-生产域名当前仍指向 VPS（见 [deployment.md](./deployment.md)）。Pages 是目标宿主，域名切换是独立
-发布步骤，见本文末「切换顺序」。
+**生产域名 `guitar.believeboy.com` 已由 Cloudflare Pages 托管**（自定义域状态「活动 / SSL 已启用」，
+DNS 记录为代理的 `CNAME → believeboyguitar.pages.dev`）。VPS 保留为回滚路径，见 [deployment.md](./deployment.md)。
+项目名 `believeboyguitar`，生产分支 `main`，构建命令 `npm run build`，输出目录 `dist`，
+环境变量 `NODE_VERSION=22.12.0`。
 
 ## 1. 项目设置
 
@@ -69,16 +71,24 @@ Service Worker 的必需壳是 `/` 与 `/metronome`。安装时会解析 shell H
 
 ## 4. 与 VPS 发布的关系
 
-- VPS 仍是当前生产入口，回退路径是 `npm run deploy:local`（GitHub Actions 仅手动备用）。
+- Pages 是生产入口：`main` push 自动构建发布。
+- VPS 是回滚路径：`npm run deploy:local` 构建并推送 SHA 镜像，再让 VPS 拉取；DNS 切回 A 记录即可回退。
 - Pages 构建不依赖 VPS，也不需要 GHCR；两套产物内容一致（同一个 `dist/`）。
-- 不要同时改两套发布流程：先让 Pages 预览验收通过，再切域名。
+- 回滚步骤：(1) DNS 把 `guitar` 的 CNAME 改回指向 VPS 的 A 记录；(2) `IMAGE_TAG=sha-<旧版本> npm run deploy:local`。
 
-## 5. 切换顺序（独立发布步骤）
+## 5. 实际切换记录（2026-11-11）
 
-1. 推送分支，确认 Pages 预览构建成功且上面三段全部验收通过。
-2. 在 Pages 项目里添加自定义域名 `guitar.believeboy.com`。
-3. 在 Cloudflare DNS 把该域名的 A/AAAA 或 CNAME 从 VPS 切到 Pages 提供的目标。
-4. 等待证书生效，用浏览器与 `curl -I` 复核首页、`/sw.js`、`/manifest.webmanifest`、`/_astro/*`。
-5. 观察一个发布周期后再决定是否停掉 VPS 容器；保留至少一个可回滚的 SHA 镜像。
+1. 合并 PR #35 到 `main`，Pages 自动构建成功，先验收 `believeboyguitar.pages.dev`：
+   全部路由 200、未知路径 404、`/sw.js` 为 `no-cache, no-store`、`/_astro/*` 为一年 `immutable`、
+   manifest 为 `application/manifest+json`。
+2. 在 Pages 项目 **自定义域** 里输入 `guitar.believeboy.com`。
+3. 确认 DNS 变更预览：`A guitar → 145.79.143.98` 替换为 `CNAME guitar → believeboyguitar.pages.dev`，
+   点击「激活域」。
+4. 状态变为「活动 / SSL 已启用」，用 `curl --resolve` 指向 Cloudflare 边缘复核：
+   页面是 Astro 产物（`/_astro/*`、无 `/_next/*`），缓存头与 pages.dev 一致。
 
-切换前不要删除 VPS 的 Caddy 站点块与 Compose 配置，它仍是回滚路径。
+> 本地排查注意：如果本机开了 fake-IP 代理，`dig guitar.believeboy.com` 会返回 `198.18.x.x`，
+> 直接 `curl` 可能命中本地代理并回旧 VPS 内容。验证生产请用 `curl --resolve guitar.believeboy.com:443:<边缘IP>`
+> 或 DNS over HTTPS（`cloudflare-dns.com/dns-query`）。
+
+VPS 的 Caddy 站点块与 Compose 配置继续保留，它是回滚路径。
