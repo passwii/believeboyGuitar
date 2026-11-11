@@ -30,9 +30,7 @@ npm run build
 ```
 
 开发流程、提交规范与交付检查见 [DEVELOPMENT.md](./DEVELOPMENT.md)。
-生产部署、Caddy 与 GHCR 配置见 [docs/deployment.md](./docs/deployment.md)。
-Cloudflare Pages 发布路径见 [docs/cloudflare-pages.md](./docs/cloudflare-pages.md)。
-构建与部署的日常运行手册见 [docs/deployment-runbook.md](./docs/deployment-runbook.md)。
+生产发布只有 Cloudflare Pages 一条路径：配置、验收与回滚见 [docs/cloudflare-pages.md](./docs/cloudflare-pages.md)。
 本地主发布使用 `npm run deploy:local`。
 
 ## 内容约定

@@ -4,7 +4,8 @@
 数据库或账号。Cloudflare Pages 只是静态托管，不需要 `@astrojs/cloudflare` 适配器。
 
 **生产域名 `guitar.believeboy.com` 已由 Cloudflare Pages 托管**（自定义域状态「活动 / SSL 已启用」，
-DNS 记录为代理的 `CNAME → believeboyguitar.pages.dev`）。VPS 保留为回滚路径，见 [deployment.md](./deployment.md)。
+DNS 记录为代理的 `CNAME → believeboyguitar.pages.dev`）。
+**Cloudflare Pages 是唯一的部署目标**：仓库里不再保留 VPS 镜像、GHCR、Nginx、Caddy 实例或 GitHub Actions 发布流水线。
 项目名 `believeboyguitar`，生产分支 `main`，构建命令 `npm run build`，输出目录 `dist`，
 环境变量 `NODE_VERSION=22.12.0`。
 
@@ -38,7 +39,7 @@ PWA 与缓存头。
 - `build.format: "file"` → `practice.html`、`practice/<slug>.html`
 - `trailingSlash: "never"` → 无斜杠 URL
 
-Cloudflare Pages 会把 `foo.html` 作为 `/foo` 提供，与现有 VPS Nginx 的 `$uri → $uri.html → $uri/`
+Cloudflare Pages 会把 `foo.html` 作为 `/foo` 提供，与迁移前 Nginx 的 `$uri → $uri.html → $uri/`
 顺序一致。发布后必须逐个确认：
 
 - `/`、`/practice`、`/library`、`/metronome`
@@ -69,12 +70,14 @@ Service Worker 的必需壳是 `/` 与 `/metronome`。安装时会解析 shell H
 4. `/tools/metronome` 断网访问应落到已缓存的 `/metronome`。
 5. 节拍器能出声、指板能切换、TAB 播放头能走。
 
-## 4. 与 VPS 发布的关系
+## 4. 发布与回滚
 
-- Pages 是生产入口：`main` push 自动构建发布。
-- VPS 是回滚路径：`npm run deploy:local` 构建并推送 SHA 镜像，再让 VPS 拉取；DNS 切回 A 记录即可回退。
-- Pages 构建不依赖 VPS，也不需要 GHCR；两套产物内容一致（同一个 `dist/`）。
-- 回滚步骤：(1) DNS 把 `guitar` 的 CNAME 改回指向 VPS 的 A 记录；(2) `IMAGE_TAG=sha-<旧版本> npm run deploy:local`。
+- 唯一发布入口：`main` push 后 Pages 自动构建发布，本地不跑发布脚本。
+- 只要构建脚本 `npm run build` 通过（含 `verify-astro-output.mjs`），产物就是完整站点。
+- **回滚**：Pages 项目 → **Deployments** → 找到上一份可用部署 → **Rollback**。回滚是一次部署记录切换，
+  不需要改 DNS，也不需要重建镜像；回滚后再用一次 `main` push 覆盖即可。
+- 2026-11-11 已下线 VPS 部署：容器、GHCR 镜像、Caddy 站点块与仓库里的发布脚本都已移除，
+  旧域名记录已替换为指向 Pages 的 CNAME。
 
 ## 5. 实际切换记录（2026-11-11）
 
@@ -91,4 +94,4 @@ Service Worker 的必需壳是 `/` 与 `/metronome`。安装时会解析 shell H
 > 直接 `curl` 可能命中本地代理并回旧 VPS 内容。验证生产请用 `curl --resolve guitar.believeboy.com:443:<边缘IP>`
 > 或 DNS over HTTPS（`cloudflare-dns.com/dns-query`）。
 
-VPS 的 Caddy 站点块与 Compose 配置继续保留，它是回滚路径。
+切换完成后 VPS 上的容器、镜像、站点目录与 Caddy 站点块已删除，回滚改为 Pages 的 Deployments → Rollback。
