@@ -54,11 +54,12 @@ npm run lint           # eslint
 
 ## 3. 本地验证与生产部署流水线
 
-**GitHub Actions 只用于生产部署，并且只是手动备用；本地部署是生产主路径。**
-合并到 `main` 后运行 `npm run deploy:local`，由本地完成门禁、静态构建、GHCR
-推送和 VPS 健康检查。
+**生产发布以 Cloudflare Pages 为主路径：`main` push 即由 Pages 的 Git 集成自动构建并上线。**
+本地 `npm run deploy:local` 仍保留，但只用于把某个 SHA 的镜像重新部署到 VPS（回滚路径）。
+合并门禁仍然在本地跑绿再推送，由 Pages 负责构建发布。
+**GitHub Actions 只用于生产部署的手动备用回滚，不做 PR 常规 CI。**
 `.github/workflows/deploy.yml` 只保留 `workflow_dispatch`，不随 push 自动部署，
-不添加面向 pull request 的常规 CI。VPS 回退细节见 [docs/deployment.md](./docs/deployment.md)，Cloudflare Pages 发布见 [docs/cloudflare-pages.md](./docs/cloudflare-pages.md)。
+不添加面向 pull request 的常规 CI。生产状态见 [docs/cloudflare-pages.md](./docs/cloudflare-pages.md)，VPS 回退细节见 [docs/deployment.md](./docs/deployment.md)。
 
 合并门禁 = **本地手工跑绿**：
 

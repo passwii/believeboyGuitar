@@ -56,7 +56,10 @@ npm run typecheck && npm test && npm run build
 练习打卡、进度统计、复习提醒、账号与云同步、PDF 阅读器、曲谱播放、暗色模式。
 不要主动引入这些功能，除非使用者明确要求。
 
-**GitHub Actions 只用于生产部署，不做 PR 常规 CI。**
-生产发布以本地 `npm run deploy:local` 为主路径：在 Mac 上完成校验、构建和 GHCR
-推送，再由 VPS 拉取运行镜像。`.github/workflows/deploy.yml` 仅保留
-`workflow_dispatch` 手动备用发布，不随 `main` push 自动部署，也不扩展成 pull request CI。
+**生产发布以 Cloudflare Pages 为主路径。**
+`main` 每次 push 由 Pages 的 Git 集成自动构建 `dist/` 并发布到 `guitar.believeboy.com`；
+本地不再需要为上线额外跑发布脚本。
+VPS + GHCR 降为回滚路径：`npm run deploy:local` 仍可用，用来把某个 SHA 的镜像重新拉回 VPS。
+**GitHub Actions 只用于生产部署的备用回滚，不做 PR 常规 CI。**
+`.github/workflows/deploy.yml` 仅保留 `workflow_dispatch` 手动备用，不随 `main` push 自动部署，
+也不扩展成 pull request CI。

@@ -194,7 +194,8 @@ describe("Cloudflare Pages 发布手册", () => {
       expect(doc, "缺少：" + text).toContain(text);
     }
     expect(doc).toContain("guitar.believeboy.com");
-    expect(doc).toContain("切换顺序");
+    expect(doc).toContain("实际切换记录");
+    expect(doc).toContain("回滚");
   });
 
   it("README 与开发流程都指向 Cloudflare Pages 手册", () => {
