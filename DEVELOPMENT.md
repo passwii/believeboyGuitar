@@ -12,7 +12,7 @@
 - 背景与目录说明：[README.md](./README.md)
 - 设计与实现方案：[docs/superpowers/](./docs/superpowers/)
 
-仓库现实：纯前端 Astro 静态站点，无后端、无数据库、无账号。唯一的部署产物是 `dist/` 目录里的静态文件；Cloudflare Pages 直接发布它，VPS 用 Nginx 镜像承载它。
+仓库现实：纯前端 Astro 静态站点，无后端、无数据库、无账号。唯一的部署产物是 `dist/` 目录里的静态文件，由 Cloudflare Pages 构建并托管。
 
 ## 0. 规则优先级
 
@@ -54,12 +54,11 @@ npm run lint           # eslint
 
 ## 3. 本地验证与生产部署流水线
 
-**生产发布以 Cloudflare Pages 为主路径：`main` push 即由 Pages 的 Git 集成自动构建并上线。**
-本地 `npm run deploy:local` 仍保留，但只用于把某个 SHA 的镜像重新部署到 VPS（回滚路径）。
+**生产发布只有 Cloudflare Pages 一条路径：`main` push 即由 Pages 的 Git 集成自动构建并上线。**
 合并门禁仍然在本地跑绿再推送，由 Pages 负责构建发布。
-**GitHub Actions 只用于生产部署的手动备用回滚，不做 PR 常规 CI。**
-`.github/workflows/deploy.yml` 只保留 `workflow_dispatch`，不随 push 自动部署，
-不添加面向 pull request 的常规 CI。生产状态见 [docs/cloudflare-pages.md](./docs/cloudflare-pages.md)，VPS 回退细节见 [docs/deployment.md](./docs/deployment.md)。
+**不在仓库里维护任何发布流水线**：VPS 镜像、GHCR、Nginx、Caddy 与 GitHub Actions 部署流水线都已移除，
+不要为了「保险」把它们加回来；要回滚就去 Pages 控制台的 Deployments 里选上一份可用部署。
+Pages 配置与验收步骤见 [docs/cloudflare-pages.md](./docs/cloudflare-pages.md)。
 
 合并门禁 = **本地手工跑绿**：
 

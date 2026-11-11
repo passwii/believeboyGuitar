@@ -1,5 +1,0 @@
-*
-!out/
-!out/**
-!deploy/
-!deploy/nginx.conf
