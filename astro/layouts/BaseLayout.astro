@@ -64,7 +64,7 @@ const pathname = canonicalPath(Astro.url.pathname);
     </script>
     <script is:inline set:html={INSTALL_CAPTURE_SCRIPT}></script>
   </head>
-  <body class="flex min-h-svh flex-col bg-canvas text-ink-950 transition-colors duration-200">
+  <body class:list={["flex min-h-svh flex-col bg-canvas text-ink-950 transition-colors duration-200", pathname === "/metronome" && "is-metronome-page"]}>
     <SiteNav pathname={pathname} />
     <slot />
     <SiteFooter pathname={pathname} />

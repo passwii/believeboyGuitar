@@ -14,48 +14,27 @@ import { BPM_DEFAULT, BPM_STEP, DEFAULT_METER } from "@/lib/metronome";
 const source = readFileSync(new URL("../components/Metronome.tsx", import.meta.url), "utf8");
 const html = renderToStaticMarkup(createElement(Metronome));
 
-/** 只取拍点那一段 JSX，避免命中文件里其它同名类名 */
-function beatDotsBlock(): string {
-  const from = source.indexOf("flex min-h-6 items-center justify-center");
-  const to = source.indexOf("第 {Math.min(activeBeat + 1, beats)} 拍");
-  expect(from).toBeGreaterThan(-1);
-  expect(to).toBeGreaterThan(from);
-  return source.slice(from, to);
-}
-
-describe("拍点指示（方案 §3 / §10）", () => {
-  it("按拍号渲染对应数量的圆点，整组对读屏隐藏", () => {
-    const dots = html.match(/class="size-3 rounded-full/g) ?? [];
-    expect(dots).toHaveLength(DEFAULT_METER.beatsPerBar);
-    // 圆点是纯视觉冗余，读屏靠旁边的 sr-only 文本
-    expect(html).toContain('items-center justify-center gap-3" aria-hidden="true"');
+describe("拍点指示：柱状图即拍点，不再重复圆点", () => {
+  it("拍点指示只由节拍柱状图承担，没有与柱状图重复的圆点指示器", () => {
+    // 用户反馈：「开始」按钮上方那块指示器与节拍柱状图重复，已移除。
+    expect(html).not.toContain("size-3 rounded-full");
+    expect(html).not.toContain("min-h-6 items-center justify-center gap-3");
+    expect(source).not.toContain("scale-125");
   });
 
-  it("首屏 sr-only 文本与当前拍一致（第 1 拍）", () => {
-    expect(html).toContain(`第 1 拍，共 ${DEFAULT_METER.beatsPerBar} 拍`);
+  it("柱状图按拍号渲染，并在播放时高亮当前拍", () => {
+    const barButtons = html.match(/第 \d+ 拍重音设置，当前为 [12] 格/g) ?? [];
+    expect(barButtons).toHaveLength(DEFAULT_METER.beatsPerBar * 2);
   });
 
-  it("当前拍只换颜色，高亮不依赖形状或额外图形", () => {
-    // 当前拍是 bg-accent-600，其余是 bg-ink-100 + ring；全部复用现有颜色令牌
-    expect(html).toContain("bg-accent-600");
-    expect(html).toContain("bg-ink-100");
+  it("sr-only 文本仍完整描述拍号与当前拍，读屏不因移除圆点而丢信息", () => {
+    expect(html).toContain(`${DEFAULT_METER.label} 节奏型，第 1 拍，共 ${DEFAULT_METER.beatsPerBar} 拍`);
   });
 });
 
-describe("减弱动态效果：reduce 下拍点不做缩放/淡入（方案 §10）", () => {
-  it("缩放类只在高亮且未开启减弱动态效果时出现", () => {
-    const block = beatDotsBlock();
-    expect(block).toMatch(/active && !reducedMotion \? "scale-125" : ""/);
-    // 必须只有这一个缩放类，不能有第二个来源
-    expect(block.match(/scale-125/g)).toHaveLength(1);
-  });
-
-  it("过渡类只由 reducedMotion 决定，不跟高亮绑在一起", () => {
-    const block = beatDotsBlock();
-    // 绑定在一起（旧写法）会让退场从 1.25 硬跳回 1：失去高亮那一帧同时摘掉了
-    // transition-property，只剩入场有动画。实测见交付评论的 MOTION_TIMELINE 探针。
-    expect(block).toMatch(/reducedMotion \? "" : "transition-transform"/);
-    expect(block).not.toMatch(/active && !reducedMotion \? "scale-125 transition-transform"/);
+describe("减弱动态效果：柱状图只换颜色（方案 §10）", () => {
+  it("柱状图过渡类只由 reducedMotion 决定", () => {
+    expect(source).toContain('reducedMotion ? "" : "transition-colors duration-150"');
   });
 
   it("偏好由 useSyncExternalStore 提供，服务端快照返回 false（静态预渲染没有 matchMedia）", () => {
@@ -204,15 +183,13 @@ describe("触摸目标与颜色来源（方案 §1 / §9.1）", () => {
       expect(className).toMatch(/\b(h-16|min-h-11|size-11)\b/);
     }
     expect(html).toContain("h-16 w-full");
-    // 桌面圆环是整块命中区（size-60 = 240px），远大于 44px；
+    // 圆盘是整块命中区（不小于 15rem），远大于 44px；
     // 原生 range 已换成自定义控件，不能再指望 input 自带 44px
-    expect(html).toMatch(
-      /class="bpm-dial relative cursor-pointer rounded-full size-60 sm:size-64"/,
-    );
+    expect(html).toContain('class="bpm-dial relative cursor-pointer rounded-full metronome-dial"');
     // 命中区是整圆的 HTML 拖拽层（touch-action:none 在 HTML 上才生效），
     // 圆心盘盖住中间区域，留给页面滚动
     expect(html).toContain("absolute inset-0 rounded-full touch-none");
-    expect(html).toContain("size-[60%]");
+    // 控制台两种形态共用同一圆盘：读数放大、环带收在 76% 内圈
     expect(html).toContain("size-[76%]");
     expect(source).not.toMatch(/<input/);
   });

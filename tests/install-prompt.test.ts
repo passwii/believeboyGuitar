@@ -54,19 +54,16 @@ describe("调速交互不触发页面滚动（BLF-1448）", () => {
       dial.indexOf("圆心：盖住环体的中间部分"),
       dial.indexOf("读数压在圆心"),
     );
-    expect(center).toContain('instrument ? "size-[76%]" : "size-[60%]"');
+    expect(center).toContain("size-[76%]");
     expect(center).not.toContain("touch-none");
     // 圆心盘必须排在拖拽层之后，才能在叠放顺序上盖住它
     expect(dial.indexOf("rounded-full touch-none")).toBeLessThan(
-      dial.indexOf('instrument ? "size-[76%]" : "size-[60%]"'),
+      dial.indexOf("size-[76%]"),
     );
   });
 
-  it("桌面保留 60% 圆心命中区；单屏版放大读数时仍留出 12% 环带", () => {
-    // 桌面：外圈半径 50%，内圈半径 30%，环带宽度 20%。
-    const inner = (82 - 44 / 2) / 100;
-    expect(inner).toBeCloseTo(0.6, 5);
-    // 手机：圆心占直径 76%，两侧各留 12% 的径向环带。
+  it("控制台圆心占直径 76%，两侧各留 12% 环带", () => {
+    // 圆心占直径 76%，两侧各留 12% 的径向环带，刻度与外圈拖动区仍然可见。
     expect((1 - 0.76) / 2).toBeCloseTo(0.12, 5);
   });
 

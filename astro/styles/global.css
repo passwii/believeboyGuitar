@@ -1589,6 +1589,19 @@
     padding: 1.25rem;
   }
 
+  /* 竖屏单栏：圆盘按剩余高度缩放，不把底部 transport 顶出视口 */
+  .metronome-compact__dial {
+    min-height: 0;
+    flex: 1 1 0%;
+  }
+
+  .metronome-compact__dial .bpm-dial {
+    width: auto;
+    height: min(44svh, 22rem);
+    max-width: 100%;
+    aspect-ratio: 1;
+  }
+
   @media (min-width: 640px) {
     .metronome-focus {
       padding:
@@ -1603,20 +1616,145 @@
     }
   }
 
-  .metronome-dial,
-  .mobile-metronome .bpm-dial {
-    width: min(90vw, 44svh, 22.5rem);
+  .metronome-dial {
+    width: min(90vw, 38svh, 22.5rem);
     height: auto;
     max-width: 100%;
     aspect-ratio: 1;
   }
 
-  @media (max-width: 639px) {
+  /* 竖屏单栏以高度为准，宽度跟随高度；放在通用规则之后覆盖它。
+     上限按「剩余高度」给（顶部柱状图 + 底部 transport 约 16rem），
+     让圆盘在 iPad 竖屏的大片留白里长大，同时不把 transport 顶出视口。 */
+  .metronome-compact .bpm-dial {
+    width: auto;
+    height: min(calc(100svh - 20rem), 26rem);
+    max-width: 100%;
+    aspect-ratio: 1;
+  }
+
+  /* ---- 节拍器控制台：手机/竖屏单栏，横屏 2/3 + 1/3 双栏 ---- */
+  .metronome-console {
+    display: flex;
+    min-height: 0;
+    width: 100%;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .metronome-compact {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+  }
+
+  /* 横屏双栏控制台：手机横屏、iPad 横屏与桌面都用它。
+     宽屏时 2/3 给读数与柱状图，1/3 给拍号/音色/播放。 */
+  .metronome-split {
+    display: none;
+  }
+
+  /* 节拍器在手机 / 平板（含横屏 iPad）上独占视口：站点导航与页脚让位，
+     否则 100svh 的控制台会被站点外壳顶出屏幕。用 !important 覆盖
+     Tailwind 的 `.hidden sm:block`（工具类在 layer utilities，顺序在后）。 */
+  @media (max-width: 1023px), (pointer: coarse) {
+    body.is-metronome-page > .shell-nav-glass,
+    body.is-metronome-page > .dock-glass,
+    body.is-metronome-page > .site-footer {
+      display: none !important;
+    }
+  }
+
+  @media (orientation: landscape) and (min-width: 640px) {
+    .metronome-compact {
+      display: none;
+    }
+
+    .metronome-split {
+      display: grid;
+      min-height: 0;
+      height: 100%;
+      grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr);
+      gap: 1.75rem;
+      align-items: stretch;
+    }
+
+    .metronome-split__display {
+      display: flex;
+      min-width: 0;
+      min-height: 0;
+      flex-direction: column;
+      gap: 0.9rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .metronome-console__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .metronome-split__bars {
+      display: flex;
+      flex: none;
+      gap: 0.6rem;
+    }
+
+    .metronome-split__dial {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+
+    /* 横屏控制列底部留白与 transport 一起贴底，避免按钮悬在空白中 */
+    .metronome-split__controls > section {
+      flex: 0 0 auto;
+    }
+
+    .metronome-split__dial .bpm-dial {
+      width: min(36svh, 19rem, 100%);
+      height: auto;
+      max-width: 100%;
+      aspect-ratio: 1;
+    }
+
+    .metronome-split__wave {
+      flex: none;
+      min-height: 0;
+      padding-top: 0.25rem;
+    }
+
+    .metronome-split__controls {
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+      gap: 1.1rem;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .metronome-split__transport {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-top: auto;
+      padding-bottom: 0.25rem;
+    }
+  }
+
+  /* 手机、平板竖屏与横屏都占满一个视口，页面不滚动；
+     桌面保持站点外壳与下方指引。用指针粗细区分平板与桌面。 */
+  @media (max-width: 1023px), (pointer: coarse) {
     .metronome-focus {
       height: 100svh;
       min-height: 100svh;
       overflow: hidden;
-      padding: 0;
+      padding: 0 !important;
     }
 
     .metronome-focus__inner {
@@ -1630,6 +1768,7 @@
     }
 
     .metronome-focus__panel {
+      display: flex;
       flex: 1;
       min-height: 0;
       margin-top: 0;
@@ -1637,14 +1776,30 @@
       border-radius: 0;
       background: transparent;
       padding:
-        max(1rem, calc(env(safe-area-inset-top) + 0.625rem))
+        max(0.75rem, calc(env(safe-area-inset-top) + 0.5rem))
         max(1.125rem, env(safe-area-inset-right))
-        max(1rem, calc(env(safe-area-inset-bottom) + 0.625rem))
+        max(0.875rem, calc(env(safe-area-inset-bottom) + 0.5rem))
         max(1.125rem, env(safe-area-inset-left));
+    }
+
+    .metronome-focus__panel > .metronome-console {
+      min-height: 0;
     }
 
     .metronome-focus__desktop-only {
       display: none;
+    }
+  }
+
+  @media (min-width: 1024px) and (pointer: fine) {
+    .metronome-focus__panel {
+      padding: 1.75rem;
+    }
+
+    .metronome-console {
+      display: flex;
+      min-height: clamp(30rem, calc(100svh - 16rem), 42rem);
+      flex-direction: column;
     }
   }
 

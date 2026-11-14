@@ -164,10 +164,10 @@ function MobileMetronomeView({
     phase === "running" ? `第 ${active + 1} 拍` : phase === "paused" ? "已暂停" : "准备开始";
 
   return (
-    <div className="mobile-metronome flex h-full min-h-0 flex-col sm:hidden">
+    <div className="metronome-compact h-full min-h-0 flex-col">
       <h1 className="sr-only">节拍器</h1>
       <section aria-labelledby="mobile-metronome-meter-label" className="flex-none">
-        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2">
           <span
             id="mobile-metronome-meter-label"
             className="inline-flex min-h-7 items-center rounded-pill border border-rule bg-surface/80 px-2.5 font-mono text-meta text-ink-700 tabular-nums"
@@ -183,6 +183,14 @@ function MobileMetronomeView({
             />
             {status}
           </p>
+          <button
+            type="button"
+            aria-label="切换明暗色彩"
+            title="切换明暗色彩"
+            className="theme-toggle grid size-11 place-items-center rounded-full border border-rule/80 bg-surface/70 text-ink-700"
+          >
+            <Icon name="moon" className="size-4" />
+          </button>
           <a
             href="/"
             aria-label="返回首页"
@@ -264,8 +272,8 @@ function MobileMetronomeView({
         </p>
       </section>
 
-      <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 py-1">
-        <BpmDial value={bpm} onChange={onBpmChange} instrument />
+      <section className="metronome-compact__dial flex min-h-0 flex-1 flex-col items-center justify-center gap-3 py-1">
+        <BpmDial value={bpm} onChange={onBpmChange} />
         <BpmStepControls bpm={bpm} onChange={onBpmChange} />
       </section>
 
@@ -805,7 +813,7 @@ export function Metronome() {
   const isIdle = phase === "idle";
 
   return (
-    <>
+    <div className="metronome-console">
       <MobileMetronomeView
         phase={phase}
         meter={meter}
@@ -821,202 +829,202 @@ export function Metronome() {
         onStop={() => void stop()}
         timbre={timbre}
       />
-      <div className="hidden flex-col gap-7 sm:flex">
-      <section>
-        <p id="metronome-meter-label" className="text-label font-medium text-ink-700">
-          拍号
-        </p>
-        <div
-          role="group"
-          aria-labelledby="metronome-meter-label"
-          className="mt-2 flex rounded-control border border-control-edge p-0.5"
-        >
-          {METERS.map((option) => {
-            const selected = option.label === meter.label;
-            return (
+      <div className="metronome-split" aria-label="节拍器工作台">
+        <div className="metronome-split__display">
+          <div className="metronome-console__top">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <h2 className="text-title font-display text-ink-950">节拍器</h2>
+              <span className="inline-flex min-h-7 items-center rounded-pill border border-rule bg-surface/80 px-2.5 font-mono text-meta text-ink-700 tabular-nums">
+                {meter.label}
+              </span>
+              <p className="flex items-center gap-1.5 text-meta text-ink-500" aria-hidden="true">
+                <span
+                  className={`size-1.5 rounded-full ${phase === "running" ? "bg-accent-700" : "bg-ink-200"}`}
+                />
+                {phase === "running" ? `第 ${Math.min(activeBeat + 1, beats)} 拍` : phase === "paused" ? "已暂停" : "准备开始"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
               <button
-                key={option.label}
                 type="button"
-                aria-pressed={selected}
-                onClick={() => changeMeter(option)}
-                className={`min-h-11 flex-1 rounded-control px-1 text-label font-medium ${
-                  selected ? "bg-accent-700 text-on-accent" : "text-ink-700 hover:text-ink-950"
-                }`}
+                aria-label="切换明暗色彩"
+                title="切换明暗色彩"
+                className="theme-toggle grid size-11 place-items-center rounded-control border border-rule/80 bg-surface/70 text-ink-700"
               >
-                {option.label}
+                <Icon name="moon" className="size-4" />
               </button>
-            );
-          })}
-        </div>
-        <p className="mt-1.5 text-meta text-ink-500">{meter.description}</p>
-
-        {/* 桌面端拍子柱状图与双格重音设置 */}
-        <div
-          role="group"
-          aria-label="节拍柱状图与双格重音设置"
-          className="mt-3 flex gap-2"
-        >
-          {Array.from({ length: beats }, (_, index) => {
-            const isActive = phase === "running" && index === activeBeat;
-            const isAccent = meter.accents.includes(index);
-            const level = isAccent ? 2 : 1;
-            return (
-              <button
-                key={index}
-                type="button"
-                onClick={() => toggleAccent(index)}
-                aria-label={`第 ${index + 1} 拍重音设置，当前为 ${level} 格（${isAccent ? "重音拍" : "常规拍"}），点击切换`}
-                className={`relative flex h-24 min-h-11 min-w-0 flex-1 flex-col justify-between rounded-control border p-2 text-left ${
-                  reducedMotion ? "" : "transition-colors duration-150"
-                } ${
-                  isActive
-                    ? "border-accent-700 bg-accent-700 text-on-accent shadow-sm"
-                    : isAccent
-                      ? "border-accent-100 bg-accent-50 text-ink-950 hover:border-accent-700"
-                      : "border-rule/80 bg-surface-muted text-ink-700 hover:border-control-edge"
-                }`}
+              <a
+                href="/"
+                aria-label="返回首页"
+                title="返回首页"
+                className="grid size-11 place-items-center rounded-control border border-rule/80 bg-surface/70 text-ink-700"
               >
-                <div className="flex w-full items-center justify-between">
-                  <span
-                    className={`text-micro font-medium ${
-                      isActive ? "text-on-accent" : isAccent ? "text-accent-700 font-semibold" : "text-ink-500"
-                    }`}
-                  >
-                    {isAccent ? "Level 2" : "Level 1"}
-                  </span>
-                  <span
-                    className={`font-mono text-micro tabular-nums ${
-                      isActive ? "text-on-accent" : isAccent ? "text-accent-700 font-semibold" : "text-ink-500"
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-                </div>
-                <div className="flex w-full flex-1 flex-col justify-end gap-1.5 pt-2" aria-hidden="true">
-                  {/* Level 2 方块（顶部） */}
-                  <span
-                    className={`h-5 w-full rounded-sm ${
-                      reducedMotion ? "" : "transition-colors duration-150"
-                    } ${
-                      isActive
-                        ? isAccent
+                <Icon name="home" className="size-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* 桌面端拍子柱状图与双格重音设置 */}
+          <div role="group" aria-label="节拍柱状图与双格重音设置" className="metronome-split__bars">
+            {Array.from({ length: beats }, (_, index) => {
+              const isActive = phase === "running" && index === activeBeat;
+              const isAccent = meter.accents.includes(index);
+              const level = isAccent ? 2 : 1;
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => toggleAccent(index)}
+                  aria-label={`第 ${index + 1} 拍重音设置，当前为 ${level} 格（${isAccent ? "重音拍" : "常规拍"}），点击切换`}
+                  className={`relative flex min-h-11 min-w-0 flex-1 flex-col justify-between rounded-control border p-2 text-left ${
+                    reducedMotion ? "" : "transition-colors duration-150"
+                  } ${
+                    isActive
+                      ? "border-accent-700 bg-accent-700 text-on-accent shadow-sm"
+                      : isAccent
+                        ? "border-accent-100 bg-accent-50 text-ink-950 hover:border-accent-700"
+                        : "border-rule/80 bg-surface-muted text-ink-700 hover:border-control-edge"
+                  }`}
+                >
+                  <div className="flex w-full items-center justify-between">
+                    <span
+                      className={`text-micro font-medium ${
+                        isActive ? "text-on-accent" : isAccent ? "text-accent-700 font-semibold" : "text-ink-500"
+                      }`}
+                    >
+                      {isAccent ? "Level 2" : "Level 1"}
+                    </span>
+                    <span
+                      className={`font-mono text-micro tabular-nums ${
+                        isActive ? "text-on-accent" : isAccent ? "text-accent-700 font-semibold" : "text-ink-500"
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+                  </div>
+                  <div className="flex w-full flex-1 flex-col justify-end gap-1.5 pt-2" aria-hidden="true">
+                    <span
+                      className={`h-5 w-full rounded-sm ${
+                        reducedMotion ? "" : "transition-colors duration-150"
+                      } ${
+                        isActive
+                          ? isAccent
+                            ? "bg-on-accent opacity-90"
+                            : "bg-on-accent/20"
+                          : isAccent
+                            ? "bg-accent-700"
+                            : "border border-dashed border-ink-200 bg-surface/50"
+                      }`}
+                    />
+                    <span
+                      className={`h-5 w-full rounded-sm ${
+                        reducedMotion ? "" : "transition-colors duration-150"
+                      } ${
+                        isActive
                           ? "bg-on-accent opacity-90"
-                          : "bg-on-accent/20"
-                        : isAccent
-                          ? "bg-accent-700"
-                          : "border border-dashed border-ink-200 bg-surface/50"
+                          : isAccent
+                            ? "bg-accent-700"
+                            : "bg-ink-700"
+                      }`}
+                    />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <section className="metronome-split__dial">
+            <BpmDial value={bpm} onChange={changeBpm} />
+            <BpmStepControls bpm={bpm} onChange={changeBpm} />
+          </section>
+
+          {/* 拍点波形：每拍四个细分，与拍点同步。 */}
+          <section className="metronome-split__wave">
+            <TempoWave meter={meter} activeBeat={activeBeat} running={phase === "running"} className="h-10" />
+            <p className="sr-only">波形：每拍四个细分，亮色是当前拍。</p>
+          </section>
+        </div>
+
+        <aside className="metronome-split__controls" aria-label="节拍器调节">
+          <section>
+            <p id="metronome-meter-label" className="text-label font-medium text-ink-700">
+              拍号
+            </p>
+            <div
+              role="group"
+              aria-labelledby="metronome-meter-label"
+              className="mt-2 flex rounded-control border border-control-edge p-0.5"
+            >
+              {METERS.map((option) => {
+                const selected = option.label === meter.label;
+                return (
+                  <button
+                    key={option.label}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => changeMeter(option)}
+                    className={`min-h-11 flex-1 rounded-control px-1 text-label font-medium ${
+                      selected ? "bg-accent-700 text-on-accent" : "text-ink-700 hover:text-ink-950"
                     }`}
-                  />
-                  {/* Level 1 方块（底部） */}
-                  <span
-                    className={`h-5 w-full rounded-sm ${
-                      reducedMotion ? "" : "transition-colors duration-150"
-                    } ${
-                      isActive
-                        ? "bg-on-accent opacity-90"
-                        : isAccent
-                          ? "bg-accent-700"
-                          : "bg-ink-700"
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-meta text-ink-500">{meter.description}</p>
+          </section>
+
+          <section>
+            <p id="metronome-timbre-label" className="text-label font-medium text-ink-700">
+              音色
+            </p>
+            <div
+              role="group"
+              aria-labelledby="metronome-timbre-label"
+              className="mt-2 flex rounded-control border border-control-edge p-0.5"
+            >
+              {TIMBRES.map((option) => {
+                const selected = option.id === timbre;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    aria-pressed={selected}
+                    title={option.hint}
+                    onClick={() => changeTimbre(option.id)}
+                    className={`min-h-11 flex-1 rounded-control px-1 text-label font-medium ${
+                      selected ? "bg-accent-700 text-on-accent" : "text-ink-700 hover:text-ink-950"
                     }`}
-                  />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-      <section className="flex flex-col items-center">
-        <BpmDial value={bpm} onChange={changeBpm} />
-
-        <BpmStepControls bpm={bpm} onChange={changeBpm} className="mt-4" />
-      </section>
-
-      {/* 拍点波形：峰值落在每拍，重音拍更高；播放时当前拍整组换成强调色。
-          高亮来自同一个调度循环（activeBeat），不是另一套计时器。 */}
-      <section className="flex flex-col gap-2">
-        <TempoWave meter={meter} activeBeat={activeBeat} running={phase === "running"} className="h-12" />
-        <p className="sr-only">波形：每拍四个细分，亮色是当前拍。</p>
-      </section>
-
-      <section className="flex flex-col items-center gap-1">
-        {/* 过渡类只受 reducedMotion 控制、缩放类才受 active 控制。若两者绑在一起
-            （旧写法：`active && !reducedMotion ? "scale-125 transition-transform"`），
-            失去高亮的同一帧会把 transition-property 一起摘掉，退场就从 1.25 硬跳回 1，
-            只剩「涨」没有「退」。 */}
-        <div className="flex min-h-6 items-center justify-center gap-3" aria-hidden="true">
-          {Array.from({ length: beats }, (_, index) => {
-            const active = index === activeBeat;
-            return (
-              <span
-                key={index}
-                className={`size-3 rounded-full ${
-                  active ? "bg-accent-600" : "bg-ink-100 ring-1 ring-rule"
-                } ${reducedMotion ? "" : "transition-transform"} ${
-                  active && !reducedMotion ? "scale-125" : ""
-                }`}
-              />
-            );
-          })}
-        </div>
-        <p className="sr-only">
-          第 {Math.min(activeBeat + 1, beats)} 拍，共 {beats} 拍
-        </p>
-      </section>
-
-      <section className="flex flex-col items-stretch gap-1">
-        <button
-          type="button"
-          aria-keyshortcuts="Space"
-          onClick={toggle}
-          className="h-16 w-full rounded-control bg-accent-700 text-lg font-medium text-on-accent"
-        >
-          {PHASE_LABEL[phase]}
-        </button>
-        <p className="text-center text-meta text-ink-500">
-          空格开始/暂停 · Esc 结束
-        </p>
-        <button
-          type="button"
-          onClick={() => void stop()}
-          disabled={isIdle}
-          className="min-h-11 text-label text-ink-700 disabled:text-ink-300"
-        >
-          结束
-        </button>
-        {/* 屏幕常亮的状态条：高度先留着，避免 request 落定后整页往下跳 */}
-        <p className="min-h-5 text-center text-meta text-ink-500">{wakeLockHint}</p>
-      </section>
-
-      <section>
-        <p id="metronome-timbre-label" className="text-label font-medium text-ink-700">
-          音色
-        </p>
-        <div
-          role="group"
-          aria-labelledby="metronome-timbre-label"
-          className="mt-2 flex rounded-control border border-control-edge p-0.5"
-        >
-          {TIMBRES.map((option) => {
-            const selected = option.id === timbre;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={selected}
-                title={option.hint}
-                onClick={() => changeTimbre(option.id)}
-                className={`min-h-11 flex-1 rounded-control px-1 text-label font-medium ${
-                  selected ? "bg-accent-700 text-on-accent" : "text-ink-700 hover:text-ink-950"
-                }`}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
+          <section className="metronome-split__transport">
+            <button
+              type="button"
+              aria-keyshortcuts="Space"
+              onClick={toggle}
+              className="h-16 w-full rounded-control bg-accent-700 text-lg font-medium text-on-accent"
+            >
+              {PHASE_LABEL[phase]}
+            </button>
+            <p className="text-center text-meta text-ink-500">空格开始/暂停 · Esc 结束</p>
+            <button
+              type="button"
+              onClick={() => void stop()}
+              disabled={isIdle}
+              className="min-h-11 text-label text-ink-700 disabled:text-ink-300"
+            >
+              结束
+            </button>
+            <p className="min-h-5 text-center text-meta text-ink-500">{wakeLockHint}</p>
+          </section>
+        </aside>
       </div>
       <p role="status" className="sr-only">
         {status}
@@ -1024,6 +1032,6 @@ export function Metronome() {
       <p aria-live="polite" className="sr-only">
         {announcedBpm} 拍每分钟
       </p>
-    </>
+    </div>
   );
 }
