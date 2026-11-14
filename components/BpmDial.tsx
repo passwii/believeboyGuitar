@@ -66,11 +66,9 @@ const TICKS = Array.from({ length: TICK_COUNT }, (_, index) => {
 type BpmDialProps = {
   value: number;
   onChange: (next: number) => void;
-  /** 手机单屏版：更大的刻度盘，BPM 标签收进圆心；微调按钮由页面放在圆环外。 */
-  instrument?: boolean;
 };
 
-export function BpmDial({ value, onChange, instrument = false }: BpmDialProps) {
+export function BpmDial({ value, onChange }: BpmDialProps) {
   const draggingRef = useRef(false);
   /** 指针相对 SVG 中心的位置 → BPM */
   const bpmAt = useCallback((event: PointerEvent<HTMLDivElement>): number | null => {
@@ -166,9 +164,7 @@ export function BpmDial({ value, onChange, instrument = false }: BpmDialProps) {
       aria-valuenow={value}
       aria-valuetext={`每分钟 ${value} 拍`}
       onKeyDown={onKeyDown}
-      className={`bpm-dial relative cursor-pointer rounded-full ${
-        instrument ? "metronome-dial" : "size-60 sm:size-64"
-      }`}
+      className="bpm-dial relative cursor-pointer rounded-full metronome-dial"
     >
       <svg
         viewBox={`0 0 ${VIEW} ${VIEW}`}
@@ -223,32 +219,14 @@ export function BpmDial({ value, onChange, instrument = false }: BpmDialProps) {
       />
 
       {/* 圆心：盖住环体的中间部分，不接管拖拽也不带 touch-action:none。
-          桌面保留原来的 60% 环带；手机单屏版放大读数，环带收到 76% 内圈。 */}
-      <div
-        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-rule bg-surface ${
-          instrument ? "size-[76%]" : "size-[60%]"
-        }`}
-      />
+          控制台形态放大读数，环带收到 76% 内圈，让刻度与读数在同一圆盘里分层。 */}
+      <div className="absolute left-1/2 top-1/2 size-[76%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-rule bg-surface" />
 
       {/* 读数压在圆心：纯视觉，不接管指针 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        {instrument ? (
-          <p className="mb-1 font-mono text-micro font-semibold text-ink-500">BPM</p>
-        ) : null}
-        <p
-          className={`font-mono font-semibold tabular-nums leading-none ${
-            instrument ? "text-7xl" : "text-6xl"
-          }`}
-        >
-          {value}
-        </p>
-        <p
-          className={`mt-2 text-label ${
-            instrument ? "text-accent-700" : "text-ink-700"
-          }`}
-        >
-          {tempoName(value)}
-        </p>
+        <p className="mb-1 font-mono text-micro font-semibold text-ink-500">BPM</p>
+        <p className="font-mono text-7xl font-semibold leading-none tabular-nums">{value}</p>
+        <p className="mt-2 text-label text-accent-700">{tempoName(value)}</p>
       </div>
     </div>
   );

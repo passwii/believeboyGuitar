@@ -138,20 +138,21 @@ const focusMode = pathname === "/metronome" || pathname.startsWith("/practice/we
 <script is:inline>
   (function () {
     function initThemeToggle() {
-      var btn = document.getElementById("theme-toggle");
-      if (!btn) return;
-      btn.onclick = function () {
-        var current = document.documentElement.getAttribute("data-theme") || "dark";
-        var next = current === "dark" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", next);
-        try {
-          localStorage.setItem("theme", next);
-        } catch (_) {}
-        var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) {
-          meta.setAttribute("content", next === "dark" ? "#0a0d12" : "#f4f6fa");
-        }
-      };
+      var buttons = document.querySelectorAll("#theme-toggle, .theme-toggle");
+      buttons.forEach(function (btn) {
+        btn.onclick = function () {
+          var current = document.documentElement.getAttribute("data-theme") || "dark";
+          var next = current === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          try {
+            localStorage.setItem("theme", next);
+          } catch (_) {}
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            meta.setAttribute("content", next === "dark" ? "#0a0d12" : "#f4f6fa");
+          }
+        };
+      });
     }
     initThemeToggle();
     document.addEventListener("astro:after-swap", initThemeToggle);

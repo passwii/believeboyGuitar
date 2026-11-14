@@ -3,11 +3,12 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * 手机节拍器单屏稿。
+ * 节拍器单屏与横屏控制台契约。
  *
- * 页面在窄屏是一个独占视口的仪器：顶部节奏型、中间调速圆盘、
- * 底部 transport。这里锁住三件事：站点外壳确实让位、页面没有滚动出口、
- * 三个功能区都存在。真实尺寸与触摸行为由浏览器人工检查证明。
+ * 手机竖屏与 iPad 竖屏沿用单栏「顶部柱状图 + 中央圆盘 + 底部 transport」，
+ * iPad 横屏与桌面改用 2/3 读数区 + 1/3 调节区的双栏控制台。
+ * 两种形态都必须在一个视口内显示完，页面不滚动。
+ * 这里锁结构与断点；真实尺寸与触摸行为由浏览器截图检查证明。
  */
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), "utf8");
@@ -16,15 +17,18 @@ const page = read("astro/pages/metronome.astro");
 const globals = read("astro/styles/global.css");
 const metronome = read("components/Metronome.tsx");
 const dial = read("components/BpmDial.tsx");
-const nav = read("astro/components/SiteNav.astro");
+const layout = read("astro/layouts/BaseLayout.astro");
 const footer = read("astro/components/SiteFooter.astro");
 
-describe("手机单屏节拍器", () => {
-  it("窄屏隐藏站点顶部栏、底部 dock 与页脚", () => {
-    expect(nav).toContain('pathname === "/metronome"');
-    expect(nav).toContain('focusMode && "hidden sm:block"');
-    expect(nav).toContain('aria-label="移动端导航"');
-    expect(footer).toContain('pathname.startsWith("/practice/")');
+describe("节拍器沉浸式单屏外壳", () => {
+  it("节拍器页在手机与平板上让位站点导航、底部 dock 与页脚", () => {
+    expect(layout).toContain('pathname === "/metronome" && "is-metronome-page"');
+    expect(globals).toContain("body.is-metronome-page > .shell-nav-glass");
+    expect(globals).toContain("body.is-metronome-page > .dock-glass");
+    expect(globals).toContain("body.is-metronome-page > .site-footer");
+    expect(globals).toMatch(
+      /\(max-width: 1023px\), \(pointer: coarse\)[\s\S]*?\.is-metronome-page[\s\S]*?display:\s*none\s*!important/,
+    );
     expect(footer).toContain('focusMode && "hidden sm:block"');
   });
 
@@ -37,16 +41,14 @@ describe("手机单屏节拍器", () => {
     expect(page).toContain('class="metronome-focus"');
     expect(page).toContain('class="metronome-focus__panel"');
   });
+});
 
-  it("三个区域都在：顶部四拍、中央圆盘、底部 transport", () => {
-    expect(metronome).toContain(
-      'className="mobile-metronome flex h-full min-h-0 flex-col sm:hidden"',
-    );
+describe("竖屏单栏（手机与 iPad 竖屏）", () => {
+  it("三段布局存在：拍号与柱状图、中央圆盘、底部 transport", () => {
+    expect(metronome).toContain('className="metronome-compact h-full min-h-0 flex-col"');
     expect(metronome).toContain('className="mt-2 flex gap-1.5"');
-    expect(metronome).toContain(
-      'className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 py-1"',
-    );
-    expect(metronome).toContain("<BpmDial value={bpm} onChange={onBpmChange} instrument />");
+    expect(metronome).toContain('className="metronome-compact__dial flex min-h-0 flex-1');
+    expect(metronome).toContain("<BpmDial value={bpm} onChange={onBpmChange} />");
     expect(metronome).toContain(
       'className="grid flex-none grid-cols-[1fr_auto_1fr] items-center gap-3"',
     );
@@ -57,17 +59,45 @@ describe("手机单屏节拍器", () => {
     expect(metronome).toContain('aria-label="返回首页"');
   });
 
-  it("单屏版的加减按钮放在圆环外，避免拖动圆环时误触", () => {
-    expect(dial).toContain("instrument?: boolean;");
-    expect(dial).toContain("instrument ? \"text-7xl\" : \"text-6xl\"");
-    expect(dial).toContain("BPM");
-    expect(dial).not.toContain('aria-label="减速');
-    expect(dial).not.toContain('aria-label="加速');
-    expect(dial).toContain('instrument ? "size-[76%]" : "size-[60%]"');
-    expect(metronome).toContain("<BpmDial value={bpm} onChange={onBpmChange} instrument />");
-    expect(metronome).toContain(
-      "<BpmStepControls bpm={bpm} onChange={onBpmChange} />",
+  it("单屏版圆盘按剩余高度缩放，避免把底部 transport 顶出视口", () => {
+    expect(globals).toMatch(
+      /\.metronome-compact .bpm-dial\s*\{[^}]*height:\s*min\(calc\(100svh - 20rem\)/,
     );
-    expect(globals).toMatch(/\.mobile-metronome \.bpm-dial\s*\{[^}]*44svh/);
+    expect(globals).toMatch(/\.metronome-compact__dial\s*\{[^}]*flex:\s*1 1 0%/);
+  });
+
+  it("加减按钮放在圆环外，避免拖动圆环时误触", () => {
+        expect(dial).toContain("text-7xl");
+    expect(dial).toContain("size-[76%]");
+    expect(metronome).toContain("<BpmDial value={bpm} onChange={onBpmChange} />");
+    expect(metronome).toContain("<BpmStepControls bpm={bpm} onChange={onBpmChange} />");
+  });
+});
+
+describe("横屏双栏（iPad 横屏与桌面）", () => {
+  it("横屏渲染 2/3 读数区 + 1/3 调节区的控制台", () => {
+    expect(metronome).toContain('className="metronome-split"');
+    expect(metronome).toContain('className="metronome-split__display"');
+    expect(metronome).toContain('className="metronome-split__controls"');
+    expect(metronome).toContain('className="metronome-split__bars"');
+    expect(metronome).toContain('aria-label="节拍器工作台"');
+    expect(metronome).toContain('aria-label="节拍器调节"');
+  });
+
+  it("横屏断点覆盖 iPad 尺寸，把圆盘与柱状图留在左侧", () => {
+    expect(globals).toMatch(
+      /@media \(orientation: landscape\) and \(min-width: 640px\)[\s\S]*?grid-template-columns:\s*minmax\(0, 2fr\) minmax\(15rem, 1fr\)/,
+    );
+    expect(globals).toMatch(
+      /\.metronome-split__dial \.bpm-dial\s*\{[^}]*min\(36svh/,
+    );
+    expect(globals).toMatch(/\.metronome-split__controls\s*\{[^}]*overflow-y:\s*auto/);
+  });
+
+  it("横屏控制台整块在一个视口内，桌面控制台高度有上限", () => {
+    expect(globals).toMatch(/\.metronome-split\s*\{[^}]*height:\s*100%/);
+    expect(globals).toMatch(
+      /\.metronome-console\s*\{[^}]*min-height:\s*clamp\(30rem, calc\(100svh - 16rem\), 42rem\)/,
+    );
   });
 });
