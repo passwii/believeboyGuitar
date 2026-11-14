@@ -12,80 +12,114 @@ const weekNumber = latest?.label?.match(/\d+/)?.[0]?.padStart(2, "0") ?? "—";
 const sectionRows = sections.map((section, index) => ({
   ...section,
   number: String(index).padStart(2, "0"),
+  wave: Array.from({ length: 8 }, (_, waveIndex) => {
+    const seed = (section.bpm + waveIndex * 7 + index * 3) % 9;
+    return 6 + seed * 3;
+  }),
   href: latest
     ? practiceHref(latest) + "#" + practiceSectionAnchor(latest.slug, section.id)
     : "/practice",
 }));
 ---
 <BaseLayout>
-  <main class="shell flex-1 py-8 sm:py-12">
-    <section class="home-hero">
-      <div>
-        <p class="text-micro font-medium uppercase text-ink-500">
+  <main class="shell practice-console flex-1 py-6 sm:py-10">
+    <section class="home-hero studio-glass-panel">
+      <div class="home-hero__main">
+        <p class="home-eyebrow">
+          <span class="home-eyebrow__signal" aria-hidden="true"></span>
           练习台 · {latest?.label ?? "当前周"}
         </p>
-        <span class="home-week-number">{weekNumber}</span>
-        <h1 class="text-display font-display text-ink-950">{latest?.title ?? "开始练习"}</h1>
-        <p class="mt-3 text-body text-ink-700">{latest?.focus}</p>
-        <div class="mt-7 flex flex-wrap gap-2.5">
+        <div class="home-hero__headline">
+          <span class="home-week-number">{weekNumber}</span>
+          <div>
+            <h1 class="text-display font-display text-ink-950">{latest?.title ?? "开始练习"}</h1>
+            <p class="mt-3 max-w-[32em] text-body text-ink-700 text-pretty">{latest?.focus}</p>
+          </div>
+        </div>
+        <div class="home-hero__actions">
           <a
             href={latest ? practiceHref(latest) : "/practice"}
-            class="inline-flex min-h-11 items-center rounded-control bg-accent-700 px-5 text-label font-semibold text-on-accent"
+            class="home-primary-action"
           >
+            <Icon name="play" className="size-3.5" />
             开始练习
+            <span aria-hidden="true">→</span>
           </a>
-          <a
-            href="/metronome"
-            class="inline-flex min-h-11 items-center rounded-control border border-rule bg-surface px-5 text-label font-medium text-ink-700"
-          >
+          <a href="/metronome" class="home-secondary-action">
+            <Icon name="metronome" className="size-4" />
             打开节拍器
           </a>
         </div>
       </div>
-      <aside class="home-hero__aside">
-        <strong>{String(sections.length).padStart(2, "0")}</strong>
-        <span>本周练习段</span>
-        <div>
-          <b>{practiceWeekCount}</b>
-          <small>个训练周</small>
-        </div>
+      <aside class="home-hero__aside" aria-label="本周练习概览">
+        <span class="home-hero__aside-ring" aria-hidden="true">
+          <b>{String(sections.length).padStart(2, "0")}</b>
+          <i>段</i>
+        </span>
+        <span class="home-hero__aside-caption">本周练习段</span>
+        <dl class="home-hero__aside-stats">
+          <div><dt>训练周</dt><dd>{String(practiceWeekCount).padStart(2, "0")}</dd></div>
+          <div><dt>资料</dt><dd>{String(libraryEntries.length).padStart(2, "0")}</dd></div>
+          <div>
+            <dt>目标速度</dt>
+            <dd>{sections.length ? Math.min(...sections.map((section) => section.bpm)) + "–" + Math.max(...sections.map((section) => section.bpm)) : "—"}</dd>
+          </div>
+        </dl>
       </aside>
     </section>
 
     <div class="home-grid">
-      <section aria-labelledby="week-sections-heading">
-        <div class="flex items-center justify-between gap-4">
-          <h2 id="week-sections-heading" class="text-title text-ink-950">本周谱例</h2>
-          <a href="/practice" class="text-label font-medium text-accent-700">全部练习</a>
+      <section aria-labelledby="week-sections-heading" class="home-sections">
+        <div class="home-section-heading">
+          <div>
+            <p class="text-micro font-medium uppercase text-ink-500">Laser playhead · 本周谱例</p>
+            <h2 id="week-sections-heading" class="mt-1 text-title text-ink-950">本周练习序列</h2>
+          </div>
+          <a href="/practice" class="home-inline-link">
+            全部练习
+            <Icon name="chevron-right" className="size-3" />
+          </a>
         </div>
-        <ol class="mt-3 border-t border-rule">
+        <ol class="home-section-list">
           {sectionRows.map((section) => (
-            <li class="border-b border-rule">
-              <a
-                href={section.href}
-                class="grid min-h-14 grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 px-1 text-ink-950"
-              >
-                <span class="font-mono text-meta text-ink-300 tabular-nums">{section.number}</span>
-                <span class="text-label font-semibold">{section.title}</span>
-                <span class="font-mono text-meta text-ink-500 tabular-nums">{section.bpm}</span>
+            <li>
+              <a href={section.href} class="home-section-row">
+                <span class="home-section-row__number">{section.number}</span>
+                <span class="home-section-row__main">
+                  <strong>{section.title}</strong>
+                  <small>{section.rhythm}</small>
+                </span>
+                <span class="home-section-row__wave" aria-hidden="true">
+                  {section.wave.map((height, waveIndex) => (
+                    <i class={waveIndex === 2 ? "is-hot" : undefined} style={`--wave-h:${height}px`}></i>
+                  ))}
+                </span>
+                <span class="home-section-row__bpm">{section.bpm}<small>BPM</small></span>
               </a>
             </li>
           ))}
         </ol>
       </section>
 
-      <aside aria-labelledby="quick-links-heading">
-        <h2 id="quick-links-heading" class="text-title text-ink-950">快捷入口</h2>
-        <div class="mt-3 border-t border-rule">
-          <a href="/library" class="home-quick-link">
+      <aside aria-labelledby="quick-links-heading" class="home-side">
+        <div class="home-section-heading">
+          <h2 id="quick-links-heading" class="text-title text-ink-950">快捷入口</h2>
+        </div>
+        <div class="home-quick-stack">
+          <a href="/library" class="home-quick-link studio-glass-panel">
             <span class="home-quick-link__icon"><Icon name="library" className="size-[18px]" /></span>
-            <span><strong>资料库</strong><small>{libraryEntries.length} 份资料</small></span>
-            <span aria-hidden="true">↗</span>
+            <span><strong>资料库</strong><small>{libraryEntries.length} 份资料 · 15 品指板</small></span>
+            <span class="home-quick-link__arrow" aria-hidden="true">↗</span>
           </a>
-          <a href="/metronome" class="home-quick-link">
+          <a href="/metronome" class="home-quick-link studio-glass-panel">
             <span class="home-quick-link__icon"><Icon name="metronome" className="size-[18px]" /></span>
             <span><strong>节拍器</strong><small>专注单屏 · 可后台运行</small></span>
-            <span aria-hidden="true">↗</span>
+            <span class="home-quick-link__arrow" aria-hidden="true">↗</span>
+          </a>
+          <a href="/practice" class="home-quick-link studio-glass-panel">
+            <span class="home-quick-link__icon"><Icon name="repeat" className="size-[18px]" /></span>
+            <span><strong>练习中心</strong><small>{practiceWeekCount} 个训练周 · {sections.length} 段谱例</small></span>
+            <span class="home-quick-link__arrow" aria-hidden="true">↗</span>
           </a>
         </div>
       </aside>

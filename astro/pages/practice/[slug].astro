@@ -52,11 +52,18 @@ const title = entry.label ? entry.label + "：" + entry.title : entry.title;
       <PracticeEntryPicker client:load items={practiceEntries} currentSlug={entry.slug} />
     </div>
 
-    <header class="mt-4">
+    <header class="practice-detail-header mt-4">
+      <p class="text-micro font-medium uppercase text-ink-500">
+        {entry.kind === "week" ? "Weekly drill" : "Single drill"} · {entry.focus}
+      </p>
       <h1 class="text-display font-display text-ink-950">
         <span class="sm:hidden">{entry.label ?? entry.title}</span>
         <span class="max-sm:hidden">{entry.label ? entry.label + "：" : ""}{entry.title}</span>
       </h1>
+      <p class="practice-detail-header__signal">
+        <span aria-hidden="true"></span>
+        音频时钟驱动谱面 · 激光播放头同步
+      </p>
     </header>
 
     <article class="mt-4 min-w-0">

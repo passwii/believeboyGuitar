@@ -10,6 +10,7 @@ import {
   tabStringY,
   tabTripletMark,
 } from "@/lib/tab-layout";
+import { DURATION_BEATS, measureBeatOrigins } from "@/lib/tab-timing";
 
 export type TabSystemLayout = {
   measures: readonly TabMeasure[];
@@ -30,11 +31,22 @@ export function TabSystems({
   systems,
   measureOffsets,
   activeNoteIndex,
+  beatPosition,
+  beatsPerBar = 4,
+  showPlayhead = true,
 }: {
   systems: readonly TabSystemLayout[];
   measureOffsets: readonly number[];
   activeNoteIndex: number | null;
+  /** 连续谱面的绝对拍位；用于把激光播放头对齐到当前小节内的时间比例。 */
+  beatPosition?: number | null;
+  beatsPerBar?: number;
+  /** 手机分行时只画当前这一行对应的播放头，避免每行都出现一条。 */
+  showPlayhead?: boolean;
 }) {
+  const allMeasures = systems.flatMap((system) => system.measures);
+  const origins = measureBeatOrigins(allMeasures);
+
   return (
     <>
       {systems.map((system, systemIndex) => {
@@ -43,6 +55,24 @@ export function TabSystems({
         const systemEndX =
           TAB_LAYOUT.systemPadX +
           measureWidths.reduce((total, width) => total + width, 0);
+        let playheadX: number | null = null;
+        if (beatPosition !== null && beatPosition !== undefined && beatPosition >= 0) {
+          let measureX = TAB_LAYOUT.systemPadX;
+          for (let measureIndex = 0; measureIndex < systemMeasures.length; measureIndex += 1) {
+            const measure = systemMeasures[measureIndex];
+            const origin = origins[system.measureStart + measureIndex] ?? 0;
+            const total = measure.notes.reduce(
+              (sum, note) => sum + DURATION_BEATS[note.duration],
+              0,
+            );
+            if (beatPosition >= origin && beatPosition < origin + total) {
+              const ratio = Math.min(1, Math.max(0, (beatPosition - origin) / beatsPerBar));
+              const usable = measureWidths[measureIndex] - TAB_LAYOUT.measurePadX * 2;
+              playheadX = measureX + TAB_LAYOUT.measurePadX + ratio * usable;
+            }
+            measureX += measureWidths[measureIndex];
+          }
+        }
 
         return (
           <g key={`system-${system.measureStart}`}>
@@ -588,6 +618,29 @@ export function TabSystems({
               stroke="currentColor"
               strokeWidth={1.25}
             />
+            {showPlayhead && playheadX !== null ? (
+              <g className="tab-playhead" aria-hidden="true">
+                <rect
+                  x={playheadX - 7}
+                  y={TAB_LAYOUT.staffTop - 18}
+                  width={14}
+                  height={TAB_LAYOUT.systemHeight - 36}
+                  fill="var(--color-accent-glow)"
+                  opacity={0.5}
+                  rx={7}
+                />
+                <line
+                  x1={playheadX}
+                  y1={TAB_LAYOUT.staffTop - 18}
+                  x2={playheadX}
+                  y2={TAB_LAYOUT.staffTop - 18 + TAB_LAYOUT.systemHeight - 36}
+                  stroke="var(--color-accent-700)"
+                  strokeWidth={2}
+                  className="tab-playhead-line"
+                />
+                <circle cx={playheadX} cy={TAB_LAYOUT.staffTop - 18} r={3.5} fill="var(--color-accent-700)" />
+              </g>
+            ) : null}
           </g>
         );
       })}

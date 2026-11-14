@@ -164,7 +164,7 @@ export function PracticeMetronome() {
       </div>
 
       <p id="practice-metronome-help" className="practice-metronome__hint">
-        空格播放/暂停 · 回车切换下一弦
+        空格播放/暂停 · 回车切弦 · P 试听当前弦
       </p>
       <p role="status" className="sr-only">
         {announcement}

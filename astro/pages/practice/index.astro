@@ -1,7 +1,7 @@
 ---
 import { Icon } from "@/components/icons";
 import { practiceEntries } from "@/content/manifest";
-import { practiceSections } from "@/lib/practice-sections";
+import { practiceSections, practiceSectionAnchor } from "@/lib/practice-sections";
 import { latestPracticeEntry, practiceHref } from "@/lib/practice";
 import BaseLayout from "@/astro/layouts/BaseLayout.astro";
 
@@ -11,40 +11,105 @@ const entries = practiceEntries.map((entry, entryIndex) => ({
   number: String(entryIndex + 1).padStart(2, "0"),
   sections: practiceSections(entry.slug),
   href: practiceHref(entry),
+  firstSection: practiceSections(entry.slug)[0],
+  anchor: practiceSections(entry.slug)[0]
+    ? practiceHref(entry) + "#" + practiceSectionAnchor(entry.slug, practiceSections(entry.slug)[0].id)
+    : practiceHref(entry),
+  measureCount: practiceSections(entry.slug).reduce(
+    (total, section) => total + section.measures.length,
+    0,
+  ),
+  bpmRange: practiceSections(entry.slug).length
+    ? (() => {
+        const speeds = practiceSections(entry.slug).map((section) => section.bpm);
+        const min = Math.min(...speeds);
+        const max = Math.max(...speeds);
+        return min === max ? String(min) : `${min}–${max}`;
+      })()
+    : "—",
 }));
 ---
 <BaseLayout title="练习">
-  <main class="shell flex-1 py-8 sm:py-12">
-    <header class="flex flex-wrap items-end justify-between gap-5">
+  <main class="shell practice-console flex-1 py-8 sm:py-12">
+    <header class="practice-console__header">
       <div>
-        <p class="text-micro font-medium uppercase text-ink-500">Practice</p>
-        <h1 class="mt-2 text-display font-display text-ink-950">练习</h1>
-        <p class="mt-2 text-body text-ink-700">按谱练习，每次只推进一段。</p>
+        <p class="text-micro font-medium uppercase text-ink-500">Practice Console</p>
+        <h1 class="mt-2 text-display font-display text-ink-950">练习台</h1>
+        <p class="mt-2 max-w-[34em] text-body text-ink-700 text-pretty">
+          按谱练习，每次只推进一段。所有谱例共用同一套音频时钟与激光播放头。
+        </p>
       </div>
       {latest && (
         <a
           href={practiceHref(latest)}
-          class="inline-flex min-h-11 items-center gap-2 rounded-control bg-accent-700 px-4 text-label font-semibold text-on-accent"
+          class="practice-console__resume"
         >
-          继续 {latest.label ?? latest.title}
-          <Icon name="chevron-right" className="size-3.5" />
+          <span class="practice-console__resume-label">
+            <Icon name="play" className="size-3" />
+            继续训练
+          </span>
+          <strong>{latest.label ?? latest.title}</strong>
+          <span>{latest.focus}</span>
         </a>
       )}
     </header>
 
-    <ol class="mt-8 border-t border-rule">
-      {entries.map((entry) => (
-        <li class="border-b border-rule">
-          <a href={entry.href} class="practice-entry-row">
-            <span class="practice-entry-row__number">{entry.number}</span>
-            <span>
-              <strong>{entry.label ? entry.label + " · " : ""}{entry.title}</strong>
-              <small>{entry.sections.length} 段谱例 · {entry.focus}</small>
-            </span>
-            <Icon name="chevron-right" className="size-4 text-ink-300" />
-          </a>
-        </li>
-      ))}
-    </ol>
+    <section aria-labelledby="practice-list-heading">
+      <div class="practice-console__section-head">
+        <p id="practice-list-heading" class="text-micro font-medium uppercase text-ink-500">
+          All sessions · {entries.length}
+        </p>
+        <p class="text-meta text-ink-500">选择一张卡开始，直接从第一段进入</p>
+      </div>
+
+      <ol class="practice-console__grid">
+        {entries.map((entry, index) => (
+          <li>
+            <a
+              href={entry.href}
+              class={index === 0 ? "practice-card practice-card--featured" : "practice-card"}
+            >
+              <span class="practice-card__glow" aria-hidden="true"></span>
+              <span class="practice-card__topline">
+                <span class="practice-card__number">{entry.number}</span>
+                <span class="practice-card__kind">
+                  {entry.kind === "week" ? "WEEKLY DRILL" : "SINGLE DRILL"}
+                </span>
+                <Icon name="chevron-right" className="practice-card__arrow size-4" />
+              </span>
+              <strong class="practice-card__title">
+                {entry.label ? entry.label + " · " : ""}{entry.title}
+              </strong>
+              <span class="practice-card__focus">{entry.focus}</span>
+              <span class="practice-card__meta">
+                {entry.firstSection && (
+                  <span class="practice-card__snapshot">
+                    <span class="practice-card__mini-tab" aria-hidden="true">
+                      {Array.from({ length: 6 }, (_, stringIndex) => (
+                        <i class={stringIndex === 5 ? "is-live" : undefined}></i>
+                      ))}
+                      <b>{entry.firstSection.measures[0]?.notes[0]?.fret ?? 0}</b>
+                    </span>
+                    <span>
+                      {entry.firstSection.title}
+                      <b>♩ {entry.firstSection.bpm}</b>
+                    </span>
+                  </span>
+                )}
+                <span class="practice-card__stats">
+                  <span><b>{entry.sections.length}</b> 段</span>
+                  <span><b>{entry.measureCount}</b> 小节</span>
+                  <span><b>{entry.bpmRange}</b> BPM</span>
+                </span>
+              </span>
+              <span class="practice-card__enter">
+                <span>{entry.firstSection ? "从「" + entry.firstSection.title + "」进入" : "进入练习"}</span>
+                <i aria-hidden="true"></i>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
   </main>
 </BaseLayout>

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { activeNoteIndex, noteTimings, totalBeats } from "@/lib/tab-timing";
+import {
+  activeNoteIndex,
+  measureBeatOrigins,
+  noteTimings,
+  playheadProgress,
+  totalBeats,
+} from "@/lib/tab-timing";
 import { WEEK1_SECTIONS } from "@/lib/week-1-tab-exercises";
 import type { TabMeasure } from "@/lib/tab";
 
@@ -77,5 +83,26 @@ describe("曲谱时间轴", () => {
     for (const section of WEEK1_SECTIONS) {
       expect(totalBeats(section.measures)).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("激光播放头位置", () => {
+  const measures = [eighths(4), quarters(4)];
+
+  it("给每个小节记录起始拍位", () => {
+    expect(measureBeatOrigins(measures)).toEqual([0, 2]);
+  });
+
+  it("按音符时长推进，而不是按音符个数均分", () => {
+    expect(playheadProgress(measures, 0.5)).toBeCloseTo(0.125);
+    expect(playheadProgress(measures, 1)).toBeCloseTo(0.25);
+    expect(playheadProgress(measures, 2)).toBeCloseTo(0.5);
+    expect(playheadProgress(measures, 3)).toBeCloseTo(0.625);
+  });
+
+  it("未开始或超出谱面时返回空值/终点", () => {
+    expect(playheadProgress(measures, -1)).toBeNull();
+    expect(playheadProgress(measures, Number.NaN)).toBeNull();
+    expect(playheadProgress(measures, 99)).toBe(1);
   });
 });
