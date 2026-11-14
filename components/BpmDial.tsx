@@ -224,9 +224,9 @@ export function BpmDial({ value, onChange }: BpmDialProps) {
 
       {/* 读数压在圆心：纯视觉，不接管指针 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <p className="mb-1 font-mono text-micro font-semibold text-ink-500">BPM</p>
-        <p className="font-mono text-7xl font-semibold leading-none tabular-nums">{value}</p>
-        <p className="mt-2 text-label text-accent-700">{tempoName(value)}</p>
+        <p className="bpm-dial__label mb-1 font-mono text-micro font-semibold text-ink-500">BPM</p>
+        <p className="bpm-dial__value font-mono text-7xl font-semibold leading-none tabular-nums">{value}</p>
+        <p className="bpm-dial__term mt-2 text-label text-accent-700">{tempoName(value)}</p>
       </div>
     </div>
   );

@@ -212,7 +212,7 @@ function MobileMetronomeView({
                   type="button"
                   aria-label={`第 ${index + 1} 拍重音设置，当前为 ${level} 格（${isAccent ? "重音拍" : "常规拍"}），点击切换`}
                   onClick={() => onToggleAccent(index)}
-                  className={`relative flex h-20 min-h-11 w-full min-w-0 flex-col justify-between rounded-control border p-1.5 text-left ${
+                  className={`metronome-beat-bar metronome-beat-bar--compact relative flex min-h-11 w-full min-w-0 flex-col justify-between rounded-control border p-1.5 text-left ${
                     reducedMotion ? "" : "transition-colors duration-150"
                   } ${
                     isActive
@@ -236,7 +236,7 @@ function MobileMetronomeView({
                   <div className="flex w-full flex-1 flex-col justify-end gap-1" aria-hidden="true">
                     {/* Level 2 方块（顶部） */}
                     <span
-                      className={`h-4 w-full rounded-sm ${
+                      className={`h-5 w-full rounded-sm ${
                         reducedMotion ? "" : "transition-colors duration-150"
                       } ${
                         isActive
@@ -250,7 +250,7 @@ function MobileMetronomeView({
                     />
                     {/* Level 1 方块（底部） */}
                     <span
-                      className={`h-4 w-full rounded-sm ${
+                      className={`h-5 w-full rounded-sm ${
                         reducedMotion ? "" : "transition-colors duration-150"
                       } ${
                         isActive
@@ -875,7 +875,7 @@ export function Metronome() {
                   type="button"
                   onClick={() => toggleAccent(index)}
                   aria-label={`第 ${index + 1} 拍重音设置，当前为 ${level} 格（${isAccent ? "重音拍" : "常规拍"}），点击切换`}
-                  className={`relative flex min-h-11 min-w-0 flex-1 flex-col justify-between rounded-control border p-2 text-left ${
+                  className={`metronome-beat-bar metronome-beat-bar--split relative flex min-h-11 min-w-0 flex-1 flex-col justify-between rounded-control border p-2 text-left ${
                     reducedMotion ? "" : "transition-colors duration-150"
                   } ${
                     isActive
@@ -903,7 +903,7 @@ export function Metronome() {
                   </div>
                   <div className="flex w-full flex-1 flex-col justify-end gap-1.5 pt-2" aria-hidden="true">
                     <span
-                      className={`h-5 w-full rounded-sm ${
+                      className={`h-8 w-full rounded-sm ${
                         reducedMotion ? "" : "transition-colors duration-150"
                       } ${
                         isActive
@@ -916,7 +916,7 @@ export function Metronome() {
                       }`}
                     />
                     <span
-                      className={`h-5 w-full rounded-sm ${
+                      className={`h-8 w-full rounded-sm ${
                         reducedMotion ? "" : "transition-colors duration-150"
                       } ${
                         isActive
@@ -932,9 +932,9 @@ export function Metronome() {
             })}
           </div>
 
-          <section className="metronome-split__dial">
+          <section className="metronome-split__dial" data-dial>
             <BpmDial value={bpm} onChange={changeBpm} />
-            <BpmStepControls bpm={bpm} onChange={changeBpm} />
+            <BpmStepControls bpm={bpm} onChange={changeBpm} className="metronome-split__steps" />
           </section>
 
         </div>
@@ -966,7 +966,7 @@ export function Metronome() {
                 );
               })}
             </div>
-            <p className="mt-1.5 text-meta text-ink-500">{meter.description}</p>
+            <p className="metronome-split__meter-desc mt-1.5 text-meta text-ink-500">{meter.description}</p>
           </section>
 
           <section>
@@ -1003,11 +1003,11 @@ export function Metronome() {
               type="button"
               aria-keyshortcuts="Space"
               onClick={toggle}
-              className="h-16 w-full rounded-control bg-accent-700 text-lg font-medium text-on-accent"
+              className="metronome-split__start h-16 w-full rounded-control bg-accent-700 text-lg font-medium text-on-accent"
             >
               {PHASE_LABEL[phase]}
             </button>
-            <p className="text-center text-meta text-ink-500">空格开始/暂停 · Esc 结束</p>
+            <p className="metronome-split__shortcut-hint text-center text-meta text-ink-500">空格开始/暂停 · Esc 结束</p>
             <button
               type="button"
               onClick={() => void stop()}
