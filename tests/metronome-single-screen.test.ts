@@ -99,6 +99,16 @@ describe("横屏双栏（iPad 横屏与桌面）", () => {
     expect(globals).toMatch(/\.metronome-split__controls\s*\{[^}]*overflow-y:\s*auto/);
   });
 
+  it("短横屏（≤480px 高）收紧控制列，保证内部不滚动", () => {
+    expect(globals).toMatch(/@media \(max-height: 480px\)/);
+    expect(globals).toMatch(
+      /@media \(max-height: 480px\)[\s\S]*?\.metronome-split__controls \{[\s\S]*?padding-right: 0/,
+    );
+    expect(globals).toMatch(
+      /@media \(max-height: 480px\)[\s\S]*?\.metronome-split__shortcut-hint \{[\s\S]*?display: none/,
+    );
+  });
+
   it("横屏控制台整块在一个视口内，桌面控制台高度有上限", () => {
     expect(globals).toMatch(/\.metronome-split\s*\{[^}]*height:\s*100%/);
     expect(globals).toMatch(

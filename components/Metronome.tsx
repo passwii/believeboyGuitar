@@ -966,7 +966,7 @@ export function Metronome() {
                 );
               })}
             </div>
-            <p className="mt-1.5 text-meta text-ink-500">{meter.description}</p>
+            <p className="metronome-split__meter-desc mt-1.5 text-meta text-ink-500">{meter.description}</p>
           </section>
 
           <section>
@@ -1003,11 +1003,11 @@ export function Metronome() {
               type="button"
               aria-keyshortcuts="Space"
               onClick={toggle}
-              className="h-16 w-full rounded-control bg-accent-700 text-lg font-medium text-on-accent"
+              className="metronome-split__start h-16 w-full rounded-control bg-accent-700 text-lg font-medium text-on-accent"
             >
               {PHASE_LABEL[phase]}
             </button>
-            <p className="text-center text-meta text-ink-500">空格开始/暂停 · Esc 结束</p>
+            <p className="metronome-split__shortcut-hint text-center text-meta text-ink-500">空格开始/暂停 · Esc 结束</p>
             <button
               type="button"
               onClick={() => void stop()}
