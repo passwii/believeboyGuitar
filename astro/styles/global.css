@@ -1633,6 +1633,16 @@
     aspect-ratio: 1;
   }
 
+  /* 拍柱高度放在组件层（不是工具类），这样短横屏的收缩规则
+     能按层叠顺序稳定覆盖。 */
+  .metronome-beat-bar {
+    height: clamp(8rem, 20svh, 11rem);
+  }
+
+  .metronome-beat-bar--compact {
+    height: clamp(6rem, 9svh, 8rem);
+  }
+
   /* ---- 节拍器控制台：手机/竖屏单栏，横屏 2/3 + 1/3 双栏 ---- */
   .metronome-console {
     display: flex;
@@ -1747,28 +1757,34 @@
         gap: 1rem;
       }
 
-      /* 短屏把拍柱与圆盘一起收一档，保证两者之间仍有间隙 */
-      .metronome-split__bars > button {
+      /* 短屏把拍柱与圆盘一起收一档；组件层规则，稳定覆盖基础高度 */
+      .metronome-split__bars > .metronome-beat-bar {
         height: 5rem;
       }
 
+      /* 圆盘 SVG 的刻度环超出自身盒约 4px，短屏给顶部留一点呼吸空间 */
+      .metronome-split__dial {
+        gap: 0.15rem;
+        padding-top: 0.75rem;
+      }
+
       .metronome-split__dial .bpm-dial {
-        width: min(34svh, 8.5rem, 100%);
+        width: min(32svh, 8rem, 100%);
       }
 
       /* 小圆盘配小字号，读数不溢出环带 */
       .metronome-split__dial .bpm-dial__label {
-        margin-bottom: 0.15rem;
-        font-size: 0.625rem;
+        margin-bottom: 0.1rem;
+        font-size: 0.5625rem;
       }
 
       .metronome-split__dial .bpm-dial__value {
-        font-size: 3rem;
+        font-size: 2.75rem;
       }
 
       .metronome-split__dial .bpm-dial__term {
-        margin-top: 0.3rem;
-        font-size: 0.8125rem;
+        margin-top: 0.2rem;
+        font-size: 0.75rem;
       }
 
       /* 触屏短横屏没有键盘，隐藏快捷键提示，把空间让给 transport */

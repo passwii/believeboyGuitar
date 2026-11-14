@@ -66,9 +66,20 @@ describe("竖屏单栏（手机与 iPad 竖屏）", () => {
     expect(globals).toMatch(/\.metronome-compact__dial\s*\{[^}]*flex:\s*1 1 0%/);
   });
 
-  it("拍柱随可用高度加高，但不把 transport 挤出视口", () => {
-    expect(metronome).toContain("h-[clamp(6rem,9svh,8rem)]");
-    expect(metronome).toContain("h-[clamp(8rem,20svh,11rem)]");
+  it("拍柱高度放在组件层，短横屏规则能稳定覆盖工具类", () => {
+    // 高度不能写成 Tailwind 任意值：utilities 层在 components 之后，
+    // 会让短横屏的收缩规则失效（实测 740×360 拍柱仍是 128px）。
+    expect(metronome).not.toContain("h-[clamp(6rem");
+    expect(metronome).not.toContain("h-[clamp(8rem");
+    expect(metronome).toContain("metronome-beat-bar--compact");
+    expect(metronome).toContain("metronome-beat-bar--split");
+    expect(globals).toMatch(/\.metronome-beat-bar\s*\{[^}]*height:\s*clamp\(8rem, 20svh, 11rem\)/);
+    expect(globals).toMatch(
+      /\.metronome-beat-bar--compact\s*\{[^}]*height:\s*clamp\(6rem, 9svh, 8rem\)/,
+    );
+    expect(globals).toMatch(
+      /@media \(max-height: 480px\)[\s\S]*?\.metronome-split__bars > \.metronome-beat-bar\s*\{[\s\S]*?height:\s*5rem/,
+    );
   });
 
   it("加减按钮放在圆环外，避免拖动圆环时误触", () => {

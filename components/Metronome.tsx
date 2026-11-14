@@ -212,7 +212,7 @@ function MobileMetronomeView({
                   type="button"
                   aria-label={`第 ${index + 1} 拍重音设置，当前为 ${level} 格（${isAccent ? "重音拍" : "常规拍"}），点击切换`}
                   onClick={() => onToggleAccent(index)}
-                  className={`relative flex h-[clamp(6rem,9svh,8rem)] min-h-11 w-full min-w-0 flex-col justify-between rounded-control border p-1.5 text-left ${
+                  className={`metronome-beat-bar metronome-beat-bar--compact relative flex min-h-11 w-full min-w-0 flex-col justify-between rounded-control border p-1.5 text-left ${
                     reducedMotion ? "" : "transition-colors duration-150"
                   } ${
                     isActive
@@ -875,7 +875,7 @@ export function Metronome() {
                   type="button"
                   onClick={() => toggleAccent(index)}
                   aria-label={`第 ${index + 1} 拍重音设置，当前为 ${level} 格（${isAccent ? "重音拍" : "常规拍"}），点击切换`}
-                  className={`relative flex h-[clamp(8rem,20svh,11rem)] min-h-11 min-w-0 flex-1 flex-col justify-between rounded-control border p-2 text-left ${
+                  className={`metronome-beat-bar metronome-beat-bar--split relative flex min-h-11 min-w-0 flex-1 flex-col justify-between rounded-control border p-2 text-left ${
                     reducedMotion ? "" : "transition-colors duration-150"
                   } ${
                     isActive
@@ -932,9 +932,9 @@ export function Metronome() {
             })}
           </div>
 
-          <section className="metronome-split__dial">
+          <section className="metronome-split__dial" data-dial>
             <BpmDial value={bpm} onChange={changeBpm} />
-            <BpmStepControls bpm={bpm} onChange={changeBpm} />
+            <BpmStepControls bpm={bpm} onChange={changeBpm} className="metronome-split__steps" />
           </section>
 
         </div>
