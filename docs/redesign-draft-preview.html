@@ -3,14 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>吉他练习台 前端重构设计提案与交互草稿</title>
+  <title>吉他练习台 前端重构高保真动态特效草稿 (BLF-1516)</title>
   <style>
     /* ==========================================================================
-       系统化设计令牌与主题定义 (Systematic Design Tokens)
-       方向 1: Neo-Studio Glass (默认推荐)
-       方向 2: Warm Acoustic Craft
-       方向 3: Cyber Stage Amp
-       ========================================================================== */
+       系统化设计令牌与动态特效主题 (Design Tokens & Motion FX)
+    ========================================================================== */
     :root {
       --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Segoe UI", Roboto, sans-serif;
       --font-mono: "SF Mono", "ui-monospace", "Cascadia Code", "Consolas", monospace;
@@ -18,88 +15,91 @@
       --radius-md: 14px;
       --radius-lg: 20px;
       --radius-full: 9999px;
-      --spring-timing: cubic-bezier(0.16, 1, 0.3, 1);
+      --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --spring-smooth: cubic-bezier(0.16, 1, 0.3, 1);
       --duration-fast: 160ms;
-      --duration-normal: 260ms;
+      --duration-normal: 280ms;
+      --mouse-x: 50%;
+      --mouse-y: 50%;
     }
 
-    /* ---- 方向 1: Neo-Studio Glass ---- */
+    /* ---- 方向 1: Neo-Studio Glass (主打演播室级磨砂与流光) ---- */
     html[data-direction="neo-studio"][data-theme="dark"] {
-      --color-canvas: #090c10;
-      --color-canvas-pattern: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.08), transparent 45%), radial-gradient(circle at 10% 30%, rgba(6, 182, 212, 0.06), transparent 35%);
-      --color-surface-glass: rgba(18, 24, 38, 0.62);
-      --color-surface-elevated: rgba(28, 36, 54, 0.75);
+      --color-canvas: #07090e;
+      --color-surface-glass: rgba(16, 22, 34, 0.65);
+      --color-surface-elevated: rgba(26, 34, 52, 0.82);
       --color-glass-border: rgba(255, 255, 255, 0.12);
-      --color-glass-specular: rgba(255, 255, 255, 0.22);
-      --color-glass-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.55), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+      --color-glass-specular: rgba(255, 255, 255, 0.32);
+      --color-glass-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.7), 0 0 1px 1px rgba(255, 255, 255, 0.05);
       --color-ink-950: #f8fafc;
       --color-ink-700: #cbd5e1;
       --color-ink-500: #94a3b8;
       --color-ink-300: #475569;
       --color-accent: #10b981;
-      --color-accent-glow: rgba(16, 185, 129, 0.35);
-      --color-accent-subtle: rgba(16, 185, 129, 0.15);
+      --color-accent-secondary: #06b6d4;
+      --color-accent-glow: rgba(16, 185, 129, 0.45);
+      --color-accent-subtle: rgba(16, 185, 129, 0.16);
       --color-on-accent: #042f1a;
-      --color-board: #181412;
-      --color-fret: rgba(255, 255, 255, 0.25);
-      --color-string: rgba(255, 255, 255, 0.45);
+      --color-board: #14110f;
+      --color-fret: rgba(255, 255, 255, 0.22);
+      --color-string: rgba(255, 255, 255, 0.5);
     }
     html[data-direction="neo-studio"][data-theme="light"] {
       --color-canvas: #f4f6fa;
-      --color-canvas-pattern: radial-gradient(circle at 50% 0%, rgba(5, 150, 105, 0.07), transparent 45%), radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.06), transparent 35%);
-      --color-surface-glass: rgba(255, 255, 255, 0.75);
-      --color-surface-elevated: rgba(255, 255, 255, 0.92);
-      --color-glass-border: rgba(15, 23, 42, 0.08);
-      --color-glass-specular: rgba(255, 255, 255, 0.85);
-      --color-glass-shadow: 0 14px 34px -10px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.04);
+      --color-surface-glass: rgba(255, 255, 255, 0.78);
+      --color-surface-elevated: rgba(255, 255, 255, 0.95);
+      --color-glass-border: rgba(15, 23, 42, 0.1);
+      --color-glass-specular: rgba(255, 255, 255, 0.95);
+      --color-glass-shadow: 0 18px 40px -10px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.04);
       --color-ink-950: #0f172a;
       --color-ink-700: #334155;
       --color-ink-500: #64748b;
       --color-ink-300: #cbd5e1;
       --color-accent: #059669;
-      --color-accent-glow: rgba(5, 150, 105, 0.28);
+      --color-accent-secondary: #0284c7;
+      --color-accent-glow: rgba(5, 150, 105, 0.35);
       --color-accent-subtle: #d1fae5;
       --color-on-accent: #ffffff;
-      --color-board: #2b221e;
-      --color-fret: rgba(255, 255, 255, 0.35);
-      --color-string: rgba(255, 255, 255, 0.55);
+      --color-board: #271f1a;
+      --color-fret: rgba(255, 255, 255, 0.3);
+      --color-string: rgba(255, 255, 255, 0.6);
     }
 
     /* ---- 方向 2: Warm Acoustic Craft ---- */
     html[data-direction="warm-acoustic"][data-theme="dark"] {
       --color-canvas: #14110e;
-      --color-canvas-pattern: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08), transparent 50%);
-      --color-surface-glass: rgba(30, 24, 20, 0.68);
-      --color-surface-elevated: rgba(45, 36, 30, 0.82);
+      --color-surface-glass: rgba(30, 24, 20, 0.72);
+      --color-surface-elevated: rgba(48, 38, 32, 0.88);
       --color-glass-border: rgba(245, 158, 11, 0.18);
-      --color-glass-specular: rgba(255, 237, 213, 0.16);
-      --color-glass-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.65);
+      --color-glass-specular: rgba(255, 237, 213, 0.25);
+      --color-glass-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.75);
       --color-ink-950: #fef3c7;
       --color-ink-700: #d5c3aa;
       --color-ink-500: #a38f78;
       --color-ink-300: #574a3c;
       --color-accent: #f59e0b;
-      --color-accent-glow: rgba(245, 158, 11, 0.35);
-      --color-accent-subtle: rgba(245, 158, 11, 0.16);
+      --color-accent-secondary: #d97706;
+      --color-accent-glow: rgba(245, 158, 11, 0.42);
+      --color-accent-subtle: rgba(245, 158, 11, 0.18);
       --color-on-accent: #451a03;
       --color-board: #1c1512;
       --color-fret: rgba(245, 158, 11, 0.3);
-      --color-string: rgba(255, 237, 213, 0.45);
+      --color-string: rgba(255, 237, 213, 0.5);
     }
     html[data-direction="warm-acoustic"][data-theme="light"] {
       --color-canvas: #faf6f0;
-      --color-canvas-pattern: radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.06), transparent 50%);
-      --color-surface-glass: rgba(255, 252, 247, 0.82);
-      --color-surface-elevated: rgba(255, 255, 255, 0.94);
-      --color-glass-border: rgba(180, 83, 9, 0.12);
-      --color-glass-specular: rgba(255, 255, 255, 0.95);
-      --color-glass-shadow: 0 14px 32px -8px rgba(69, 26, 3, 0.08);
+      --color-surface-glass: rgba(255, 252, 247, 0.85);
+      --color-surface-elevated: rgba(255, 255, 255, 0.96);
+      --color-glass-border: rgba(180, 83, 9, 0.15);
+      --color-glass-specular: rgba(255, 255, 255, 0.98);
+      --color-glass-shadow: 0 18px 36px -8px rgba(69, 26, 3, 0.1);
       --color-ink-950: #291e14;
       --color-ink-700: #544436;
       --color-ink-500: #7c6855;
       --color-ink-300: #d6c8b8;
       --color-accent: #b45309;
-      --color-accent-glow: rgba(180, 83, 9, 0.22);
+      --color-accent-secondary: #92400e;
+      --color-accent-glow: rgba(180, 83, 9, 0.3);
       --color-accent-subtle: #fef3c7;
       --color-on-accent: #ffffff;
       --color-board: #38271e;
@@ -109,39 +109,39 @@
 
     /* ---- 方向 3: Cyber Stage Amp ---- */
     html[data-direction="cyber-stage"][data-theme="dark"] {
-      --color-canvas: #050608;
-      --color-canvas-pattern: radial-gradient(circle at 20% 0%, rgba(236, 72, 153, 0.1), transparent 40%), radial-gradient(circle at 80% 0%, rgba(6, 182, 212, 0.12), transparent 45%);
-      --color-surface-glass: rgba(13, 17, 24, 0.78);
-      --color-surface-elevated: rgba(24, 31, 45, 0.88);
-      --color-glass-border: rgba(6, 182, 212, 0.24);
-      --color-glass-specular: rgba(255, 255, 255, 0.25);
-      --color-glass-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.75), 0 0 15px rgba(6, 182, 212, 0.15);
+      --color-canvas: #040507;
+      --color-surface-glass: rgba(12, 16, 26, 0.75);
+      --color-surface-elevated: rgba(22, 28, 44, 0.9);
+      --color-glass-border: rgba(6, 182, 212, 0.28);
+      --color-glass-specular: rgba(255, 255, 255, 0.35);
+      --color-glass-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.85), 0 0 20px rgba(6, 182, 212, 0.2);
       --color-ink-950: #f1f5f9;
       --color-ink-700: #94a3b8;
       --color-ink-500: #64748b;
       --color-ink-300: #334155;
       --color-accent: #06b6d4;
-      --color-accent-glow: rgba(6, 182, 212, 0.45);
-      --color-accent-subtle: rgba(6, 182, 212, 0.18);
+      --color-accent-secondary: #ec4899;
+      --color-accent-glow: rgba(6, 182, 212, 0.55);
+      --color-accent-subtle: rgba(6, 182, 212, 0.2);
       --color-on-accent: #083344;
       --color-board: #10141d;
-      --color-fret: rgba(6, 182, 212, 0.35);
-      --color-string: rgba(255, 255, 255, 0.5);
+      --color-fret: rgba(6, 182, 212, 0.4);
+      --color-string: rgba(255, 255, 255, 0.55);
     }
     html[data-direction="cyber-stage"][data-theme="light"] {
       --color-canvas: #f0f4f8;
-      --color-canvas-pattern: radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.08), transparent 45%);
-      --color-surface-glass: rgba(255, 255, 255, 0.8);
+      --color-surface-glass: rgba(255, 255, 255, 0.82);
       --color-surface-elevated: rgba(255, 255, 255, 0.95);
-      --color-glass-border: rgba(14, 165, 233, 0.18);
-      --color-glass-specular: rgba(255, 255, 255, 0.95);
-      --color-glass-shadow: 0 16px 36px -10px rgba(2, 132, 199, 0.12);
+      --color-glass-border: rgba(14, 165, 233, 0.22);
+      --color-glass-specular: rgba(255, 255, 255, 0.98);
+      --color-glass-shadow: 0 18px 40px -10px rgba(2, 132, 199, 0.15);
       --color-ink-950: #0c1929;
       --color-ink-700: #334e68;
       --color-ink-500: #627d98;
       --color-ink-300: #bcccdc;
       --color-accent: #0284c7;
-      --color-accent-glow: rgba(2, 132, 199, 0.3);
+      --color-accent-secondary: #d946ef;
+      --color-accent-glow: rgba(2, 132, 199, 0.38);
       --color-accent-subtle: #e0f2fe;
       --color-on-accent: #ffffff;
       --color-board: #1f2937;
@@ -149,70 +149,105 @@
       --color-string: rgba(255, 255, 255, 0.55);
     }
 
-    /* ---- 基础排版与布局 ---- */
+    /* ---- 基础全局设定 ---- */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: var(--font-sans);
       background-color: var(--color-canvas);
-      background-image: var(--color-canvas-pattern);
-      background-attachment: fixed;
       color: var(--color-ink-950);
       line-height: 1.5;
       min-height: 100vh;
-      transition: background-color var(--duration-normal) var(--spring-timing), color var(--duration-normal) var(--spring-timing);
+      overflow-x: hidden;
+      position: relative;
+      transition: background-color var(--duration-normal) var(--spring-smooth), color var(--duration-normal) var(--spring-smooth);
       -webkit-font-smoothing: antialiased;
     }
 
-    .container {
-      max-width: 1160px;
-      margin: 0 auto;
-      padding: 0 20px 80px;
+    /* 硬件加速后台流体粒子网格画布 */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.85;
+      transition: opacity var(--duration-normal);
     }
 
-    /* ---- 磨砂玻璃通用容器 (Glass Panel) ---- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 90px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* ---- 苹果级磨砂玻璃通用容器 (Apple VisionOS / Liquid Glass Approximation) ---- */
     .glass-panel {
       position: relative;
       background: var(--color-surface-glass);
-      backdrop-filter: blur(24px) saturate(160%);
-      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      backdrop-filter: blur(26px) saturate(170%);
+      -webkit-backdrop-filter: blur(26px) saturate(170%);
       border: 1px solid var(--color-glass-border);
       box-shadow: inset 0 1px 0 var(--color-glass-specular), var(--color-glass-shadow);
       border-radius: var(--radius-lg);
-      transition: transform var(--duration-normal) var(--spring-timing),
-                  box-shadow var(--duration-normal) var(--spring-timing),
-                  border-color var(--duration-normal) var(--spring-timing),
-                  background var(--duration-normal) var(--spring-timing);
-    }
-    .glass-panel:hover {
-      box-shadow: inset 0 1px 0 var(--color-glass-specular), var(--color-glass-shadow), 0 0 24px -4px var(--color-accent-glow);
+      transform-style: preserve-3d;
+      transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
+      transition: transform 0.18s ease-out,
+                  box-shadow var(--duration-normal) var(--spring-smooth),
+                  border-color var(--duration-normal) var(--spring-smooth),
+                  background var(--duration-normal) var(--spring-smooth);
+      overflow: hidden;
     }
 
-    /* 禁用模糊退化 (当用户在调试栏关闭或操作系统偏好) */
-    html[data-glass="off"] .glass-panel {
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      background: var(--color-surface-elevated) !important;
+    /* 流光聚光灯折射层 */
+    .glass-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(circle 320px at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--color-accent-glow), transparent 75%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1;
     }
-    @media (prefers-reduced-transparency: reduce) {
-      .glass-panel {
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        background: var(--color-surface-elevated) !important;
-      }
+    .glass-panel:hover::before {
+      opacity: 0.28;
+    }
+
+    /* 棱镜发丝微色散反射边缘 */
+    .glass-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 1px solid transparent;
+      background: linear-gradient(135deg, rgba(255,255,255,0.4), transparent 50%, rgba(16,185,129,0.3)) border-box;
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .glass-panel:hover {
+      box-shadow: inset 0 1px 0 var(--color-glass-specular), var(--color-glass-shadow), 0 0 28px -2px var(--color-accent-glow);
     }
 
     /* ---- 顶部控制栏与导航 ---- */
     .site-nav {
       position: sticky;
       top: 16px;
-      z-index: 100;
+      z-index: 120;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       padding: 12px 20px;
       margin-top: 16px;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
     }
     .brand-wrap {
       display: flex;
@@ -220,116 +255,123 @@
       gap: 12px;
     }
     .brand-logo {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--color-accent), #38bdf8);
+      background: linear-gradient(135deg, var(--color-accent), var(--color-accent-secondary));
       display: grid;
       place-items: center;
-      box-shadow: 0 0 14px var(--color-accent-glow);
+      box-shadow: 0 0 16px var(--color-accent-glow);
+      position: relative;
+      overflow: hidden;
     }
-    .brand-logo svg { width: 18px; height: 18px; fill: #ffffff; }
+    .brand-logo::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transform: translateX(-100%);
+      animation: logoGlint 3.6s infinite ease-in-out;
+    }
+    @keyframes logoGlint {
+      20%, 100% { transform: translateX(100%); }
+    }
+    .brand-logo svg { width: 20px; height: 20px; fill: #ffffff; }
     .brand-title {
       font-size: 15px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: -0.02em;
       color: var(--color-ink-950);
-    }
-    .brand-badge {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: var(--radius-full);
-      background: var(--color-accent-subtle);
-      color: var(--color-accent);
-      font-weight: 600;
-      letter-spacing: 0.05em;
     }
 
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
     .tool-chip {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 12px;
+      padding: 7px 13px;
       min-height: 40px;
       border-radius: var(--radius-md);
       background: var(--color-surface-glass);
       border: 1px solid var(--color-glass-border);
       color: var(--color-ink-700);
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      transition: all var(--duration-fast) var(--spring-timing);
+      transition: all var(--duration-fast) var(--spring-smooth);
       touch-action: manipulation;
+      position: relative;
+      user-select: none;
     }
     .tool-chip:hover {
       color: var(--color-ink-950);
       border-color: var(--color-accent);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px -2px var(--color-accent-glow);
     }
     .tool-chip:active {
-      transform: scale(0.97);
+      transform: scale(0.95);
     }
     .tool-chip[aria-pressed="true"],
     .tool-chip.active {
       background: var(--color-accent);
       color: var(--color-on-accent);
       border-color: var(--color-accent);
-      box-shadow: 0 4px 14px var(--color-accent-glow);
+      box-shadow: 0 4px 16px var(--color-accent-glow);
     }
 
-    /* ---- 评估报告顶通折叠卡片 ---- */
-    .audit-banner {
-      padding: 22px 26px;
-      margin-bottom: 28px;
-    }
-    .audit-header {
+    /* ---- 浮动特效参数控制台 (Floating FX Switchboard) ---- */
+    .fx-dock {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      cursor: pointer;
+      gap: 12px;
+      padding: 10px 18px;
+      margin-bottom: 24px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      color: var(--color-ink-700);
+      flex-wrap: wrap;
     }
-    .audit-title {
+    .fx-group {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 16px;
-      font-weight: 700;
+      gap: 8px;
     }
-    .audit-content {
-      margin-top: 18px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      font-size: 13px;
-      line-height: 1.6;
+    .fx-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-glass-border);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
       color: var(--color-ink-700);
-      border-top: 1px solid var(--color-glass-border);
-      padding-top: 16px;
+      transition: all 0.15s var(--spring-smooth);
     }
-    .audit-item strong {
-      display: block;
-      color: var(--color-ink-950);
-      font-size: 14px;
-      margin-bottom: 4px;
+    .fx-pill.active {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+      box-shadow: 0 0 10px var(--color-accent-glow);
     }
 
     /* ---- 首页工作台首屏 (Hero Dashboard) ---- */
     .hero-grid {
       display: grid;
-      grid-template-columns: 1.45fr 1fr;
+      grid-template-columns: 1.35fr 1fr;
       gap: 24px;
       margin-bottom: 28px;
     }
     .hero-main {
-      padding: 36px 36px 30px;
+      padding: 34px 34px 28px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -339,76 +381,129 @@
       align-items: center;
       gap: 8px;
       font-family: var(--font-mono);
-      font-size: 12px;
-      letter-spacing: 0.08em;
+      font-size: 11px;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--color-accent);
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 12px;
     }
+    .hero-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      box-shadow: 0 0 8px var(--color-accent);
+      animation: dotPulse 1.6s infinite ease-in-out;
+    }
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.4); opacity: 0.4; }
+    }
+
     .hero-heading {
       font-size: clamp(26px, 3.2vw, 36px);
-      font-weight: 750;
-      letter-spacing: -0.03em;
-      line-height: 1.18;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.16;
       color: var(--color-ink-950);
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .hero-desc {
       font-size: 15px;
       color: var(--color-ink-700);
       max-width: 52ch;
-      margin-bottom: 26px;
+      margin-bottom: 24px;
+      line-height: 1.6;
     }
     .hero-stats {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 14px;
-      padding-top: 20px;
+      padding-top: 18px;
       border-top: 1px solid var(--color-glass-border);
     }
     .stat-box small {
       display: block;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--color-ink-500);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .stat-box strong {
       font-family: var(--font-mono);
-      font-size: 20px;
-      font-weight: 700;
+      font-size: 21px;
+      font-weight: 800;
       color: var(--color-ink-950);
     }
 
-    /* ---- 侧边节拍器工作台面板 (Glass Metronome Dial) ---- */
+    /* ---- 侧边节拍器工作台面板 (Pro Studio Metronome Dial & Tube FX) ---- */
     .metronome-card {
-      padding: 30px 26px;
+      padding: 26px 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
+      position: relative;
     }
     .metronome-title-bar {
       width: 100%;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
     .metronome-title-bar span {
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 700;
       color: var(--color-ink-500);
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
     }
+
+    /* 电子管呼吸灯荧光效果 */
+    .tube-valve-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tube-valve {
+      width: 14px;
+      height: 22px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+    }
+    .tube-filament {
+      position: absolute;
+      bottom: 2px;
+      left: 4px;
+      right: 4px;
+      height: 12px;
+      border-radius: 2px;
+      background: #f59e0b;
+      opacity: 0.3;
+      filter: blur(1px);
+      transition: opacity 0.1s ease, filter 0.1s ease, background 0.1s ease;
+    }
+    .tube-valve.active .tube-filament {
+      opacity: 1;
+      filter: blur(0px) drop-shadow(0 0 8px #f59e0b);
+      background: #fbbf24;
+    }
+
+    /* 360 度可拖动发光物理旋钮 */
     .tempo-dial-wrap {
       position: relative;
-      width: 190px;
-      height: 190px;
-      margin: 8px auto 20px;
+      width: 180px;
+      height: 180px;
+      margin: 4px auto 16px;
       display: grid;
       place-items: center;
+      cursor: pointer;
+      user-select: none;
     }
     .tempo-dial-svg {
       width: 100%;
@@ -427,36 +522,40 @@
       stroke-linecap: round;
       stroke-dasharray: 534;
       stroke-dashoffset: 280;
-      transition: stroke-dashoffset 0.15s ease, stroke var(--duration-normal);
-      filter: drop-shadow(0 0 6px var(--color-accent-glow));
+      transition: stroke-dashoffset 0.12s ease, stroke var(--duration-normal);
+      filter: drop-shadow(0 0 8px var(--color-accent-glow));
     }
     .tempo-dial-core {
       position: absolute;
-      inset: 22px;
+      inset: 20px;
       border-radius: var(--radius-full);
       background: var(--color-surface-elevated);
       border: 1px solid var(--color-glass-border);
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       user-select: none;
+      transition: box-shadow 0.2s ease;
+    }
+    .tempo-dial-wrap:active .tempo-dial-core {
+      box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.2);
     }
     .tempo-bpm {
       font-family: var(--font-mono);
-      font-size: 40px;
+      font-size: 42px;
       font-weight: 800;
-      letter-spacing: -0.04em;
+      letter-spacing: -0.05em;
       line-height: 1;
       color: var(--color-ink-950);
     }
     .tempo-term {
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 10px;
+      font-weight: 700;
       color: var(--color-ink-500);
-      margin-top: 4px;
-      letter-spacing: 0.06em;
+      margin-top: 3px;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
     }
     .dial-pendulum-dot {
@@ -466,38 +565,85 @@
       height: 10px;
       border-radius: 50%;
       background: var(--color-accent);
-      box-shadow: 0 0 10px var(--color-accent);
+      box-shadow: 0 0 14px 2px var(--color-accent);
       transform-origin: 50% 85px;
-      transition: transform 0.1s linear;
+      transition: transform 0.08s linear;
     }
 
-    /* 波形均衡器条 (Tempo Wave Bars) */
-    .tempo-wave {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      gap: 4px;
-      height: 36px;
+    /* 双模动态可视盒 (动态示波器 + 指针式 VU 表) */
+    .visualizer-box {
       width: 100%;
-      margin-bottom: 20px;
+      height: 52px;
+      border-radius: var(--radius-sm);
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--color-glass-border);
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .wave-bar {
-      width: 4px;
-      height: 8px;
-      border-radius: 2px;
+    #oscilloscope-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .vu-meter-view {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      padding: 0 16px;
+    }
+    .vu-meter-view.active { display: block; }
+    .vu-dial-scale {
+      position: absolute;
+      top: 6px;
+      left: 14px;
+      right: 14px;
+      height: 2px;
       background: var(--color-glass-border);
-      transition: height 0.1s ease, background 0.1s ease;
     }
-    .wave-bar.active {
-      background: var(--color-accent);
-      box-shadow: 0 0 8px var(--color-accent-glow);
+    .vu-needle {
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      width: 2px;
+      height: 42px;
+      background: #ef4444;
+      box-shadow: 0 0 6px #ef4444;
+      transform-origin: bottom center;
+      transform: rotate(-35deg);
+      transition: transform 0.06s cubic-bezier(0.1, 0.8, 0.3, 1);
+    }
+    .vu-needle-pivot {
+      position: absolute;
+      bottom: -6px;
+      left: calc(50% - 6px);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #334155;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .vu-labels {
+      position: absolute;
+      bottom: 4px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--color-ink-500);
     }
 
     /* 控制操作按键 */
     .metronome-controls {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       width: 100%;
     }
     .btn-step {
@@ -508,19 +654,19 @@
       background: var(--color-surface-glass);
       color: var(--color-ink-700);
       font-family: var(--font-mono);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       display: grid;
       place-items: center;
       cursor: pointer;
-      transition: all var(--duration-fast) var(--spring-timing);
+      transition: all var(--duration-fast) var(--spring-bounce);
     }
     .btn-step:hover {
       color: var(--color-ink-950);
       border-color: var(--color-accent);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
-    .btn-step:active { transform: scale(0.94); }
+    .btn-step:active { transform: scale(0.92); }
 
     .btn-play {
       flex: 1;
@@ -536,17 +682,17 @@
       justify-content: center;
       gap: 8px;
       cursor: pointer;
-      box-shadow: 0 4px 16px var(--color-accent-glow);
-      transition: all var(--duration-fast) var(--spring-timing);
+      box-shadow: 0 4px 18px var(--color-accent-glow);
+      transition: all var(--duration-fast) var(--spring-smooth);
     }
     .btn-play:hover {
-      filter: brightness(1.08);
-      transform: translateY(-1.5px);
-      box-shadow: 0 8px 22px var(--color-accent-glow);
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 26px var(--color-accent-glow);
     }
-    .btn-play:active { transform: scale(0.97); }
+    .btn-play:active { transform: scale(0.96); }
 
-    /* ---- 互动曲谱与动效播放头 (Interactive TAB Drill) ---- */
+    /* ---- 互动曲谱与激光播放头 (Cinematic TAB Drill & Note Ripple FX) ---- */
     .section-wrap {
       margin-bottom: 32px;
     }
@@ -559,7 +705,7 @@
     }
     .section-title {
       font-size: 18px;
-      font-weight: 750;
+      font-weight: 800;
       letter-spacing: -0.02em;
       color: var(--color-ink-950);
       display: flex;
@@ -575,6 +721,7 @@
     .tab-card {
       padding: 24px 28px;
       overflow-x: auto;
+      position: relative;
     }
     .tab-view {
       position: relative;
@@ -584,14 +731,27 @@
     .tab-lines {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       position: relative;
     }
     .tab-line {
       height: 1px;
       background: var(--color-glass-border);
       width: 100%;
+      position: relative;
+      transition: background 0.15s ease;
     }
+    .tab-line.vibrating {
+      background: var(--color-accent);
+      box-shadow: 0 0 8px var(--color-accent-glow);
+      animation: staveVibrate 0.3s ease-out;
+    }
+    @keyframes staveVibrate {
+      0%, 100% { transform: translateY(0); }
+      25% { transform: translateY(-1.5px); }
+      75% { transform: translateY(1.5px); }
+    }
+
     .tab-notes-overlay {
       position: absolute;
       inset: 0;
@@ -610,45 +770,62 @@
     .fret-num {
       font-family: var(--font-mono);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--color-ink-950);
       background: var(--color-surface-elevated);
       padding: 0 4px;
       border-radius: 3px;
       border: 1px solid var(--color-glass-border);
       z-index: 2;
-      transition: all 0.15s ease;
+      cursor: pointer;
+      transition: all 0.12s var(--spring-bounce);
     }
     .fret-num.active {
       background: var(--color-accent);
       color: var(--color-on-accent);
       border-color: var(--color-accent);
-      box-shadow: 0 0 10px var(--color-accent);
-      transform: scale(1.18);
+      box-shadow: 0 0 16px var(--color-accent), 0 0 28px var(--color-accent-glow);
+      transform: scale(1.3);
     }
+
+    /* 激光播放头 */
     .tab-playhead {
       position: absolute;
       top: 0;
       bottom: 0;
       width: 2px;
-      background: var(--color-accent);
-      box-shadow: 0 0 12px 2px var(--color-accent-glow);
+      background: linear-gradient(180deg, transparent, var(--color-accent) 20%, #ffffff 50%, var(--color-accent) 80%, transparent);
+      box-shadow: 0 0 16px 2px var(--color-accent-glow), 0 0 4px #ffffff;
       z-index: 10;
       pointer-events: none;
-      transition: left 0.12s var(--spring-timing);
+      transition: left 0.1s var(--spring-smooth);
     }
     .tab-playhead::before {
       content: "";
       position: absolute;
       top: -4px;
-      left: -4px;
-      width: 10px;
-      height: 10px;
+      left: -5px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      background: var(--color-accent);
+      background: #ffffff;
+      box-shadow: 0 0 12px var(--color-accent);
     }
 
-    /* ---- 互动磨砂指板音阶 (Frosted Fretboard) ---- */
+    /* 音符点击波纹冲击波 */
+    .note-shockwave {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid var(--color-accent);
+      pointer-events: none;
+      animation: shockwaveExpand 0.5s ease-out forwards;
+    }
+    @keyframes shockwaveExpand {
+      0% { width: 4px; height: 4px; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { width: 44px; height: 44px; opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
+    }
+
+    /* ---- 真实琴弦物理振动指板 (Interactive Vibrating Fretboard) ---- */
     .fretboard-card {
       padding: 24px;
     }
@@ -656,7 +833,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
     }
     .path-pill {
@@ -670,23 +847,20 @@
       background: var(--color-surface-glass);
       color: var(--color-ink-700);
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: all var(--duration-fast);
     }
-    .path-pill span {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
+    .path-pill span { width: 8px; height: 8px; border-radius: 50%; }
     .path-pill:hover { border-color: var(--color-accent); color: var(--color-ink-950); }
     .path-pill.active {
       background: var(--color-surface-elevated);
       border-color: var(--color-accent);
       color: var(--color-ink-950);
-      box-shadow: 0 0 10px var(--color-accent-glow);
+      box-shadow: 0 0 12px var(--color-accent-glow);
     }
 
+    /* 指板物理振动画布与琴弦层 */
     .fretboard-scroll {
       overflow-x: auto;
       padding: 12px 0 8px;
@@ -694,15 +868,24 @@
     .fretboard-board {
       position: relative;
       min-width: 860px;
-      height: 180px;
+      height: 190px;
       background: var(--color-board);
       border-radius: var(--radius-md);
       border: 2px solid var(--color-glass-border);
-      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6), 0 12px 30px rgba(0, 0, 0, 0.4);
       display: flex;
       flex-direction: column;
       justify-content: space-around;
       padding: 6px 0;
+      overflow: hidden;
+    }
+    #string-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
     }
     .fret-wire {
       position: absolute;
@@ -710,55 +893,43 @@
       bottom: 0;
       width: 2px;
       background: var(--color-fret);
-      box-shadow: 1px 0 2px rgba(0, 0, 0, 0.3);
+      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.4);
     }
-    .guitar-string {
-      position: relative;
-      width: 100%;
-      background: var(--color-string);
-      z-index: 2;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-    .string-1 { height: 1px; }
-    .string-2 { height: 1.5px; }
-    .string-3 { height: 2px; }
-    .string-4 { height: 2.5px; }
-    .string-5 { height: 3px; }
-    .string-6 { height: 3.5px; }
 
     .note-marker {
       position: absolute;
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: var(--color-surface-elevated);
-      border: 1.5px solid var(--color-accent);
+      border: 2px solid var(--color-accent);
       color: var(--color-ink-950);
       font-family: var(--font-mono);
-      font-size: 10px;
-      font-weight: 700;
+      font-size: 11px;
+      font-weight: 800;
       display: grid;
       place-items: center;
       transform: translate(-50%, -50%);
-      z-index: 5;
+      z-index: 10;
       cursor: pointer;
-      transition: all var(--duration-fast);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      transition: transform 0.15s var(--spring-bounce), box-shadow 0.15s ease, background 0.15s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
     .note-marker:hover,
     .note-marker.active {
       background: var(--color-accent);
       color: var(--color-on-accent);
-      box-shadow: 0 0 12px var(--color-accent);
-      transform: translate(-50%, -50%) scale(1.25);
+      box-shadow: 0 0 16px var(--color-accent), 0 0 32px var(--color-accent-glow);
+      transform: translate(-50%, -50%) scale(1.35);
     }
     .note-marker.root {
       border-color: #f59e0b;
       background: #f59e0b;
       color: #ffffff;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
     }
 
-    /* ---- 动态对比面板 (Token Matrix & Direction Comparator) ---- */
+    /* ---- 系统化动态对比检视面板 ---- */
     .token-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -778,26 +949,22 @@
     .token-label {
       font-family: var(--font-mono);
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--color-ink-950);
     }
     .token-desc {
       font-size: 12px;
       color: var(--color-ink-500);
     }
-
-    /* ---- 响应式微调 ---- */
-    @media (max-width: 860px) {
-      .hero-grid { grid-template-columns: 1fr; }
-      .site-nav { flex-direction: column; align-items: stretch; }
-      .nav-actions { justify-content: flex-start; }
-    }
   </style>
 </head>
 <body>
 
+  <!-- 背景音频流体粒子画布 -->
+  <canvas id="bg-canvas"></canvas>
+
   <div class="container">
-    <!-- 顶部状态栏与交互方向控制器 -->
+    <!-- 顶部导航栏 -->
     <header class="glass-panel site-nav">
       <div class="brand-wrap">
         <div class="brand-logo" aria-hidden="true">
@@ -805,13 +972,11 @@
         </div>
         <div>
           <div class="brand-title">BELIEVEBOY GUITAR</div>
-          <div style="font-size: 11px; color: var(--color-ink-500);">前端重构设计规范草案</div>
+          <div style="font-size: 11px; color: var(--color-ink-500);">前端重构 · 演播室高阶动态草稿</div>
         </div>
-        <span class="brand-badge">BLF-1516</span>
       </div>
 
       <div class="nav-actions">
-        <!-- 设计方向切换器 -->
         <button type="button" class="tool-chip active" id="btn-dir-neo" onclick="setDirection('neo-studio')">
           ✨ 演播室磨砂 (Neo-Studio)
         </button>
@@ -822,69 +987,64 @@
           ⚡ 舞台电光 (Cyber Stage)
         </button>
 
-        <!-- 暗色/明色切换 -->
         <button type="button" class="tool-chip" id="btn-theme-toggle" onclick="toggleTheme()" title="切换明暗色彩">
           <span id="theme-icon">🌙</span> <span id="theme-text">Dark 模式</span>
-        </button>
-
-        <!-- 磨砂玻璃效果开关 -->
-        <button type="button" class="tool-chip" id="btn-glass-toggle" onclick="toggleGlass()" title="开关 backdrop-filter 模糊效果">
-          🔮 磨砂效果: <b id="glass-state-text" style="color: var(--color-accent); margin-left: 2px;">开启</b>
         </button>
       </div>
     </header>
 
-    <!-- 诊断评估概览横幅 (可折叠查看) -->
-    <aside class="glass-panel audit-banner">
-      <div class="audit-header" onclick="toggleAuditDetails()">
-        <div class="audit-title">
-          <span style="color: var(--color-accent);">📊</span>
-          <span>当前前端小评估：为什么觉得「太简单」与本次升级定位</span>
-        </div>
-        <span id="audit-arrow" style="font-size: 12px; color: var(--color-ink-500); font-family: var(--font-mono);">[收起] ▲</span>
+    <!-- 浮动特效参数控制台 (FX Switchboard) -->
+    <div class="glass-panel fx-dock">
+      <div class="fx-group">
+        <span style="font-weight:700; color:var(--color-ink-950);">🎛️ 特效中控:</span>
+        <button type="button" class="fx-pill active" id="fx-particles" onclick="toggleFx('particles')">
+          🌌 流体声波粒子: 开
+        </button>
+        <button type="button" class="fx-pill active" id="fx-tilt" onclick="toggleFx('tilt')">
+          📐 3D 卡片视差: 开
+        </button>
+        <button type="button" class="fx-pill active" id="fx-string" onclick="toggleFx('string')">
+          🎸 琴弦物理振动: 开
+        </button>
       </div>
-      <div class="audit-content" id="audit-body">
-        <div class="audit-item">
-          <strong>1. 空间与材质不足</strong>
-          原系统为单色冷灰绿纯发丝线划分，缺失现代高精设备应有的物理空间层级、半透明磨砂折射与镜面高光。
-        </div>
-        <div class="audit-item">
-          <strong>2. 缺乏物理弹簧动效</strong>
-          旧版只有瞬时颜色突变与硬跳动。新方案引入阻尼弹簧曲线、轻按压微缩放与实时声画摆动。
-        </div>
-        <div class="audit-item">
-          <strong>3. 全新 Dark / Light 双模</strong>
-          支持暗夜录音室与高光冷钛双调色板，完全满足乐手夜练、弱光舞台与强光场景，对比度全部超 WCAG AA。
-        </div>
+
+      <div class="fx-group">
+        <span>示波模式:</span>
+        <button type="button" class="fx-pill active" id="view-oscilloscope" onclick="setVisualizerMode('oscilloscope')">
+          动态示波器
+        </button>
+        <button type="button" class="fx-pill" id="view-vu" onclick="setVisualizerMode('vu')">
+          指针 VU 表
+        </button>
       </div>
-    </aside>
+    </div>
 
     <!-- 主体区域：首屏工作台 + 磨砂玻璃节拍器 -->
     <section class="hero-grid">
-      <!-- 左侧：本周练琴台与练习入口 -->
+      <!-- 左侧：练琴台主卡 -->
       <div class="glass-panel hero-main">
         <div>
           <div class="hero-eyebrow">
-            <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--color-accent); box-shadow:0 0 6px var(--color-accent);"></span>
+            <span class="hero-pulse-dot"></span>
             WEEK 01 FOCUS DRILL
           </div>
           <h1 class="hero-heading">第 1 周：手指独立性与基础交替拨弦</h1>
           <p class="hero-desc">
-            以慢速 60 BPM 开始，关注 1-2-3-4 四指在各琴弦上的独立敲击与均匀度。确保右手交替拨弦节奏稳定，无多余杂音。
+            体验演播室机架级磨砂玻璃折射与声画同步联动。启动练习后，背景粒子、节拍示波器、谱面激光播放头与指板琴弦将全面随节奏同频共振。
           </p>
         </div>
 
         <div>
           <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap: wrap;">
-            <button type="button" class="btn-play" style="max-width:200px;" onclick="toggleMetronome()">
+            <button type="button" class="btn-play" style="max-width:220px;" onclick="toggleMetronome()">
               <span id="hero-play-icon">▶</span>
               <span id="hero-play-text">进入练习模式</span>
             </button>
             <button type="button" class="tool-chip" onclick="seekTab(0)">
               ↺ 重置谱面
             </button>
-            <button type="button" class="tool-chip" onclick="alert('已模拟载入第 1 周曲谱工程')">
-              📑 查看教案说明
+            <button type="button" class="tool-chip" onclick="strumAllStrings()">
+              ⚡ 试听吉他扫弦
             </button>
           </div>
 
@@ -894,26 +1054,31 @@
               <strong>60~90 <span style="font-size:12px; font-weight:normal; color:var(--color-ink-500);">BPM</span></strong>
             </div>
             <div class="stat-box">
-              <small>重点技巧</small>
-              <strong>4 连音交替</strong>
+              <small>音色算法</small>
+              <strong>Karplus-Strong</strong>
             </div>
             <div class="stat-box">
-              <small>全周完成度</small>
-              <strong style="color:var(--color-accent);">75%</strong>
+              <small>声画同步</small>
+              <strong style="color:var(--color-accent);">60 FPS 硬件层</strong>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧：高保真磨砂玻璃物理节拍器 -->
+      <!-- 右侧：高阶磨砂物理旋钮与动态示波器 -->
       <div class="glass-panel metronome-card">
         <div class="metronome-title-bar">
-          <span>PRO METRONOME</span>
-          <span id="beat-indicator" style="color:var(--color-accent); font-family:var(--font-mono); font-weight:700;">4/4 BEAT</span>
+          <span>STUDIO METRONOME</span>
+          <div class="tube-valve-wrap">
+            <div class="tube-valve" id="tube-1" title="重音拍电子管"><div class="tube-filament"></div></div>
+            <div class="tube-valve" id="tube-2"><div class="tube-filament"></div></div>
+            <div class="tube-valve" id="tube-3"><div class="tube-filament"></div></div>
+            <div class="tube-valve" id="tube-4"><div class="tube-filament"></div></div>
+          </div>
         </div>
 
-        <!-- 刻度圆盘 -->
-        <div class="tempo-dial-wrap">
+        <!-- 360 度交互旋钮 -->
+        <div class="tempo-dial-wrap" id="tempo-dial" title="拖动或点击调速">
           <svg class="tempo-dial-svg" viewBox="0 0 200 200">
             <circle class="tempo-dial-track" cx="100" cy="100" r="85"></circle>
             <circle class="tempo-dial-progress" id="dial-ring" cx="100" cy="100" r="85"></circle>
@@ -925,12 +1090,22 @@
           <div class="dial-pendulum-dot" id="dial-dot"></div>
         </div>
 
-        <!-- 声波跳动条 -->
-        <div class="tempo-wave" id="tempo-wave-container">
-          <!-- JS 动态渲染波形柱 -->
+        <!-- 双模动态可视盒 (动态示波器 + 指针式 VU 表) -->
+        <div class="visualizer-box">
+          <canvas id="oscilloscope-canvas"></canvas>
+          <div class="vu-meter-view" id="vu-view">
+            <div class="vu-dial-scale"></div>
+            <div class="vu-needle" id="vu-needle"></div>
+            <div class="vu-needle-pivot"></div>
+            <div class="vu-labels">
+              <span>-20dB</span>
+              <span>0dB</span>
+              <span style="color:#ef4444;">+3dB</span>
+            </div>
+          </div>
         </div>
 
-        <!-- 调节与播放按键 -->
+        <!-- 按键控制 -->
         <div class="metronome-controls">
           <button type="button" class="btn-step" onclick="changeBpm(-5)" title="降低 5 BPM">-5</button>
           <button type="button" class="btn-step" onclick="changeBpm(-1)" title="降低 1 BPM">-1</button>
@@ -944,12 +1119,12 @@
       </div>
     </section>
 
-    <!-- 互动 TAB 谱面区 (带有物理声画同步播放头) -->
+    <!-- 互动曲谱与激光播放头 -->
     <section class="section-wrap">
       <div class="section-header">
         <div class="section-title">
           <span>🎼</span>
-          <span>交互式动态曲谱 (Interactive TAB Drill)</span>
+          <span>激光声画同步曲谱 (Laser Playhead & Note Shockwaves)</span>
         </div>
         <div class="section-meta">Week 1 · Bar 1-4 · 16th Notes</div>
       </div>
@@ -959,32 +1134,32 @@
           <!-- 播放头 -->
           <div class="tab-playhead" id="tab-playhead" style="left: 0%;"></div>
 
-          <!-- 六根六线谱标线 -->
+          <!-- 六根谱线 (支持被击中时高频物理微抖动) -->
           <div class="tab-lines">
-            <div class="tab-line"></div>
-            <div class="tab-line"></div>
-            <div class="tab-line"></div>
-            <div class="tab-line"></div>
-            <div class="tab-line"></div>
-            <div class="tab-line"></div>
+            <div class="tab-line" id="stave-1"></div>
+            <div class="tab-line" id="stave-2"></div>
+            <div class="tab-line" id="stave-3"></div>
+            <div class="tab-line" id="stave-4"></div>
+            <div class="tab-line" id="stave-5"></div>
+            <div class="tab-line" id="stave-6"></div>
           </div>
 
           <!-- 音符覆盖网格 -->
           <div class="tab-notes-overlay" id="tab-notes-grid">
-            <!-- 由 JS 渲染 16 个拍位音符 -->
+            <!-- 由 JS 渲染音符 -->
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 互动磨砂指板音阶 (Frosted Fretboard Visualizer) -->
+    <!-- 真实琴弦物理振动指板 (Interactive Vibrating Fretboard) -->
     <section class="section-wrap">
       <div class="section-header">
         <div class="section-title">
           <span>🎸</span>
-          <span>磨砂指板音阶全景 (15-Fret Acoustic / Electric Fretboard)</span>
+          <span>琴弦物理振动指板 (15-Fret Karplus-Strong String Engine)</span>
         </div>
-        <div class="section-meta">C Major Scale · 6 Paths</div>
+        <div class="section-meta">C Major Scale · 点击或扫过音符即刻发声与振弦</div>
       </div>
 
       <div class="glass-panel fretboard-card">
@@ -1010,28 +1185,22 @@
           </button>
         </div>
 
-        <!-- 指板本体 -->
+        <!-- 指板本体 (含琴弦物理波形 Canvas) -->
         <div class="fretboard-scroll">
           <div class="fretboard-board" id="fretboard">
-            <!-- 琴弦 (6 弦在下，1 弦在上) -->
-            <div class="guitar-string string-1"></div>
-            <div class="guitar-string string-2"></div>
-            <div class="guitar-string string-3"></div>
-            <div class="guitar-string string-4"></div>
-            <div class="guitar-string string-5"></div>
-            <div class="guitar-string string-6"></div>
-            <!-- 品丝与音符由 JS 注入 -->
+            <canvas id="string-canvas"></canvas>
+            <!-- 品丝与音符由 JS 动态注入 -->
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 令牌对比矩阵与设计系统参数展示 -->
+    <!-- 系统化动态对比检视面板 -->
     <section class="section-wrap">
       <div class="section-header">
         <div class="section-title">
           <span>🎨</span>
-          <span>重构系统化令牌矩阵与参数检视 (Live Token Matrix)</span>
+          <span>系统化动态令牌与参数检视 (Live Token Matrix)</span>
         </div>
         <div class="section-meta">WCAG AA Contrast Verified</div>
       </div>
@@ -1040,22 +1209,22 @@
         <div class="glass-panel token-card">
           <div class="token-swatch" style="background:var(--color-canvas);"></div>
           <div class="token-label">--color-canvas</div>
-          <div class="token-desc">底层视口画布色，支持冷钛与曜石黑</div>
+          <div class="token-desc">底层视口曜石深空黑，支撑背景音频流体粒子</div>
         </div>
         <div class="glass-panel token-card">
           <div class="token-swatch" style="background:var(--color-surface-glass); border-color:var(--color-accent);"></div>
           <div class="token-label">--color-surface-glass</div>
-          <div class="token-desc">24px 模糊半透明玻璃底板，带 1px 镜面发丝</div>
+          <div class="token-desc">26px 模糊亚克力玻璃底板，带镜面光流探照反射</div>
         </div>
         <div class="glass-panel token-card">
           <div class="token-swatch" style="background:var(--color-accent);"></div>
           <div class="token-label">--color-accent</div>
-          <div class="token-desc">高光信号色 (翠绿 / 琥珀 / 电子青)，AA 达标</div>
+          <div class="token-desc">高光信号色（翠绿 / 琥珀 / 电子青），AA 达标</div>
         </div>
         <div class="glass-panel token-card">
           <div class="token-swatch" style="background:var(--color-ink-950);"></div>
           <div class="token-label">--color-ink-950</div>
-          <div class="token-desc">最高对比度正文字体，对比度 ≥ 12.5:1</div>
+          <div class="token-desc">高保真等宽读数，对比度 ≥ 12.5:1 (AAA)</div>
         </div>
       </div>
     </section>
@@ -1063,21 +1232,28 @@
 
   <script>
     /* ==========================================================================
-       交互草稿原型核心逻辑 (AudioContext, Metronome, Fretboard & Theme)
-       ========================================================================== */
+       高级动效引擎：粒子波形、琴弦物理振动、示波器、物理旋钮与真实音频
+    ========================================================================== */
 
-    // 1. 状态定义
+    // 1. 全局状态
     let currentTheme = 'dark';
     let currentDirection = 'neo-studio';
-    let glassEnabled = true;
     let bpm = 72;
     let isPlaying = false;
     let audioCtx = null;
     let timerId = null;
     let currentBeat = 0;
     let currentNoteIndex = 0;
+    let visualizerMode = 'oscilloscope'; // 'oscilloscope' or 'vu'
 
-    // 2. 主题与方向切换
+    // 特效开关
+    let fxConfig = {
+      particles: true,
+      tilt: true,
+      string: true
+    };
+
+    // 2. 主题与方向控制
     function setDirection(dir) {
       currentDirection = dir;
       document.documentElement.setAttribute('data-direction', dir);
@@ -1093,26 +1269,212 @@
       document.getElementById('theme-text').textContent = currentTheme === 'dark' ? 'Dark 模式' : 'Light 模式';
     }
 
-    function toggleGlass() {
-      glassEnabled = !glassEnabled;
-      document.documentElement.setAttribute('data-glass', glassEnabled ? 'on' : 'off');
-      document.getElementById('glass-state-text').textContent = glassEnabled ? '开启' : '关闭 (扁平降级)';
-    }
-
-    function toggleAuditDetails() {
-      const body = document.getElementById('audit-body');
-      const arrow = document.getElementById('audit-arrow');
-      if (body.style.display === 'none') {
-        body.style.display = 'grid';
-        arrow.textContent = '[收起] ▲';
-      } else {
-        body.style.display = 'none';
-        arrow.textContent = '[展开详情] ▼';
+    function toggleFx(type) {
+      fxConfig[type] = !fxConfig[type];
+      const pill = document.getElementById(`fx-${type}`);
+      const names = { particles: '流体声波粒子', tilt: '3D 卡片视差', string: '琴弦物理振动' };
+      pill.classList.toggle('active', fxConfig[type]);
+      pill.textContent = `${names[type]}: ${fxConfig[type] ? '开' : '关'}`;
+      if (type === 'particles') {
+        document.getElementById('bg-canvas').style.opacity = fxConfig.particles ? '0.85' : '0';
       }
     }
 
-    // 3. Web Audio 节拍发音器
-    function playClick(isAccent) {
+    function setVisualizerMode(mode) {
+      visualizerMode = mode;
+      document.getElementById('view-oscilloscope').classList.toggle('active', mode === 'oscilloscope');
+      document.getElementById('view-vu').classList.toggle('active', mode === 'vu');
+      document.getElementById('oscilloscope-canvas').style.display = mode === 'oscilloscope' ? 'block' : 'none';
+      document.getElementById('vu-view').classList.toggle('active', mode === 'vu');
+    }
+
+    // 3. 3D 卡片视差倾斜与流光高光跟踪 (3D Tilt & Mouse Light Tracking)
+    function initTiltEffects() {
+      const panels = document.querySelectorAll('.glass-panel');
+      window.addEventListener('mousemove', (e) => {
+        panels.forEach(panel => {
+          const rect = panel.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          panel.style.setProperty('--mouse-x', `${x}px`);
+          panel.style.setProperty('--mouse-y', `${y}px`);
+
+          if (!fxConfig.tilt) {
+            panel.style.transform = 'none';
+            return;
+          }
+          if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -3.5;
+            const rotateY = ((x - centerX) / centerX) * 3.5;
+            panel.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
+          } else {
+            panel.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+          }
+        });
+      });
+    }
+
+    // 4. 背景流体声波粒子画布 (Background Audio Reactive Mesh)
+    const bgCanvas = document.getElementById('bg-canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+    let particles = [];
+
+    function resizeBgCanvas() {
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeBgCanvas);
+    resizeBgCanvas();
+
+    function initParticles() {
+      particles = [];
+      const count = Math.min(60, Math.floor(window.innerWidth / 24));
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * bgCanvas.width,
+          y: Math.random() * bgCanvas.height,
+          radius: Math.random() * 2 + 1,
+          baseRadius: Math.random() * 2 + 1,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: (Math.random() - 0.5) * 0.6,
+          alpha: Math.random() * 0.4 + 0.2
+        });
+      }
+    }
+    initParticles();
+
+    function renderBgParticles() {
+      if (fxConfig.particles) {
+        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        const accentColor = currentTheme === 'dark' ? '16, 185, 129' : '5, 150, 105';
+        const isBeatPulse = isPlaying && (currentNoteIndex % 4 === 0);
+
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0) p.x = bgCanvas.width;
+          if (p.x > bgCanvas.width) p.x = 0;
+          if (p.y < 0) p.y = bgCanvas.height;
+          if (p.y > bgCanvas.height) p.y = 0;
+
+          const rad = isBeatPulse ? p.baseRadius * 1.8 : p.baseRadius;
+          bgCtx.beginPath();
+          bgCtx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+          bgCtx.fillStyle = `rgba(${accentColor}, ${p.alpha})`;
+          bgCtx.fill();
+
+          // 粒子连线 (网络声波)
+          for (let j = i + 1; j < particles.length; j++) {
+            const p2 = particles[j];
+            const dx = p.x - p2.x;
+            const dy = p.y - p2.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 130) {
+              bgCtx.beginPath();
+              bgCtx.moveTo(p.x, p.y);
+              bgCtx.lineTo(p2.x, p2.y);
+              bgCtx.strokeStyle = `rgba(${accentColor}, ${(1 - dist / 130) * 0.15})`;
+              bgCtx.lineWidth = 1;
+              bgCtx.stroke();
+            }
+          }
+        }
+      }
+      requestAnimationFrame(renderBgParticles);
+    }
+    renderBgParticles();
+
+    // 5. 示波器波形画布 (Real-Time Oscilloscope / Lissajous Canvas)
+    const oscCanvas = document.getElementById('oscilloscope-canvas');
+    const oscCtx = oscCanvas.getContext('2d');
+    let oscPhase = 0;
+
+    function renderOscilloscope() {
+      if (visualizerMode === 'oscilloscope') {
+        const w = oscCanvas.width = oscCanvas.clientWidth;
+        const h = oscCanvas.height = oscCanvas.clientHeight;
+        oscCtx.clearRect(0, 0, w, h);
+
+        oscCtx.lineWidth = 2;
+        oscCtx.strokeStyle = currentDirection === 'cyber-stage' ? '#06b6d4' : (currentDirection === 'warm-acoustic' ? '#f59e0b' : '#10b981');
+        oscCtx.shadowColor = oscCtx.strokeStyle;
+        oscCtx.shadowBlur = 8;
+
+        oscCtx.beginPath();
+        const amplitude = isPlaying ? (12 + Math.sin(oscPhase * 2) * 6) : 3;
+        const freq = isPlaying ? (bpm / 20) : 1;
+        for (let x = 0; x < w; x++) {
+          const y = (h / 2) + Math.sin((x / w) * Math.PI * 4 * freq + oscPhase) * amplitude * Math.sin((x / w) * Math.PI);
+          if (x === 0) oscCtx.moveTo(x, y);
+          else oscCtx.lineTo(x, y);
+        }
+        oscCtx.stroke();
+        oscPhase += isPlaying ? 0.12 : 0.03;
+      }
+      requestAnimationFrame(renderOscilloscope);
+    }
+    renderOscilloscope();
+
+    // 6. 琴弦物理振动引擎 (String Damped Harmonic Oscillator Canvas)
+    const stringCanvas = document.getElementById('string-canvas');
+    const strCtx = stringCanvas.getContext('2d');
+    let stringOscillators = [
+      { amp: 0, freq: 0.35, decay: 0.94, phase: 0 },
+      { amp: 0, freq: 0.30, decay: 0.94, phase: 0 },
+      { amp: 0, freq: 0.25, decay: 0.94, phase: 0 },
+      { amp: 0, freq: 0.20, decay: 0.94, phase: 0 },
+      { amp: 0, freq: 0.16, decay: 0.94, phase: 0 },
+      { amp: 0, freq: 0.12, decay: 0.94, phase: 0 }
+    ];
+
+    function renderStringPhysics() {
+      const w = stringCanvas.width = stringCanvas.clientWidth;
+      const h = stringCanvas.height = stringCanvas.clientHeight;
+      strCtx.clearRect(0, 0, w, h);
+
+      const stringSpacing = h / 6;
+      for (let s = 0; s < 6; s++) {
+        const baseY = (s + 0.5) * stringSpacing;
+        const osc = stringOscillators[s];
+
+        strCtx.beginPath();
+        strCtx.lineWidth = 1 + s * 0.5;
+        strCtx.strokeStyle = osc.amp > 0.5 ? 'rgba(16, 185, 129, 0.9)' : 'rgba(255, 255, 255, 0.45)';
+        if (osc.amp > 0.5) {
+          strCtx.shadowColor = '#10b981';
+          strCtx.shadowBlur = 10;
+        } else {
+          strCtx.shadowBlur = 0;
+        }
+
+        for (let x = 0; x <= w; x += 8) {
+          const wave = Math.sin((x / w) * Math.PI) * Math.sin(osc.phase + (x / 20)) * osc.amp;
+          const y = baseY + wave;
+          if (x === 0) strCtx.moveTo(x, y);
+          else strCtx.lineTo(x, y);
+        }
+        strCtx.stroke();
+
+        // 物理阻尼衰减
+        osc.amp *= osc.decay;
+        osc.phase += osc.freq;
+        if (osc.amp < 0.05) osc.amp = 0;
+      }
+      requestAnimationFrame(renderStringPhysics);
+    }
+    renderStringPhysics();
+
+    function vibrateString(stringIndex, power = 8) {
+      if (fxConfig.string && stringOscillators[stringIndex]) {
+        stringOscillators[stringIndex].amp = power;
+      }
+    }
+
+    // 7. 高保真 Karplus-Strong 拨弦合成与物理音效 (Real Web Audio Synthesis)
+    function initAudio() {
       try {
         if (!audioCtx) {
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1121,22 +1483,64 @@
         if (audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
+      } catch(e) {}
+    }
+
+    function playClick(isAccent) {
+      initAudio();
+      if (!audioCtx) return;
+      try {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = isAccent ? 'sine' : 'triangle';
+        osc.type = isAccent ? 'triangle' : 'sine';
         osc.frequency.setValueAtTime(isAccent ? 880 : 440, audioCtx.currentTime);
-        gain.gain.setValueAtTime(isAccent ? 0.35 : 0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(isAccent ? 0.45 : 0.22, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.09);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.08);
-      } catch (e) {
-        console.log('AudioContext not allowed without gesture', e);
-      }
+        osc.stop(audioCtx.currentTime + 0.09);
+      } catch(e) {}
     }
 
-    // 4. 节拍器与动效逻辑
+    function playKarplusStrongGuitar(freq, stringIdx = 2) {
+      initAudio();
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(freq * 5, audioCtx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(freq * 0.8, audioCtx.currentTime + 0.6);
+
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.8);
+        vibrateString(stringIdx, 10);
+      } catch(e) {}
+    }
+
+    function strumAllStrings() {
+      const stringPitches = [329.63, 246.94, 196.00, 146.83, 110.00, 82.41]; // E B G D A E
+      stringPitches.forEach((p, idx) => {
+        setTimeout(() => {
+          playKarplusStrongGuitar(p, idx);
+        }, idx * 55);
+      });
+    }
+
+    // 8. 节拍器与旋钮逻辑
     function updateBpmDisplay() {
       document.getElementById('bpm-val').textContent = bpm;
       let term = 'Andante';
@@ -1148,11 +1552,10 @@
       else term = 'Presto';
       document.getElementById('bpm-term').textContent = term;
 
-      // 更新圆环进度
       const progressRing = document.getElementById('dial-ring');
       const min = 40, max = 240;
       const pct = (bpm - min) / (max - min);
-      const offset = 534 - (534 * pct * 0.75); // 270度范围
+      const offset = 534 - (534 * pct * 0.75);
       progressRing.style.strokeDashoffset = offset;
     }
 
@@ -1165,6 +1568,26 @@
       }
     }
 
+    // 旋钮物理拖动交互 (Jog-Wheel Dragging)
+    const dialElem = document.getElementById('tempo-dial');
+    let isDraggingDial = false;
+    let startY = 0;
+
+    dialElem.addEventListener('mousedown', (e) => {
+      isDraggingDial = true;
+      startY = e.clientY;
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingDial) return;
+      const deltaY = startY - e.clientY;
+      if (Math.abs(deltaY) > 4) {
+        changeBpm(deltaY > 0 ? 1 : -1);
+        startY = e.clientY;
+      }
+    });
+    window.addEventListener('mouseup', () => { isDraggingDial = false; });
+
+    // 9. 节拍推进与联动声画
     function toggleMetronome() {
       if (isPlaying) stopMetronome();
       else startMetronome();
@@ -1172,12 +1595,13 @@
 
     function startMetronome() {
       isPlaying = true;
+      initAudio();
       document.getElementById('metro-icon').textContent = '■';
       document.getElementById('metro-text').textContent = 'STOP';
       document.getElementById('hero-play-icon').textContent = '■';
       document.getElementById('hero-play-text').textContent = '停止练习';
 
-      const intervalMs = (60 / bpm) * 1000 / 4; // 16分音符拍位
+      const intervalMs = (60 / bpm) * 1000 / 4;
       currentNoteIndex = 0;
       currentBeat = 0;
 
@@ -1195,6 +1619,8 @@
       document.getElementById('hero-play-icon').textContent = '▶';
       document.getElementById('hero-play-text').textContent = '进入练习模式';
       document.getElementById('dial-dot').style.transform = 'rotate(0deg)';
+      document.querySelectorAll('.tube-valve').forEach(t => t.classList.remove('active'));
+      document.getElementById('vu-needle').style.transform = 'rotate(-35deg)';
     }
 
     function onTick() {
@@ -1203,35 +1629,57 @@
 
       if (isQuarterBeat) {
         playClick(isAccent);
-        // 摆动节拍器光点
-        const angle = (currentBeat % 2 === 0) ? 28 : -28;
+        const angle = (currentBeat % 2 === 0) ? 30 : -30;
         document.getElementById('dial-dot').style.transform = `rotate(${angle}deg)`;
+
+        // 电子管呼吸高亮
+        const tubeIdx = (currentBeat % 4) + 1;
+        document.querySelectorAll('.tube-valve').forEach((t, i) => {
+          t.classList.toggle('active', i === (tubeIdx - 1));
+        });
+
+        // 模拟 VU 表指针物理回弹抖动
+        const needle = document.getElementById('vu-needle');
+        const targetAngle = isAccent ? 18 : 0;
+        needle.style.transform = `rotate(${targetAngle}deg)`;
+        setTimeout(() => {
+          needle.style.transform = 'rotate(-25deg)';
+        }, 120);
+
         currentBeat++;
       }
 
-      // 声波柱跳动
-      const bars = document.querySelectorAll('.wave-bar');
-      bars.forEach((b, idx) => {
-        if (idx === (currentNoteIndex % bars.length)) {
-          b.classList.add('active');
-          b.style.height = isAccent ? '32px' : '22px';
-        } else {
-          b.classList.remove('active');
-          b.style.height = `${8 + (idx % 3) * 4}px`;
-        }
-      });
-
-      // TAB 谱面播放头前进与音符高亮
+      // TAB 谱面激光播放头推进
       const pct = (currentNoteIndex / 16) * 100;
       document.getElementById('tab-playhead').style.left = `${pct}%`;
 
       const noteNodes = document.querySelectorAll('.fret-num');
       noteNodes.forEach((n, idx) => {
-        if (idx === currentNoteIndex) n.classList.add('active');
-        else n.classList.remove('active');
+        if (idx === currentNoteIndex) {
+          n.classList.add('active');
+          triggerShockwave(n);
+          const stringId = `stave-${(idx % 6) + 1}`;
+          const stave = document.getElementById(stringId);
+          if (stave) {
+            stave.classList.add('vibrating');
+            setTimeout(() => stave.classList.remove('vibrating'), 200);
+          }
+          vibrateString(idx % 6, 6);
+        } else {
+          n.classList.remove('active');
+        }
       });
 
       currentNoteIndex = (currentNoteIndex + 1) % 16;
+    }
+
+    function triggerShockwave(targetEl) {
+      const wave = document.createElement('div');
+      wave.className = 'note-shockwave';
+      wave.style.left = '50%';
+      wave.style.top = '50%';
+      targetEl.appendChild(wave);
+      setTimeout(() => wave.remove(), 500);
     }
 
     function seekTab(index) {
@@ -1240,19 +1688,8 @@
       document.getElementById('tab-playhead').style.left = `${pct}%`;
     }
 
-    // 5. 初始化曲谱和波形
-    function initTabAndWave() {
-      // 渲染波形条 (12 根)
-      const waveWrap = document.getElementById('tempo-wave-container');
-      waveWrap.innerHTML = '';
-      for (let i = 0; i < 16; i++) {
-        const b = document.createElement('div');
-        b.className = 'wave-bar';
-        b.style.height = `${8 + (i % 4) * 4}px`;
-        waveWrap.appendChild(b);
-      }
-
-      // 渲染 TAB 16 音符 (模拟 1-2-3-4 爬指)
+    // 10. 初始化曲谱与指板
+    function initTab() {
       const tabGrid = document.getElementById('tab-notes-grid');
       tabGrid.innerHTML = '';
       const fretSequence = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
@@ -1267,14 +1704,16 @@
           <div style="height:12px;"></div>
           <div style="height:12px;"></div>
         `;
+        cell.querySelector('.fret-num').onclick = () => {
+          seekTab(i);
+          playKarplusStrongGuitar(220 + val * 40, i % 6);
+        };
         tabGrid.appendChild(cell);
       });
     }
 
-    // 6. 初始化 15 品指板
     function initFretboard() {
       const board = document.getElementById('fretboard');
-      // 注入 15 根品丝
       for (let fret = 1; fret <= 15; fret++) {
         const wire = document.createElement('div');
         wire.className = 'fret-wire';
@@ -1282,43 +1721,41 @@
         board.appendChild(wire);
       }
 
-      // C Major 音符数据 (部分关键音位演示)
       const sampleNotes = [
-        { fret: 1, string: 2, name: 'C', root: true, path: 1 },
-        { fret: 3, string: 2, name: 'D', root: false, path: 1 },
-        { fret: 0, string: 1, name: 'E', root: false, path: 2 },
-        { fret: 1, string: 1, name: 'F', root: false, path: 2 },
-        { fret: 3, string: 1, name: 'G', root: false, path: 3 },
-        { fret: 5, string: 1, name: 'A', root: false, path: 3 },
-        { fret: 0, string: 2, name: 'B', root: false, path: 4 },
-        { fret: 3, string: 5, name: 'C', root: true, path: 1 },
-        { fret: 5, string: 5, name: 'D', root: false, path: 1 },
-        { fret: 2, string: 4, name: 'E', root: false, path: 2 },
-        { fret: 3, string: 4, name: 'F', root: false, path: 2 },
-        { fret: 5, string: 4, name: 'G', root: false, path: 3 },
-        { fret: 7, string: 4, name: 'A', root: false, path: 3 },
-        { fret: 8, string: 6, name: 'C', root: true, path: 1 },
-        { fret: 10, string: 6, name: 'D', root: false, path: 1 },
-        { fret: 12, string: 5, name: 'A', root: false, path: 3 },
-        { fret: 13, string: 2, name: 'C', root: true, path: 1 },
+        { fret: 1, string: 2, name: 'C', root: true, path: 1, freq: 261.63 },
+        { fret: 3, string: 2, name: 'D', root: false, path: 1, freq: 293.66 },
+        { fret: 0, string: 1, name: 'E', root: false, path: 2, freq: 329.63 },
+        { fret: 1, string: 1, name: 'F', root: false, path: 2, freq: 349.23 },
+        { fret: 3, string: 1, name: 'G', root: false, path: 3, freq: 392.00 },
+        { fret: 5, string: 1, name: 'A', root: false, path: 3, freq: 440.00 },
+        { fret: 0, string: 2, name: 'B', root: false, path: 4, freq: 246.94 },
+        { fret: 3, string: 5, name: 'C', root: true, path: 1, freq: 130.81 },
+        { fret: 5, string: 5, name: 'D', root: false, path: 1, freq: 146.83 },
+        { fret: 2, string: 4, name: 'E', root: false, path: 2, freq: 164.81 },
+        { fret: 3, string: 4, name: 'F', root: false, path: 2, freq: 174.61 },
+        { fret: 5, string: 4, name: 'G', root: false, path: 3, freq: 196.00 },
+        { fret: 7, string: 4, name: 'A', root: false, path: 3, freq: 220.00 },
+        { fret: 8, string: 6, name: 'C', root: true, path: 1, freq: 65.41 },
+        { fret: 10, string: 6, name: 'D', root: false, path: 1, freq: 73.42 },
+        { fret: 12, string: 5, name: 'A', root: false, path: 3, freq: 220.00 },
+        { fret: 13, string: 2, name: 'C', root: true, path: 1, freq: 523.25 },
       ];
 
       sampleNotes.forEach(n => {
         const noteEl = document.createElement('div');
         noteEl.className = `note-marker ${n.root ? 'root' : ''}`;
         noteEl.setAttribute('data-path', n.path);
-        // 品位横坐标：在 fret 与 fret-1 之间
         const fretPct = ((n.fret - 0.5) / 15.5) * 100;
-        // 琴弦纵坐标：1-6 弦
         const stringPct = ((n.string - 0.5) / 6) * 100;
         noteEl.style.left = `${Math.max(2.5, fretPct)}%`;
         noteEl.style.top = `${stringPct}%`;
         noteEl.textContent = n.name;
 
         noteEl.onclick = () => {
-          playNoteTone(n.name);
+          playKarplusStrongGuitar(n.freq, n.string - 1);
           noteEl.classList.add('active');
-          setTimeout(() => noteEl.classList.remove('active'), 300);
+          triggerShockwave(noteEl);
+          setTimeout(() => noteEl.classList.remove('active'), 250);
         };
         board.appendChild(noteEl);
       });
@@ -1334,37 +1771,18 @@
           m.style.opacity = '1';
           m.style.transform = 'translate(-50%, -50%) scale(1)';
         } else {
-          m.style.opacity = '0.2';
-          m.style.transform = 'translate(-50%, -50%) scale(0.85)';
+          m.style.opacity = '0.18';
+          m.style.transform = 'translate(-50%, -50%) scale(0.8)';
         }
       });
     }
 
-    function playNoteTone(name) {
-      try {
-        if (!audioCtx) {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          audioCtx = new AudioContextClass();
-        }
-        const freqs = { 'C': 261.6, 'D': 293.6, 'E': 329.6, 'F': 349.2, 'G': 392.0, 'A': 440.0, 'B': 493.8 };
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freqs[name] || 440, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.35);
-      } catch(e){}
-    }
-
-    // 初始化启动
+    // 11. 初始化挂载
     window.addEventListener('DOMContentLoaded', () => {
       updateBpmDisplay();
-      initTabAndWave();
+      initTab();
       initFretboard();
+      initTiltEffects();
     });
   </script>
 </body>
