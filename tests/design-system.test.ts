@@ -88,13 +88,33 @@ describe("设计令牌", () => {
       for (const ink of ["ink-950", "ink-700", "ink-500"]) {
         expect(
           contrast(token(ink), token(background)),
-          `${ink} on ${background}`,
+          `Light: ${ink} on ${background}`,
         ).toBeGreaterThanOrEqual(4.5);
       }
     }
     expect(contrast(token("on-accent"), token("accent-700"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token("accent-700"), token("canvas"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token("accent-700"), token("accent-50"))).toBeGreaterThanOrEqual(4.5);
+
+    // 验证 Dark 模式对比度守护
+    const darkSection = css.match(/\[data-theme="dark"\]\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+    const darkToken = (name: string) => {
+      const value = darkSection.match(new RegExp(`--color-${name}:\\s*(#[0-9a-f]{6})`, "i"))?.[1];
+      if (!value) throw new Error(`缺少 Dark 颜色令牌：${name}`);
+      return value;
+    };
+
+    for (const background of ["canvas", "surface", "surface-muted"]) {
+      for (const ink of ["ink-950", "ink-700", "ink-500"]) {
+        expect(
+          contrast(darkToken(ink), darkToken(background)),
+          `Dark: ${ink} on ${background}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    expect(contrast(darkToken("on-accent"), darkToken("accent-700"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(darkToken("accent-700"), darkToken("canvas"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(darkToken("accent-700"), darkToken("accent-50"))).toBeGreaterThanOrEqual(4.5);
   });
 
 });
@@ -129,7 +149,7 @@ describe("令牌引用完整性", () => {
    */
 
   /** 本项目自己的颜色族；white / black / transparent 等交给 Tailwind 内置 */
-  const FAMILIES = ["ink", "accent", "surface", "canvas", "rule", "control", "board"];
+  const FAMILIES = ["ink", "accent", "surface", "canvas", "rule", "control", "board", "glass"];
 
   const declaredColors = new Set(
     [...css.matchAll(/^\s*--color-([a-z0-9-]+):/gm)].map(([, name]) => name),
@@ -167,5 +187,36 @@ describe("触摸目标", () => {
     expect(css).toMatch(
       /@media \(hover: none\)\s*\{[^}]*\.segment\s*\{[^}]*min-height:\s*44px/,
     );
+  });
+});
+
+describe("Neo-Studio 磨砂玻璃材质与双模降级守护", () => {
+  it("声明 @custom-variant dark 支持 Tailwind 双模变体", () => {
+    expect(css).toMatch(/@custom-variant\s+dark\s+\(&:where\(\[data-theme="dark"\]/);
+  });
+
+  it("导航栏与底部 Dock 采用亚克力磨砂玻璃并配置 1px 镜面发丝高光", () => {
+    expect(css).toMatch(/\.shell-nav-glass\s*\{[^}]*backdrop-filter:\s*blur\(24px\)\s+saturate\(160%\)/);
+    expect(css).toMatch(/\.shell-nav-glass\s*\{[^}]*box-shadow:[^}]*var\(--color-glass-specular\)/);
+    expect(css).toMatch(/\.dock-glass\s*\{[^}]*backdrop-filter:\s*blur\(24px\)\s+saturate\(160%\)/);
+    expect(css).toMatch(/\.dock-glass\s*\{[^}]*box-shadow:[^}]*var\(--color-glass-specular\)/);
+  });
+
+  it("磨砂玻璃卡片 studio-glass-panel 包含 24px 模糊、发丝受光与弹簧回弹", () => {
+    expect(css).toMatch(/\.studio-glass-panel\s*\{[^}]*backdrop-filter:\s*blur\(24px\)\s+saturate\(160%\)/);
+    expect(css).toMatch(/\.studio-glass-panel\s*\{[^}]*box-shadow:[^}]*var\(--color-glass-specular\)/);
+  });
+
+  it("prefers-reduced-transparency 下玻璃材质优雅降级为实底无滤镜", () => {
+    const reducedTransparency = css.match(/@media\s*\(prefers-reduced-transparency:\s*reduce\)\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+    expect(reducedTransparency).toContain("backdrop-filter: none");
+    expect(reducedTransparency).toContain("background-color: var(--color-surface)");
+  });
+
+  it("prefers-reduced-motion 下强制重置所有动画与过渡时长至 0.01ms", () => {
+    const reducedMotion = css.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?\n\s*\})\s*\}/)?.[1] ?? "";
+    expect(reducedMotion).toContain("animation-duration: 0.01ms");
+    expect(reducedMotion).toContain("transition-duration: 0.01ms");
+    expect(reducedMotion).toContain("scroll-behavior: auto");
   });
 });

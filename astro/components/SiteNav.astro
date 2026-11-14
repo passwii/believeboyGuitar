@@ -42,7 +42,7 @@ const focusMode = pathname === "/metronome" || pathname.startsWith("/practice/we
 <header
   class:list={[
     focusMode && "hidden sm:block",
-    "sticky top-0 z-30 border-b border-rule bg-canvas/78 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas",
+    "shell-nav-glass",
   ]}
 >
   <div class="shell shell-nav pt-[env(safe-area-inset-top)]">
@@ -53,7 +53,7 @@ const focusMode = pathname === "/metronome" || pathname.startsWith("/practice/we
     >
       <span
         aria-hidden="true"
-        class="flex size-7 flex-none items-end justify-center gap-[3px] rounded-control bg-accent-700 px-[5px] py-1.5"
+        class="flex size-7 flex-none items-end justify-center gap-[3px] rounded-control bg-accent-700 px-[5px] py-1.5 shadow-[0_0_12px_var(--color-accent-glow)] transition-shadow duration-200"
       >
         <span class="h-2 w-1 rounded-full bg-on-accent"></span>
         <span class="h-3.5 w-1 rounded-full bg-on-accent"></span>
@@ -62,28 +62,47 @@ const focusMode = pathname === "/metronome" || pathname.startsWith("/practice/we
       练习站
     </a>
 
-    <nav aria-label="主导航" class="hidden sm:block">
-      <ul class="flex items-center gap-1">
-        {items.map((item) => (
-          <li>
-            <a
-              href={item.href}
-              aria-current={item.active ? "page" : undefined}
-              class:list={[
-                "flex min-h-11 items-center gap-1.5 rounded-control px-3 text-label transition-colors duration-150",
-                item.active ? "bg-surface-muted font-semibold text-ink-950" : "text-ink-700 hover:text-ink-950",
-              ]}
-            >
-              <Icon
-                name={item.icon}
-                className={item.active ? "size-4 text-accent-700" : "size-4 text-ink-500"}
-              />
-              {item.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <div class="flex items-center gap-2">
+      <nav aria-label="主导航" class="hidden sm:block">
+        <ul class="flex items-center gap-1">
+          {items.map((item) => (
+            <li>
+              <a
+                href={item.href}
+                aria-current={item.active ? "page" : undefined}
+                class:list={[
+                  "flex min-h-11 items-center gap-1.5 rounded-control px-3 text-label transition-all duration-150 active:scale-[0.98]",
+                  item.active
+                    ? "bg-surface-elevated font-semibold text-ink-950 shadow-sm border border-glass-border"
+                    : "text-ink-700 hover:text-ink-950 hover:bg-surface-muted/60",
+                ]}
+              >
+                <Icon
+                  name={item.icon}
+                  className={item.active ? "size-4 text-accent-700" : "size-4 text-ink-500"}
+                />
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <button
+        id="theme-toggle"
+        type="button"
+        aria-label="切换明暗色彩"
+        title="切换明暗色彩"
+        class="flex min-h-11 min-w-11 items-center justify-center rounded-control border border-glass-border bg-surface-glass text-ink-700 transition-all duration-150 hover:bg-surface-elevated hover:text-ink-950 active:scale-95"
+      >
+        <span class="flex items-center justify-center dark:hidden">
+          <Icon name="moon" className="size-4 text-ink-700" />
+        </span>
+        <span class="hidden items-center justify-center dark:flex">
+          <Icon name="sun" className="size-4 text-ink-700" />
+        </span>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -91,7 +110,7 @@ const focusMode = pathname === "/metronome" || pathname.startsWith("/practice/we
   aria-label="移动端导航"
   class:list={[
     focusMode && "hidden",
-    "fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-canvas/92 backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(0))]:bg-canvas sm:hidden",
+    "dock-glass sm:hidden",
   ]}
 >
   <ul class="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
@@ -101,7 +120,7 @@ const focusMode = pathname === "/metronome" || pathname.startsWith("/practice/we
           href={item.href}
           aria-current={item.active ? "page" : undefined}
           class:list={[
-            "flex min-h-[var(--dock-h)] flex-col items-center justify-center gap-0.5 px-1 text-meta transition-colors duration-150",
+            "flex min-h-[var(--dock-h)] flex-col items-center justify-center gap-0.5 px-1 text-meta transition-all duration-150 active:scale-95",
             item.active ? "font-semibold text-ink-950" : "text-ink-500 hover:text-ink-950",
           ]}
         >
@@ -115,3 +134,26 @@ const focusMode = pathname === "/metronome" || pathname.startsWith("/practice/we
     ))}
   </ul>
 </nav>
+
+<script is:inline>
+  (function () {
+    function initThemeToggle() {
+      var btn = document.getElementById("theme-toggle");
+      if (!btn) return;
+      btn.onclick = function () {
+        var current = document.documentElement.getAttribute("data-theme") || "dark";
+        var next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try {
+          localStorage.setItem("theme", next);
+        } catch (_) {}
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+          meta.setAttribute("content", next === "dark" ? "#0a0d12" : "#f4f6fa");
+        }
+      };
+    }
+    initThemeToggle();
+    document.addEventListener("astro:after-swap", initThemeToggle);
+  })();
+</script>
