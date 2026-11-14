@@ -9,6 +9,7 @@ import {
   beatTimeForResume,
   elapsedBeatsAt,
   nextBeatAfter,
+  tabDrillVisualState,
   type TabDrillTimeline,
 } from "@/lib/tab-drill-playhead";
 import type { TabSection } from "@/lib/tab-practice";
@@ -55,7 +56,10 @@ export function TabDrill({
   const tempoControlsId = `${idPrefix}-tempo-controls`;
   const totalMeasures = sections.reduce((total, section) => total + section.measures.length, 0);
   const defaultBpm = sections[0]?.bpm ?? 100;
-  const loopBeats = Math.max(1, ...sections.map((section) => totalBeats(section.measures)));
+  const loopBeats = Math.max(
+    1,
+    sections.reduce((total, section) => total + totalBeats(section.measures), 0),
+  );
 
   const [bpm, setBpm] = useState(defaultBpm);
   const [running, setRunning] = useState(false);
@@ -63,6 +67,7 @@ export function TabDrill({
   const [announcement, setAnnouncement] = useState("练习节拍器待开始");
   /** 当前拍位；-1 表示未开始 */
   const [playheadBeat, setPlayheadBeat] = useState(-1);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   const audioRef = useRef<MetronomeAudio | null>(null);
   const intervalRef = useRef<number | null>(null);
@@ -78,6 +83,14 @@ export function TabDrill({
   useEffect(() => {
     bpmRef.current = bpm;
   }, [bpm]);
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   const beatSeconds = useCallback(() => 60 / bpmRef.current, []);
 
@@ -206,10 +219,18 @@ export function TabDrill({
   }
 
   const beatPosition = playheadBeat;
+  const visualState = tabDrillVisualState(sections, beatPosition, {
+    running,
+    reducedMotion,
+  });
+  const activeSection = sections[visualState.sectionIndex];
+  const laserSectionId = visualState.showPlayhead ? visualState.activeSectionId : null;
   const activeNotes: Record<string, number | null> = {};
   for (const section of sections) {
     activeNotes[section.id] =
-      beatPosition < 0 ? null : activeNoteIndex(section.measures, beatPosition);
+      beatPosition < 0 || section.id !== activeSection?.id
+        ? null
+        : activeNoteIndex(section.measures, visualState.localBeat);
   }
 
   return (
@@ -326,6 +347,12 @@ export function TabDrill({
                       <span className="inline-flex items-center rounded-pill bg-surface-muted px-2.5 py-1 font-mono text-meta text-ink-700 tabular-nums">
                         ♩ = {section.bpm}
                       </span>
+                      {section.id === visualState.activeSectionId ? (
+                        <span className="tab-section-live">
+                          <span aria-hidden="true"></span>
+                          当前段
+                        </span>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-body text-ink-700 text-pretty max-sm:hidden">
                       {section.focus}
@@ -338,6 +365,12 @@ export function TabDrill({
                     measures={section.measures}
                     bpm={running ? bpm : section.bpm}
                     activeNoteIndex={activeNotes[section.id]}
+                    beatPosition={
+                      beatPosition < 0 || section.id !== activeSection?.id
+                        ? null
+                         : visualState.localBeat
+                    }
+                    showPlayhead={section.id === laserSectionId}
                     cdStart={section.cdStart}
                     title={`${section.title} TAB 谱`}
                     meta={[section.rhythm, ...(section.labels ?? [])]}

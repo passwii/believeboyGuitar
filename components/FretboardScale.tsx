@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { PracticeMetronome } from "@/components/PracticeMetronome";
+import { playGuitarPluck } from "@/lib/guitar-pluck";
+import { STANDARD_TUNING } from "@/lib/guitar";
 import {
   buildScaleNotes,
   nextFretboardString,
@@ -11,6 +13,8 @@ import {
 const NOTES = buildScaleNotes();
 const STRINGS = [1, 2, 3, 4, 5, 6] as const;
 const COLOR_VARS = SCALE_PATHS.map((path) => path.colorVar);
+const BOARD_LEFT = 46;
+const BOARD_TOP = 15;
 
 type LockableOrientation = ScreenOrientation & {
   lock?: (orientation: "landscape") => Promise<void>;
@@ -29,14 +33,17 @@ function NoteMark({
   note,
   activePath,
   activeString,
+  pluckedNote,
 }: {
   note: ScaleNote;
   activePath: "all" | number;
   activeString: number | null;
+  pluckedNote: string | null;
 }) {
   const visible =
     (activePath === "all" || note.pathIds.includes(activePath)) &&
     (activeString === null || note.stringNumber === activeString);
+  const plucked = pluckedNote === note.key;
   const radius = 13;
   const colors =
     activePath === "all"
@@ -46,7 +53,7 @@ function NoteMark({
   const y = stringY(note.stringNumber);
 
   return (
-    <g opacity={visible ? 1 : 0.13}>
+    <g opacity={visible ? 1 : 0.13} className={plucked ? "scale-note is-plucked" : "scale-note"}>
       <desc>
         {note.stringNumber} 弦 {note.fret} 品 · {note.degree} 级 · 路径{" "}
         {note.pathIds.join(" / ")}
@@ -70,6 +77,18 @@ function NoteMark({
         <circle cx={x} cy={y} r={radius} fill={colors[0]} />
       )}
       <circle cx={x} cy={y} r={radius} fill="none" stroke="#fbfcf8" strokeOpacity=".18" />
+      {plucked ? (
+        <circle
+          cx={x}
+          cy={y}
+          r={radius + 6}
+          fill="none"
+          stroke="var(--color-accent-700)"
+          strokeWidth="1.5"
+          opacity=".8"
+          className="scale-note-ring"
+        />
+      ) : null}
       <text
         x={x}
         y={y + 3.5}
@@ -93,13 +112,43 @@ function stringY(stringNumber: number) {
   return 30 + (stringNumber - 1) * 31;
 }
 
+/**
+ * 琴弦的阻尼振动波形。
+ *
+ * 能量由 `pluckString` 注入，逐帧衰减；振幅固定到所在弦的 y，
+ * 两端被琴枕 / 琴桥约束，越靠近中间摆动越大——这是弦的物理模态，
+ * 而不是给整条线加一个 CSS 位移。
+ */
+function stringPath(stringNumber: number, energy: number): string {
+  const baseY = stringY(stringNumber);
+  const amplitude = energy * 7;
+  if (amplitude <= 0.01) {
+    return `M ${BOARD_LEFT} ${baseY} H 796`;
+  }
+  const points: string[] = [];
+  for (let x = BOARD_LEFT; x <= 796; x += 18) {
+    const ratio = (x - BOARD_LEFT) / (796 - BOARD_LEFT);
+    const envelope = Math.sin(Math.PI * ratio);
+    const wave = Math.sin(ratio * Math.PI * (2 + stringNumber)) * envelope * amplitude;
+    points.push(`${x} ${baseY + wave}`);
+  }
+  return `M ${points.join(" L ")}`;
+}
+
 export function FretboardScale() {
   const [activePath, setActivePath] = useState<"all" | number>("all");
   const [activeString, setActiveString] = useState<number | null>(null);
+  const [pluckedString, setPluckedString] = useState<number | null>(null);
+  const [pluckedNote, setPluckedNote] = useState<string | null>(null);
   const [landscape, setLandscape] = useState(false);
   const [status, setStatus] = useState("");
+  const [stringEnergy, setStringEnergy] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const statusTimer = useRef<number | null>(null);
   const activeStringRef = useRef<number | null>(null);
+  const pluckTimer = useRef<number | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const energyRef = useRef<number[]>([0, 0, 0, 0, 0, 0]);
 
   const announce = useCallback((message: string) => {
     setStatus(message);
@@ -110,8 +159,66 @@ export function FretboardScale() {
   useEffect(
     () => () => {
       if (statusTimer.current !== null) window.clearTimeout(statusTimer.current);
+      if (pluckTimer.current !== null) window.clearTimeout(pluckTimer.current);
+      if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
     },
     [],
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      if (energyRef.current.some((energy) => energy > 0)) {
+        const settled = energyRef.current.map(() => 0);
+        energyRef.current = settled;
+        setStringEnergy(settled);
+      }
+      return;
+    }
+    if (stringEnergy.some((energy) => energy > 0) && animationRef.current === null) {
+      const step = () => {
+        const next = energyRef.current.map((energy) => (energy > 0.01 ? energy * 0.93 : 0));
+        energyRef.current = next;
+        setStringEnergy(next);
+        if (next.some((energy) => energy > 0)) {
+          animationRef.current = requestAnimationFrame(step);
+        } else {
+          animationRef.current = null;
+        }
+      };
+      animationRef.current = requestAnimationFrame(step);
+    }
+  }, [reducedMotion, stringEnergy]);
+
+  const pluckString = useCallback(
+    (stringNumber: number, fret: number, noteKey?: string) => {
+      const energy = energyRef.current.slice();
+      energy[stringNumber - 1] = reducedMotion ? 0 : 1;
+      energyRef.current = energy;
+      setStringEnergy(energy);
+      setPluckedString(stringNumber);
+      setPluckedNote(noteKey ?? `${stringNumber}-${fret}`);
+      const openMidi =
+        STANDARD_TUNING.find((tuning) => tuning.number === stringNumber)?.openMidi ?? 40;
+      playGuitarPluck(openMidi + fret, 0.7);
+      if (pluckTimer.current !== null) window.clearTimeout(pluckTimer.current);
+      pluckTimer.current = window.setTimeout(() => {
+        setPluckedString(null);
+        setPluckedNote(null);
+      }, reducedMotion ? 240 : 850);
+    },
+    [reducedMotion],
   );
 
   useEffect(() => {
@@ -128,7 +235,7 @@ export function FretboardScale() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat || event.isComposing) return;
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-      if (event.key !== "Enter") return;
+      if (event.key !== "Enter" && event.key !== "p") return;
 
       const target = event.target;
       const interactive =
@@ -138,6 +245,12 @@ export function FretboardScale() {
       if (interactive) return;
 
       event.preventDefault();
+      if (event.key === "p") {
+        const stringNumber = activeStringRef.current ?? 6;
+        pluckString(stringNumber, 0);
+        announce(`试听 ${stringNumber} 弦空弦`);
+        return;
+      }
       const nextString = nextFretboardString(activeStringRef.current);
       activeStringRef.current = nextString;
       setActiveString(nextString);
@@ -146,7 +259,7 @@ export function FretboardScale() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [announce]);
+  }, [announce, pluckString]);
 
   async function toggleLandscape() {
     const next = !landscape;
@@ -247,7 +360,7 @@ export function FretboardScale() {
         role="group"
         aria-label="指板音阶"
         aria-describedby="practice-metronome-help"
-        aria-keyshortcuts="Enter Space"
+          aria-keyshortcuts="Enter Space P"
         tabIndex={0}
       >
         <svg
@@ -266,7 +379,7 @@ export function FretboardScale() {
               <stop offset="1" stopColor="var(--color-board-900)" />
             </linearGradient>
           </defs>
-          <rect x="46" y="15" width="750" height="185" rx="9" fill="url(#scale-board-wood)" />
+          <rect x={BOARD_LEFT} y={BOARD_TOP} width="750" height="185" rx="9" fill="url(#scale-board-wood)" />
           {Array.from({ length: 15 }, (_, index) => index + 1).map((fret) => (
             <g key={`fret-${fret}`}>
               <line
@@ -309,16 +422,25 @@ export function FretboardScale() {
                   fill="var(--color-accent-700)"
                 />
               ) : null}
-              <line
-                x1="46"
-                y1={stringY(stringNumber)}
-                x2="796"
-                y2={stringY(stringNumber)}
-                stroke="var(--color-on-accent)"
-                strokeOpacity={
-                  activeString === null ? ".34" : activeString === stringNumber ? ".82" : ".12"
+              <path
+                d={stringPath(stringNumber, stringEnergy[stringNumber - 1] ?? 0)}
+                stroke={
+                  pluckedString === stringNumber || activeString === stringNumber
+                    ? "var(--color-accent-700)"
+                    : "var(--color-on-accent)"
                 }
-                strokeWidth={0.7 + (stringNumber - 1) * 0.18 + (activeString === stringNumber ? 0.7 : 0)}
+                strokeOpacity={
+                  pluckedString === stringNumber
+                    ? ".95"
+                    : activeString === null
+                      ? ".34"
+                      : activeString === stringNumber
+                        ? ".82"
+                        : ".12"
+                }
+                strokeWidth={0.9 + (stringNumber - 1) * 0.22 + (activeString === stringNumber ? 0.8 : 0)}
+                fill="none"
+                className="scale-string"
               />
               <text
                 x="28"
@@ -338,16 +460,22 @@ export function FretboardScale() {
             </g>
           ))}
           {NOTES.map((note) => (
-            <NoteMark
+            <g
               key={note.key}
-              note={note}
-              activePath={activePath}
-              activeString={activeString}
-            />
+              onClick={() => pluckString(note.stringNumber, note.fret, note.key)}
+              className="scale-note-hit"
+            >
+              <NoteMark
+                note={note}
+                activePath={activePath}
+                activeString={activeString}
+                pluckedNote={pluckedNote}
+              />
+            </g>
           ))}
         </svg>
       </div>
-      <p className="scale-board-hint">↔ 滑动查看 15 品 · 横屏显示更完整</p>
+      <p className="scale-board-hint">点击音位试听并拨动琴弦 · ↔ 滑动查看 15 品 · 横屏显示更完整</p>
 
       <ul className="scale-degree-key" aria-label="音级对应">
         <li><strong>1</strong> C</li>

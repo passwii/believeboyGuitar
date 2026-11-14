@@ -58,3 +58,43 @@ export function activeNoteIndex(
 export function totalBeats(measures: readonly TabMeasure[]): number {
   return noteTimings(measures).reduce((sum, timing) => sum + timing.duration, 0);
 }
+
+/**
+ * 播放头在一张谱面里的横向位置（0–1）。
+ *
+ * 与 `activeNoteIndex` 使用同一份 `noteTimings`：拍位先换算成音符序号，
+ * 再把音符序号换算成谱面格中心。这样激光线不会和亮起的品位数字错位。
+ */
+export function playheadProgress(
+  measures: readonly TabMeasure[],
+  beatPosition: number,
+): number | null {
+  if (!Number.isFinite(beatPosition) || beatPosition < 0) return null;
+  const timings = noteTimings(measures);
+  if (timings.length === 0) return null;
+
+  const epsilon = 1e-6;
+  let elapsed = 0;
+  for (let index = 0; index < timings.length; index += 1) {
+    const timing = timings[index];
+    if (beatPosition < elapsed + timing.duration - epsilon) {
+      const within = Math.min(1, Math.max(0, (beatPosition - elapsed) / timing.duration));
+      return (index + within) / timings.length;
+    }
+    elapsed += timing.duration;
+  }
+  return 1;
+}
+
+/** 每个小节的起始拍位，用于把连续谱面的绝对拍位拆回「第几小节 + 小节内比例」。 */
+export function measureBeatOrigins(measures: readonly TabMeasure[]): number[] {
+  const origins: number[] = [];
+  let cursor = 0;
+  for (const measure of measures) {
+    origins.push(cursor);
+    for (const note of measure.notes) {
+      cursor += DURATION_BEATS[note.duration];
+    }
+  }
+  return origins;
+}

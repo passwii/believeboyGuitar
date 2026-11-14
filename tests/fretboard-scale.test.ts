@@ -140,6 +140,12 @@ describe("六色指板音阶", () => {
     expect(nextFretboardString?.(6)).toBe(1);
   });
 
+  it("P 键试听当前弦，Space 仍交给节拍器", () => {
+    expect(scaleSource).toContain('event.key !== "Enter" && event.key !== "p"');
+    expect(scaleSource).toContain("试听 ");
+    expect(scaleSource).toContain('aria-keyshortcuts="Enter Space P"');
+  });
+
   it("Enter 切弦且不劫持原生控件", () => {
     expect(scaleSource).toContain('window.addEventListener("keydown", onKeyDown)');
     expect(scaleSource).toContain('event.key !== "Enter"');
@@ -155,5 +161,26 @@ describe("六色指板音阶", () => {
     expect(shortLandscapeLayout).toContain(".fretboard-scale .practice-metronome");
     expect(shortLandscapeLayout).toContain("display: none");
     expect(stylesSource).toContain(".fretboard-scale--landscape .practice-metronome");
+  });
+
+  it("琴弦由阻尼振动路径绘制，点击音位会拨动对应琴弦", () => {
+    expect(scaleSource).toContain("function stringPath(");
+    expect(scaleSource).toContain("energy[stringNumber - 1] = reducedMotion ? 0 : 1");
+    expect(scaleSource).toContain("requestAnimationFrame");
+    expect(scaleSource).toContain("playGuitarPluck(");
+    expect(scaleSource).toContain("onClick={() => pluckString(");
+    expect(stylesSource).toContain(".scale-string");
+    expect(stylesSource).toContain(".scale-note.is-plucked");
+    expect(stylesSource).toContain(".scale-note-ring");
+    expect(stylesSource).toContain("@keyframes scale-note-ring");
+  });
+
+  it("减少动态效果时停止 requestAnimationFrame 振弦并实时响应偏好变化", () => {
+    expect(scaleSource).toContain('matchMedia("(prefers-reduced-motion: reduce)")');
+    expect(scaleSource).toContain("query.addEventListener(\"change\", update)");
+    expect(scaleSource).toContain("cancelAnimationFrame(animationRef.current)");
+    expect(scaleSource).toContain("energy[stringNumber - 1] = reducedMotion ? 0 : 1");
+    expect(scaleSource).toContain("const settled = energyRef.current.map(() => 0)");
+    expect(scaleSource).toContain("[reducedMotion, stringEnergy]");
   });
 });

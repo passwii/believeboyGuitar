@@ -71,4 +71,13 @@ describe("练习页节拍器", () => {
     expect(tabDrillSource).toContain("beatPositionAt(");
     expect(tabDrillSource).toContain("timelineRef.current = { anchorTime: 0, elapsedBeats }");
   });
+
+  it("启动前不在组件标记中显示「当前段」", () => {
+    expect(tabDrillHtml).not.toContain("当前段");
+  });
+
+  it("「当前段」标记只看激活段，不随暂停消失", () => {
+    expect(tabDrillSource).toContain("section.id === visualState.activeSectionId");
+    expect(tabDrillSource).toContain("section.id === laserSectionId");
+  });
 });

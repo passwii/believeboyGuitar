@@ -24,6 +24,10 @@ export type TabStaffProps = {
   meta?: readonly string[];
   /** 当前拍位落在哪个音符上（按 measures 顺序的全局序号）；播放时由上层给出 */
   activeNoteIndex?: number | null;
+  /** 连续谱面的绝对拍位；播放头依赖它计算小节内比例。 */
+  beatPosition?: number | null;
+  /** 是否显示激光播放头；周练只让当前段显示。 */
+  showPlayhead?: boolean;
 };
 
 function tabMinWidthClass(maxNoteCount: number): string {
@@ -81,6 +85,8 @@ export function TabStaff({
   title = "TAB 谱",
   meta = [],
   activeNoteIndex = null,
+  beatPosition = null,
+  showPlayhead = true,
 }: TabStaffProps) {
   if (measures.length === 0) {
     return <p className="text-meta text-ink-500">这份谱面还没有音符。</p>;
@@ -151,6 +157,9 @@ export function TabStaff({
                   systems={[system]}
                   measureOffsets={measureOffsets}
                   activeNoteIndex={activeNoteIndex}
+                  beatPosition={beatPosition}
+                  beatsPerBar={beatsPerBar}
+                  showPlayhead={false}
                 />
               </svg>
             </div>
@@ -178,6 +187,9 @@ export function TabStaff({
               systems={desktopSystems}
               measureOffsets={measureOffsets}
               activeNoteIndex={activeNoteIndex}
+              beatPosition={beatPosition}
+              beatsPerBar={beatsPerBar}
+              showPlayhead={showPlayhead}
             />
           </svg>
         </div>
