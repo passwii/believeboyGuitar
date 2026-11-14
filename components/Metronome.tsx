@@ -21,6 +21,7 @@ import {
   pickResumeClick,
   resumeContinuation,
   retainScheduleWindow,
+  toggleMeterAccent,
   type Meter,
   type ScheduledClick,
 } from "@/lib/metronome";
@@ -130,9 +131,9 @@ function MobileMetronomeView({
   reducedMotion,
   wakeLockHint,
   onMeterChange,
-  onAccentToggle,
   onBpmChange,
   onTimbreChange,
+  onToggleAccent,
   onStart,
   onStop,
   timbre,
@@ -144,9 +145,9 @@ function MobileMetronomeView({
   reducedMotion: boolean;
   wakeLockHint: string;
   onMeterChange: (next: Meter) => void;
-  onAccentToggle: (beatIndex: number) => void;
   onBpmChange: (next: number) => void;
   onTimbreChange: (next: Timbre) => void;
+  onToggleAccent: (beatIndex: number) => void;
   onStart: () => void;
   onStop: () => void;
   timbre: Timbre;
@@ -192,44 +193,64 @@ function MobileMetronomeView({
           </a>
         </div>
 
-        <ol className="mt-2 flex gap-1.5" aria-label="节拍柱状图与重音设置">
+        <ol className="mt-2 flex gap-1.5">
           {Array.from({ length: beats }, (_, index) => {
             const isActive = running && index === active;
             const isAccent = meter.accents.includes(index);
             const level = isAccent ? 2 : 1;
 
             return (
-              <li key={index} className="min-w-0 flex-1">
+              <li key={index} className="flex min-w-0 flex-1">
                 <button
                   type="button"
-                  aria-label={`第 ${index + 1} 拍，${isAccent ? "重音（2格）" : "常规拍（1格）"}，点击切换重音`}
-                  onClick={() => onAccentToggle(index)}
-                  className={`relative flex h-20 w-full min-h-11 flex-col justify-between rounded-control border p-1.5 touch-manipulation ${
+                  aria-label={`第 ${index + 1} 拍重音设置，当前为 ${level} 格（${isAccent ? "重音拍" : "常规拍"}），点击切换`}
+                  onClick={() => onToggleAccent(index)}
+                  className={`relative flex h-20 min-h-11 w-full min-w-0 flex-col justify-between rounded-control border p-1.5 text-left ${
                     reducedMotion ? "" : "transition-colors duration-150"
                   } ${
                     isActive
-                      ? "border-accent-700 bg-accent-700 text-on-accent ring-2 ring-accent-700"
+                      ? "border-accent-700 bg-accent-700 text-on-accent shadow-sm"
                       : isAccent
-                        ? "border-accent-700/60 bg-accent-50 text-ink-950"
-                        : "border-rule/70 bg-surface-muted text-ink-700 hover:border-control-edge"
+                        ? "border-accent-100 bg-accent-50 text-ink-950"
+                        : "border-rule/70 bg-surface-muted text-ink-700"
                   }`}
                 >
-                  <div className="flex w-full items-center justify-between font-mono text-meta font-semibold tabular-nums">
-                    <span>{index + 1}</span>
-                    <span className="text-micro font-medium opacity-75">{level === 2 ? "2格" : "1格"}</span>
-                  </div>
-
-                  <div className="flex h-11 w-full flex-col gap-1">
+                  <span
+                    className={`self-end font-mono text-micro tabular-nums ${
+                      isActive
+                        ? "text-on-accent"
+                        : isAccent
+                          ? "text-accent-700 font-semibold"
+                          : "text-ink-500"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="flex w-full flex-1 flex-col justify-end gap-1" aria-hidden="true">
+                    {/* Level 2 方块（顶部） */}
                     <span
-                      className={`flex-1 rounded-sm border ${
+                      className={`h-4 w-full rounded-sm ${
+                        reducedMotion ? "" : "transition-colors duration-150"
+                      } ${
                         isActive
-                          ? level === 2 ? "border-on-accent bg-on-accent" : "border-on-accent/30 bg-on-accent/10"
-                          : level === 2 ? "border-accent-700 bg-accent-700" : "border-dashed border-ink-300/60 bg-transparent"
+                          ? isAccent
+                            ? "bg-on-accent opacity-90"
+                            : "bg-on-accent/20"
+                          : isAccent
+                            ? "bg-accent-700"
+                            : "border border-dashed border-ink-200 bg-surface/50"
                       }`}
                     />
+                    {/* Level 1 方块（底部） */}
                     <span
-                      className={`flex-1 rounded-sm ${
-                        isActive ? "bg-on-accent" : level === 2 ? "bg-accent-700" : "bg-ink-700"
+                      className={`h-4 w-full rounded-sm ${
+                        reducedMotion ? "" : "transition-colors duration-150"
+                      } ${
+                        isActive
+                          ? "bg-on-accent opacity-90"
+                          : isAccent
+                            ? "bg-accent-700"
+                            : "bg-ink-700"
                       }`}
                     />
                   </div>
@@ -547,28 +568,34 @@ export function Metronome() {
     }
   }, []);
 
-  const toggleAccent = useCallback((beatIndex: number) => {
-    const current = meterRef.current;
-    const accents = current.accents;
-    const isAccent = accents.includes(beatIndex);
-    const nextAccents = isAccent
-      ? accents.filter((i) => i !== beatIndex)
-      : [...accents, beatIndex].sort((a, b) => a - b);
-    const nextMeter: Meter = {
-      ...current,
-      accents: nextAccents,
-    };
-    meterRef.current = nextMeter;
-    setMeter(nextMeter);
-
+  /**
+   * 改重音：撤掉队列里的点击，按原时间、新重音参数重放，节拍相位不被打断。
+   */
+  const rescheduleAccents = useCallback((updatedMeter: Meter) => {
     const audio = audioRef.current;
-    if (audio && phaseRef.current === "running") {
-      const now = audio.currentTime;
-      audio.cancelFrom(now);
-      pendingRef.current = [];
-      nextBeatTimeRef.current = now + RESUME_LEAD_S;
+    if (!audio || phaseRef.current !== "running") return;
+
+    const now = audio.currentTime;
+    audio.cancelFrom(now);
+
+    const kept = pendingRef.current.filter((entry) => entry.time > now);
+    pendingRef.current = kept;
+    for (const entry of kept) {
+      audio.schedule(entry.beat, entry.time, updatedMeter);
     }
   }, []);
+
+  const toggleAccent = useCallback(
+    (beatIndex: number) => {
+      setMeter((prevMeter) => {
+        const nextMeter = toggleMeterAccent(prevMeter, beatIndex);
+        meterRef.current = nextMeter;
+        rescheduleAccents(nextMeter);
+        return nextMeter;
+      });
+    },
+    [rescheduleAccents],
+  );
 
   const changeBpm = useCallback(
     (value: number) => {
@@ -787,9 +814,9 @@ export function Metronome() {
         reducedMotion={reducedMotion}
         wakeLockHint={wakeLockHint}
         onMeterChange={changeMeter}
-        onAccentToggle={toggleAccent}
         onBpmChange={changeBpm}
         onTimbreChange={changeTimbre}
+        onToggleAccent={toggleAccent}
         onStart={() => void start()}
         onStop={() => void stop()}
         timbre={timbre}
@@ -822,63 +849,81 @@ export function Metronome() {
           })}
         </div>
         <p className="mt-1.5 text-meta text-ink-500">{meter.description}</p>
-      </section>
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <p id="metronome-beat-columns-label" className="text-label font-medium text-ink-700">
-            节拍柱状图（点击切换 1 格/2 格重音）
-          </p>
-          <span className="font-mono text-meta text-ink-500">
-            {meter.accents.length > 0 ? `重音拍: ${meter.accents.map((i) => i + 1).join(", ")}` : "无重音"}
-          </span>
-        </div>
-        <ol className="flex gap-2" aria-labelledby="metronome-beat-columns-label">
+        {/* 桌面端拍子柱状图与双格重音设置 */}
+        <div
+          role="group"
+          aria-label="节拍柱状图与双格重音设置"
+          className="mt-3 flex gap-2"
+        >
           {Array.from({ length: beats }, (_, index) => {
             const isActive = phase === "running" && index === activeBeat;
             const isAccent = meter.accents.includes(index);
             const level = isAccent ? 2 : 1;
-
             return (
-              <li key={index} className="flex-1">
-                <button
-                  type="button"
-                  aria-label={`第 ${index + 1} 拍，${isAccent ? "重音（2格）" : "常规拍（1格）"}，点击切换重音`}
-                  onClick={() => toggleAccent(index)}
-                  className={`flex h-20 w-full min-h-11 flex-col justify-between rounded-control border p-2 touch-manipulation ${
-                    reducedMotion ? "" : "transition-colors duration-150"
-                  } ${
-                    isActive
-                      ? "border-accent-700 bg-accent-700 text-on-accent ring-2 ring-accent-700"
-                      : isAccent
-                        ? "border-accent-700/60 bg-accent-50 text-ink-950"
-                        : "border-rule bg-surface text-ink-700 hover:border-control-edge"
-                  }`}
-                >
-                  <div className="flex w-full items-center justify-between font-mono text-meta font-semibold tabular-nums">
-                    <span>{index + 1}</span>
-                    <span className="text-micro font-medium opacity-75">{level === 2 ? "2格" : "1格"}</span>
-                  </div>
-
-                  <div className="flex h-10 w-full flex-col gap-1">
-                    <span
-                      className={`flex-1 rounded-sm border ${
-                        isActive
-                          ? level === 2 ? "border-on-accent bg-on-accent" : "border-on-accent/30 bg-on-accent/10"
-                          : level === 2 ? "border-accent-700 bg-accent-700" : "border-dashed border-ink-300/60 bg-transparent"
-                      }`}
-                    />
-                    <span
-                      className={`flex-1 rounded-sm ${
-                        isActive ? "bg-on-accent" : level === 2 ? "bg-accent-700" : "bg-ink-700"
-                      }`}
-                    />
-                  </div>
-                </button>
-              </li>
+              <button
+                key={index}
+                type="button"
+                onClick={() => toggleAccent(index)}
+                aria-label={`第 ${index + 1} 拍重音设置，当前为 ${level} 格（${isAccent ? "重音拍" : "常规拍"}），点击切换`}
+                className={`relative flex h-24 min-h-11 min-w-0 flex-1 flex-col justify-between rounded-control border p-2 text-left ${
+                  reducedMotion ? "" : "transition-colors duration-150"
+                } ${
+                  isActive
+                    ? "border-accent-700 bg-accent-700 text-on-accent shadow-sm"
+                    : isAccent
+                      ? "border-accent-100 bg-accent-50 text-ink-950 hover:border-accent-700"
+                      : "border-rule/80 bg-surface-muted text-ink-700 hover:border-control-edge"
+                }`}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span
+                    className={`text-micro font-medium ${
+                      isActive ? "text-on-accent" : isAccent ? "text-accent-700 font-semibold" : "text-ink-500"
+                    }`}
+                  >
+                    {isAccent ? "Level 2" : "Level 1"}
+                  </span>
+                  <span
+                    className={`font-mono text-micro tabular-nums ${
+                      isActive ? "text-on-accent" : isAccent ? "text-accent-700 font-semibold" : "text-ink-500"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                </div>
+                <div className="flex w-full flex-1 flex-col justify-end gap-1.5 pt-2" aria-hidden="true">
+                  {/* Level 2 方块（顶部） */}
+                  <span
+                    className={`h-5 w-full rounded-sm ${
+                      reducedMotion ? "" : "transition-colors duration-150"
+                    } ${
+                      isActive
+                        ? isAccent
+                          ? "bg-on-accent opacity-90"
+                          : "bg-on-accent/20"
+                        : isAccent
+                          ? "bg-accent-700"
+                          : "border border-dashed border-ink-200 bg-surface/50"
+                    }`}
+                  />
+                  {/* Level 1 方块（底部） */}
+                  <span
+                    className={`h-5 w-full rounded-sm ${
+                      reducedMotion ? "" : "transition-colors duration-150"
+                    } ${
+                      isActive
+                        ? "bg-on-accent opacity-90"
+                        : isAccent
+                          ? "bg-accent-700"
+                          : "bg-ink-700"
+                    }`}
+                  />
+                </div>
+              </button>
             );
           })}
-        </ol>
+        </div>
       </section>
 
       <section className="flex flex-col items-center">

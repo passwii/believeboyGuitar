@@ -66,6 +66,37 @@ export function accentIndexes(meter: Meter): number[] {
   return [...new Set(valid)].sort((a, b) => a - b);
 }
 
+/**
+ * 切换某拍的重音级别（Level 1 ↔ Level 2）。
+ *
+ * 如果该拍当前是 Level 2（重音拍），则降为 Level 1（常规弱拍，从 accents 中移除）；
+ * 如果该拍当前是 Level 1（常规弱拍），则升为 Level 2（重音拍，加入 accents）。
+ * 返回一个新 Meter 对象，accents 经过规整与去重排序。
+ */
+export function toggleMeterAccent(meter: Meter, beatIndex: number): Meter {
+  const beats = meter.beatsPerBar;
+  if (!Number.isInteger(beatIndex) || beatIndex < 0 || beatIndex >= beats) {
+    return meter;
+  }
+  const current = accentIndexes(meter);
+  const exists = current.includes(beatIndex);
+  const nextAccents = exists
+    ? current.filter((index) => index !== beatIndex)
+    : [...current, beatIndex].sort((a, b) => a - b);
+  return {
+    ...meter,
+    accents: nextAccents,
+  };
+}
+
+/**
+ * 获取某拍在指定拍号下的重音级别（1 或 2）。
+ * Level 2 为重音拍（在 accents 中），Level 1 为常规弱拍。
+ */
+export function beatLevel(meter: Meter, beatIndex: number): 1 | 2 {
+  return accentIndexes(meter).includes(beatIndex) ? 2 : 1;
+}
+
 /** 夹紧到 30–240 并取整；非有限值回落到默认 BPM */
 export function clampBpm(value: number): number {
   if (!Number.isFinite(value)) return BPM_DEFAULT;
