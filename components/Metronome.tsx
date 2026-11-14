@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BpmDial } from "@/components/BpmDial";
-import { TempoWave } from "@/components/TempoWave";
 import { Icon } from "@/components/icons";
 import { useScreenWakeLock } from "@/components/useScreenWakeLock";
 import {
@@ -938,11 +937,6 @@ export function Metronome() {
             <BpmStepControls bpm={bpm} onChange={changeBpm} />
           </section>
 
-          {/* 拍点波形：每拍四个细分，与拍点同步。 */}
-          <section className="metronome-split__wave">
-            <TempoWave meter={meter} activeBeat={activeBeat} running={phase === "running"} className="h-10" />
-            <p className="sr-only">波形：每拍四个细分，亮色是当前拍。</p>
-          </section>
         </div>
 
         <aside className="metronome-split__controls" aria-label="节拍器调节">
