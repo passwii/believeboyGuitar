@@ -1,3 +1,6 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Metronome } from "@/components/Metronome";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -956,5 +959,44 @@ describe("回前台的 resume 在 await 之后复核代次与相位（复核 2�
     expect(body.slice(0, failed)).toContain(
       'if (startGenerationRef.current === generation && phaseRef.current === "running")',
     );
+  });
+});
+
+describe("节拍柱状图与两级重音设置（Stage 1 需求）", () => {
+  const html = renderToStaticMarkup(createElement(Metronome));
+
+  it("默认 4/4 渲染 4 个节拍柱状图，第一拍为 2 格重音，第二、三、四拍为 1 格", () => {
+    // 移动端和桌面端各有一组柱状图
+    const level2Indicators = html.match(/>2格<\/span>/g) ?? [];
+    const level1Indicators = html.match(/>1格<\/span>/g) ?? [];
+
+    // 4/4 拍：每组 1 个重音（2格），3 个弱拍（1格）
+    expect(level2Indicators.length).toBe(2);
+    expect(level1Indicators.length).toBe(6);
+  });
+
+  it("每个柱状图按钮都具备 >= 44px (min-h-11) 可访问触摸目标", () => {
+    const buttons = [...html.matchAll(/<button\b[^>]*?>/g)]
+      .map((m) => m[0])
+      .filter((tag) => tag.includes("点击切换重音"));
+    expect(buttons.length).toBe(8);
+    for (const tag of buttons) {
+      expect(tag).toContain("min-h-11");
+    }
+  });
+
+  it("重音判定规则正确：当拍数设为 2 格时为重音，1 格时为常规弱拍", () => {
+    const customMeter: Meter = {
+      label: "4/4",
+      beatsPerBar: 4,
+      beatUnit: 4,
+      accents: [0, 2],
+      description: "双重音",
+    };
+
+    expect(isAccentBeat(0, customMeter)).toBe(true);
+    expect(isAccentBeat(1, customMeter)).toBe(false);
+    expect(isAccentBeat(2, customMeter)).toBe(true);
+    expect(isAccentBeat(3, customMeter)).toBe(false);
   });
 });
