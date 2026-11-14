@@ -926,63 +926,6 @@ export function Metronome() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <p id="metronome-beat-columns-label" className="text-label font-medium text-ink-700">
-            节拍柱状图（点击切换 1 格/2 格重音）
-          </p>
-          <span className="font-mono text-meta text-ink-500">
-            {meter.accents.length > 0 ? `重音拍: ${meter.accents.map((i) => i + 1).join(", ")}` : "无重音"}
-          </span>
-        </div>
-        <ol className="flex gap-2" aria-labelledby="metronome-beat-columns-label">
-          {Array.from({ length: beats }, (_, index) => {
-            const isActive = phase === "running" && index === activeBeat;
-            const isAccent = meter.accents.includes(index);
-            const level = isAccent ? 2 : 1;
-
-            return (
-              <li key={index} className="flex-1">
-                <button
-                  type="button"
-                  aria-label={`第 ${index + 1} 拍，${isAccent ? "重音（2格）" : "常规拍（1格）"}，点击切换重音`}
-                  onClick={() => toggleAccent(index)}
-                  className={`flex h-20 w-full min-h-11 flex-col justify-between rounded-control border p-2 touch-manipulation ${
-                    reducedMotion ? "" : "transition-colors duration-150"
-                  } ${
-                    isActive
-                      ? "border-accent-700 bg-accent-700 text-on-accent ring-2 ring-accent-700"
-                      : isAccent
-                        ? "border-accent-700/60 bg-accent-50 text-ink-950"
-                        : "border-rule bg-surface text-ink-700 hover:border-control-edge"
-                  }`}
-                >
-                  <div className="flex w-full items-center justify-between font-mono text-meta font-semibold tabular-nums">
-                    <span>{index + 1}</span>
-                    <span className="text-micro font-medium opacity-75">{level === 2 ? "2格" : "1格"}</span>
-                  </div>
-
-                  <div className="flex h-10 w-full flex-col gap-1">
-                    <span
-                      className={`flex-1 rounded-sm border ${
-                        isActive
-                          ? level === 2 ? "border-on-accent bg-on-accent" : "border-on-accent/30 bg-on-accent/10"
-                          : level === 2 ? "border-accent-700 bg-accent-700" : "border-dashed border-ink-300/60 bg-transparent"
-                      }`}
-                    />
-                    <span
-                      className={`flex-1 rounded-sm ${
-                        isActive ? "bg-on-accent" : level === 2 ? "bg-accent-700" : "bg-ink-700"
-                      }`}
-                    />
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-
       <section className="flex flex-col items-center">
         <BpmDial value={bpm} onChange={changeBpm} />
 
