@@ -66,6 +66,11 @@ describe("竖屏单栏（手机与 iPad 竖屏）", () => {
     expect(globals).toMatch(/\.metronome-compact__dial\s*\{[^}]*flex:\s*1 1 0%/);
   });
 
+  it("拍柱随可用高度加高，但不把 transport 挤出视口", () => {
+    expect(metronome).toContain("h-[clamp(6rem,9svh,8rem)]");
+    expect(metronome).toContain("h-[clamp(8rem,20svh,11rem)]");
+  });
+
   it("加减按钮放在圆环外，避免拖动圆环时误触", () => {
         expect(dial).toContain("text-7xl");
     expect(dial).toContain("size-[76%]");
