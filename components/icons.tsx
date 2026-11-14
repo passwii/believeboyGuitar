@@ -28,7 +28,9 @@ export type IconName =
   | "chords"
   | "plan"
   | "rhythm"
-  | "orientation";
+  | "orientation"
+  | "sun"
+  | "moon";
 
 const PATHS: Record<IconName, ReactNode> = {
   home: <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -113,6 +115,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M3 11a9 9 0 0 1 3-6M21 13a9 9 0 0 1-3 6" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </>
+  ),
+  moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
 };
 
 export function Icon({

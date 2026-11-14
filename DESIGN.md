@@ -1,25 +1,26 @@
 # DESIGN.md — 视觉与交互契约
 
-方向：**信号台（Signal Bench）**——一个世界、浅色、读数优先
-状态：D2 已落地（2026-10-25，替换 BLF-1451 的 B+C 混搭）；版式重排见 D3
+方向：**Neo-Studio 磨砂玻璃（Neo-Studio Glass）与 Dark/Light 双模演播室系统**
+状态：Stage 2 已落地（2026-11-14，BLF-1516 / BLF-1520 全局设计系统落地）
 
 本文定义站点当前的视觉与交互目标。项目架构、内容格式和工程约束以 `CLAUDE.md` 为准；
-本文不改变它们。令牌的唯一实现处是 `app/globals.css` 的 `@theme` 块。
+本文不改变它们。令牌的唯一实现处是 `astro/styles/global.css` 的 `@theme` 块与双模映射。
 
 ## 1. 设计定位
 
-这是一个个人使用、持续整理的电吉他练习站。它回答的问题只有一个：**打开就能练。**
+这是一个个人使用、持续整理的电吉他练习站与虚拟声学录音棚。它回答的问题只有一个：**打开就能练。**
 
 所以界面按仪器设计，不按杂志设计：
 
 - 练习时面对的是读数：速度、拍号、小节、品位、谱面位置。
-- 性格来自这些读数的排布——等宽数字、发丝线、一条跟着拍点扫过的波形。
-- 不是舞台，也不是笔记本。不制造情绪，不解释自己。
+- 性格来自这些读数的排布——等宽数字、发丝线、亚克力磨砂景深与跟着拍点扫过的波形。
+- 融合专业声学硬件机架与 Apple Liquid Glass 空间磨砂玻璃质感。
 
-全站只有一个世界：冷灰绿画布 + 石墨墨色 + 深绿信号色。没有「读值区 / 工具区」两套皮肤，
-「读」与「用」的区分交给版式与密度。浅色是场景决定（室内常光、长时间看谱），不是审美偏好。
+支持 Dark / Light 双模无缝热切换：
+- **Dark（暗夜演播室旗舰）**：曜石深空黑底色（`#0A0D12`）配合高饱和 Studio Neon 翠绿信号指示（`#10B981`），夜练与昏暗光线保护视力。
+- **Light（冷钛高光台）**：冷钛银白底色（`#F4F6FA`）配合精密墨色与祖母绿信号色（`#047857`）。
 
-签约方：`docs/superpowers/specs/2026-10-25-signal-bench-redesign-design.md`。
+签约方：`docs/superpowers/specs/2026-11-14-frontend-redesign-evaluation-and-spec.md`。
 
 ## 2. 设计原则
 
@@ -29,37 +30,45 @@
 4. **数字用等宽。** BPM、拍号、小节、品位一律 `tabular-nums`，读数变化时不抖动。
 5. **删优先于加。** 新令牌、新字号档位、新曲线都要能说出它替代了谁，否则测试会挡。
 6. **图标是结构。** 导航与状态使用同一套 1.5px 内联 SVG，不用 emoji、不用字符代替。
+7. **无障碍退化优先。** 严格支持 `prefers-reduced-transparency` 实底降级与 `prefers-reduced-motion` 静态降级。
 
 ## 3. 视觉令牌
 
 ### 色彩
 
-| 令牌 | 值 | 用途 |
-| --- | --- | --- |
-| `--color-canvas` | `#F1F2EC` | 页面底色，也是 PWA 主题色 |
-| `--color-surface` | `#FBFCF8` | 抬升一层：仪器面板、谱面、选中分段块 |
-| `--color-surface-muted` | `#E4E9E1` | 次级底：搜索框、未选芯片、分段轨道 |
-| `--color-ink-950` | `#1D2520` | 标题、读数、正文 |
-| `--color-ink-700` | `#49534C` | 摘要、次级正文 |
-| `--color-ink-500` | `#5C6A61` | 元信息、说明 |
-| `--color-ink-300` | `#98A29A` | 禁用态文字（不传递信息，允许低于 AA） |
-| `--color-ink-200` | `#C7CFC7` | 图形轨道与浅描边（节拍器圆环刻度） |
-| `--color-ink-100` | `#DDE3DC` | 最浅填充（非根音音位、难度空刻度） |
-| `--color-accent-700` | `#267B55` | 链接、选中态、主操作、根音、波形 |
-| `--color-accent-600` | `#2E8C62` | 画布上的填充（根音圆点） |
-| `--color-accent-100` | `#D8E9DE` | 选区底色 |
-| `--color-accent-50` | `#EDF4EE` | 表格行选中底色 |
-| `--color-on-accent` | `#FFFFFF` | 强调底上的文字 |
-| `--color-rule` | `#C9D1C8` | 发丝分隔线 |
-| `--color-control-edge` | `#6B766E` | 需要清晰识别的控件边界 |
-| `--color-board-800/900` | oklch（暖木色相） | 指板画布；指板是实物，保留木色 |
+| 令牌 | Light 模式值 | Dark 模式值 | 用途 |
+| --- | --- | --- | --- |
+| `--color-canvas` | `#F4F6FA` | `#0A0D12` | 页面视口底层画布，也是 PWA 主题色 |
+| `--color-surface` | `#FFFFFF` | `#121826` | 基础实体面板、按钮底色 |
+| `--color-surface-muted` | `#E8EDF5` | `#1E293B` | 次级底：搜索框、未选芯片、分段轨道 |
+| `--color-surface-glass` | `rgba(255,255,255,0.78)` | `rgba(16,22,34,0.65)` | 悬浮亚克力磨砂玻璃（导航栏、移动 Dock、卡片） |
+| `--color-surface-elevated`| `rgba(255,255,255,0.95)` | `rgba(26,34,52,0.82)` | 激活项底色、悬浮卡片高光抬升 |
+| `--color-ink-950` | `#0F172A` | `#F8FAFC` | 核心标题、读数、TAB 品位 |
+| `--color-ink-700` | `#334155` | `#CBD5E1` | 摘要、次级正文 |
+| `--color-ink-500` | `#52637A` | `#94A3B8` | 元信息、说明标签 |
+| `--color-ink-300` | `#CBD5E1` | `#475569` | 禁用态文字 |
+| `--color-ink-200` | `#E2E8F0` | `#334155` | 图形轨道与浅描边（节拍器圆环刻度等） |
+| `--color-ink-100` | `#F1F5F9` | `#1E293B` | 最浅填充（非根音音位、节拍弱拍槽） |
+| `--color-accent-700` | `#047857` | `#10B981` | 链接、选中态、主操作、根音、重音发声 |
+| `--color-accent-600` | `#059669` | `#34D399` | 强调色悬浮态 |
+| `--color-accent-100` | `#D1FAE5` | `rgba(16,185,129,0.2)` | 选区底色 |
+| `--color-accent-50` | `#ECFDF5` | `#022C22` | 表格行选中底色 |
+| `--color-accent-glow` | `rgba(5,150,105,0.25)` | `rgba(16,185,129,0.45)` | 拍点光晕、环境外发光 |
+| `--color-accent-subtle` | `#D1FAE5` | `rgba(16,185,129,0.16)` | 徽章底色、玻璃面板微染底色 |
+| `--color-on-accent` | `#FFFFFF` | `#042F1A` | 强调底上的文字 |
+| `--color-rule` | `#CBD5E1` | `rgba(255,255,255,0.12)` | 发丝分隔线 |
+| `--color-control-edge` | `#64748B` | `#94A3B8` | 控件边界识别线 |
+| `--color-glass-border` | `rgba(15,23,42,0.08)` | `rgba(255,255,255,0.12)` | 玻璃材质边界线 |
+| `--color-glass-specular`| `rgba(255,255,255,0.95)` | `rgba(255,255,255,0.28)` | 玻璃顶部 1px 镜面发丝受光线 |
+| `--color-glass-shadow` | `0 18px 40px -10px ...` | `0 20px 50px -12px ...` | 亚克力磨砂玻璃多层环境景深阴影 |
+| `--color-board-800/900` | oklch（暖木色相） | `#181311 / #120E0D` | 指板画布 |
 
 对比度（`tests/design-system.test.ts` 守护）：
 
-- 三级墨色在 `canvas` / `surface` / `surface-muted` 上均 ≥ 4.5:1。
-- `on-accent` 在 `accent-700` 上 ≥ 4.5:1；`accent-700` 在 `canvas` 与 `accent-50` 上 ≥ 4.5:1。
+- Light 与 Dark 双模下，三级墨色在 `canvas` / `surface` / `surface-muted` 上均严格 ≥ 4.5:1。
+- Light 与 Dark 双模下，`on-accent` 在 `accent-700` 上 ≥ 4.5:1；`accent-700` 在 `canvas` 与 `accent-50` 上 ≥ 4.5:1。
 - `rule` 只承担分隔，不承担文字可读性，不设门槛。
-- 全站固定浅色，`colorScheme: light`；不提供暗色模式。
+- 原生支持 `color-scheme: light dark` 与 `localStorage` / 系统偏好热同步。
 
 ### 排版
 
@@ -92,15 +101,16 @@
 
 - 外壳 1120px（`--container-page`）、阅读列 40em（`--container-measure`）、长文侧栏 13rem。
 - 圆角三档：控件 10px、面板 14px、圆点 pill。列表行悬停底只用 2px。
-- 动效一条曲线 `--ease-standard: cubic-bezier(.32,.72,0,1)`，两档时长：150ms 状态、200ms 展开。
+- 动效一条物理阻尼弹簧曲线 `--ease-standard: cubic-bezier(0.16, 1, 0.3, 1)`。
 - 拍点扫描与播放头使用线性节奏（节拍必须匀速），它不属于「过渡」，不借用系统曲线。
-- 不做滚动触发的装饰性揭示；`prefers-reduced-motion` 下波形静止、播放头改为跳格。
+- 不做滚动触发的装饰性揭示；`prefers-reduced-motion` 下重置动画与过渡至 0.01ms。
+- `prefers-reduced-transparency` 下亚克力玻璃降级为实体底色，移除滤镜与阴影。
 
 ## 4. 平台层（原生手感）
 
-- **粘性导航**：`position: sticky` + `backdrop-filter: blur(24px) saturate(1.5)` + 78% 透明画布色；
-  不支持 `backdrop-filter` 时退化为实底。分隔线是容器边框，不靠 JS 监听滚动。
-- **移动端底部 dock**：窄屏导航整体下沉为固定 dock（首页 / 资料 / 练习 / 工具 / 节拍），
+- **粘性导航**：`position: sticky` + `backdrop-filter: blur(24px) saturate(160%)` + 磨砂玻璃（`shell-nav-glass`）；
+  顶部 1px 镜面发丝受光（`inset 0 -1px 0`）；不支持 `backdrop-filter` 时退化为实底。右侧搭载明暗双模切换开关。
+- **移动端底部 dock**：窄屏导航整体下沉为固定 dock（首页 / 练习 / 资料库 / 节拍器），采用 `dock-glass` 磨砂玻璃材质，
   `sm:` 以上不渲染；`pb-[env(safe-area-inset-bottom)]` 避让 home indicator；
   页脚底部留白用 `--dock-h` 为它让位。
 - **单屏节拍器例外**：`/metronome` 在窄屏进入专注模式，隐藏站点顶部栏、

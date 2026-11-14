@@ -10,8 +10,8 @@ export const pwaManifest = {
   scope: "/",
   display: "standalone",
   orientation: "any",
-  background_color: "#f1f2ec",
-  theme_color: "#f1f2ec",
+  background_color: "#0a0d12",
+  theme_color: "#0a0d12",
   categories: ["music", "education"],
   icons: [
     { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

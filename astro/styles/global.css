@@ -1,48 +1,40 @@
 @import "tailwindcss";
 
-/* ============================================================================
-   设计令牌
-   ----------------------------------------------------------------------------
-   方向：信号台（2026-10-25 拍板，替代 BLF-1451 的 B+C 混搭）。
-   全站一个世界：冷灰绿画布、石墨墨色、深绿信号色。不再有「读值区 / 工具区」
-   双区换皮，区分「读」与「用」只靠版式与密度。
-   性格来自读数与谱面：等宽数字、发丝线、一条会跟着拍点扫过的波形。
-   外壳层仍是 iOS 原生手感：留白、字重、发丝线、半透明导航、44pt 触摸目标、
-   系统曲线动效。契约与验收标准见 DESIGN.md；本文件是令牌的唯一实现处。
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-   原则：令牌只保留「有引用」的条目。新增前先确认已有令牌无法表达，
-   否则 tests/design-system.test.ts 会报未使用令牌。
+/* ============================================================================
+   设计令牌与材质系统 (Neo-Studio Glass & Dark/Light Dual Mode)
+   ----------------------------------------------------------------------------
+   方向：Neo-Studio 磨砂玻璃与双模旗舰系统（BLF-1516 / BLF-1520）。
+   融合专业机架效果器与 Apple Liquid Glass 亚克力磨砂玻璃质感。
+   全站支持 Dark / Light 双模热切换，深浅双模调色板均达 WCAG AA 对比度。
+   针对 prefers-reduced-transparency 与 prefers-reduced-motion 提供严格降级守护。
+   契约与验收标准见 DESIGN.md；本文件是令牌的唯一实现处。
    ========================================================================== */
 
 @theme {
-  /* ---- 表面：三级，靠亮度而非阴影分层（冷灰绿） ---- */
-  --color-canvas: #f1f2ec;
-  --color-surface: #fbfcf8;
-  --color-surface-muted: #e4e9e1;
+  /* ---- 表面：三级 + Neo-Studio 磨砂玻璃材质令牌 ---- */
+  --color-canvas: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #e8edf5;
+  --color-surface-glass: rgba(255, 255, 255, 0.78);
+  --color-surface-elevated: rgba(255, 255, 255, 0.95);
 
-  /* ---- 墨色：文字三级 + 状态与图形两级 ----
-     文字三级（950/700/500）都在 canvas / surface / surface-muted 上达到 AA
-     （tests/design-system.test.ts 守护）；
-     中间灰阶不设，层级靠字号与字重。
-       · 300：禁用态文字。低于 AA 可接受，因为禁用项不传递信息，
-         但它必须“看得出被禁用”，所以不能直接用更浅的 100。
-       · 200：图形轨道与浅描边（节拍器圆环刻度等）。与 rule 同语义不同：
-         rule 是分隔线，200 是轨道；两者将来允许各自变化，不合并。
-     100：最浅的填充（非根音音位、难度空刻度）。 */
-  --color-ink-950: #1d2520;
-  --color-ink-700: #49534c;
-  --color-ink-500: #5c6a61;
-  --color-ink-300: #98a29a;
-  --color-ink-200: #c7cfc7;
-  --color-ink-100: #dde3dc;
+  /* ---- 墨色：文字三级 + 状态与图形三级 ---- */
+  --color-ink-950: #0f172a;
+  --color-ink-700: #334155;
+  --color-ink-500: #52637a;
+  --color-ink-300: #cbd5e1;
+  --color-ink-200: #e2e8f0;
+  --color-ink-100: #f1f5f9;
 
-  /* ---- 强调：深绿信号色。只用于链接、选中态与根音 ----
-     白字在 accent-700 上 5.2:1；accent-700 在 canvas 上 4.6:1、在 accent-50 上
-     4.7:1。数值由 tests/design-system.test.ts 逐条验。 */
-  --color-accent-700: #267b55;
-  --color-accent-600: #2e8c62;
-  --color-accent-100: #d8e9de;
-  --color-accent-50: #edf4ee;
+  /* ---- 强调：深绿信号色与 Studio 信号指示 ---- */
+  --color-accent-700: #047857;
+  --color-accent-600: #059669;
+  --color-accent-100: #d1fae5;
+  --color-accent-50: #ecfdf5;
+  --color-accent-glow: rgba(5, 150, 105, 0.25);
+  --color-accent-subtle: #d1fae5;
 
   /* 指板音阶的六条路径。颜色只用于分类，不承担唯一语义。 */
   --color-scale-1: #2f7d62;
@@ -55,9 +47,12 @@
   /* ---- 强调底上的文字 ---- */
   --color-on-accent: #ffffff;
 
-  /* ---- 边界 ---- */
-  --color-rule: #c9d1c8;
-  --color-control-edge: #6b766e;
+  /* ---- 边界与磨砂玻璃反射令牌 ---- */
+  --color-rule: #cbd5e1;
+  --color-control-edge: #64748b;
+  --color-glass-border: rgba(15, 23, 42, 0.08);
+  --color-glass-specular: rgba(255, 255, 255, 0.95);
+  --color-glass-shadow: 0 18px 40px -10px rgba(15, 23, 42, 0.14);
 
   /* ---- 指板画布：正文流里的局部高对比区域。
      深色玫瑰木色相刻意保留：指板本来就是木头的，冷灰绿页面上它是「实物」。 ---- */
@@ -112,10 +107,65 @@
   --radius-pill: 999px;
 
   /* ---- 阴影：只用于「浮起一层」的控件 ---- */
-  --shadow-segment: 0 1px 2px rgb(29 37 32 / 0.16), 0 0 0 0.5px rgb(29 37 32 / 0.06);
+  --shadow-segment: 0 1px 2px rgb(15 23 42 / 0.12), 0 0 0 0.5px rgb(15 23 42 / 0.05);
 
-  /* ---- 动效：iOS 系统曲线。只保留一条曲线：界面里没有需要“退场”的独立节奏 ---- */
-  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  /* ---- 动效：Neo-Studio 弹簧阻尼曲线 ---- */
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================================
+   双模色彩与材质映射 (Neo-Studio Light & Dark)
+   ========================================================================== */
+
+[data-theme="dark"] {
+  --color-canvas: #0a0d12;
+  --color-surface: #121826;
+  --color-surface-muted: #1e293b;
+  --color-surface-glass: rgba(16, 22, 34, 0.65);
+  --color-surface-elevated: rgba(26, 34, 52, 0.82);
+  --color-ink-950: #f8fafc;
+  --color-ink-700: #cbd5e1;
+  --color-ink-500: #94a3b8;
+  --color-ink-300: #475569;
+  --color-ink-200: #334155;
+  --color-ink-100: #1e293b;
+  --color-accent-700: #10b981;
+  --color-accent-600: #34d399;
+  --color-accent-100: rgba(16, 185, 129, 0.2);
+  --color-accent-50: #022c22;
+  --color-accent-glow: rgba(16, 185, 129, 0.45);
+  --color-accent-subtle: rgba(16, 185, 129, 0.16);
+  --color-on-accent: #042f1a;
+  --color-rule: rgba(255, 255, 255, 0.12);
+  --color-control-edge: #94a3b8;
+  --color-glass-border: rgba(255, 255, 255, 0.12);
+  --color-glass-specular: rgba(255, 255, 255, 0.28);
+  --color-glass-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
+  --color-board-800: #181311;
+  --color-board-900: #120e0d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-canvas: #0a0d12;
+    --color-surface: #121826;
+    --color-surface-muted: #1e293b;
+    --color-surface-glass: rgba(16, 22, 34, 0.65);
+    --color-surface-elevated: rgba(26, 34, 52, 0.82);
+    --color-ink-950: #f8fafc;
+    --color-ink-700: #cbd5e1;
+    --color-ink-500: #94a3b8;
+    --color-ink-300: #475569;
+    --color-ink-200: #334155;
+    --color-ink-100: #1e293b;
+    --color-accent-700: #10b981;
+    --color-accent-600: #34d399;
+    --color-accent-100: rgba(16, 185, 129, 0.2);
+    --color-accent-50: #022c22;
+    --color-accent-glow: rgba(16, 185, 129, 0.45);
+    --color-accent-subtle: rgba(16, 185, 129, 0.16);
+    --color-on-accent: #042f1a;
+  }
 }
 
 /* ============================================================================
@@ -188,7 +238,9 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
@@ -224,6 +276,79 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+  }
+
+  /* Neo-Studio 亚克力磨砂玻璃卡片 */
+  .studio-glass-panel {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--color-surface-glass);
+    backdrop-filter: blur(24px) saturate(160%) contrast(1.02);
+    -webkit-backdrop-filter: blur(24px) saturate(160%) contrast(1.02);
+    border: 1px solid var(--color-glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--color-glass-specular),
+      var(--color-glass-shadow),
+      0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-radius: var(--radius-card);
+    transition:
+      border-color 240ms var(--ease-standard),
+      box-shadow 240ms var(--ease-standard),
+      transform 200ms var(--ease-standard);
+  }
+
+  .studio-glass-panel:hover {
+    border-color: var(--color-accent-glow);
+    background-color: color-mix(in oklab, var(--color-surface-glass) 92%, var(--color-accent-subtle));
+    box-shadow:
+      inset 0 1px 0 var(--color-glass-specular),
+      0 0 20px 0 var(--color-accent-glow),
+      var(--color-glass-shadow);
+  }
+
+  /* 顶部全局导航磨砂玻璃 */
+  .shell-nav-glass {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background-color: var(--color-surface-glass);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border-bottom: 1px solid var(--color-glass-border);
+    box-shadow: inset 0 -1px 0 var(--color-glass-specular);
+  }
+
+  /* 移动端底部 Dock 磨砂玻璃 */
+  .dock-glass {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 40;
+    background-color: var(--color-surface-glass);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border-top: 1px solid var(--color-glass-border);
+    box-shadow: inset 0 1px 0 var(--color-glass-specular);
+  }
+
+  @supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
+    .shell-nav-glass,
+    .dock-glass,
+    .studio-glass-panel {
+      background-color: var(--color-surface);
+    }
+  }
+
+  /* reduced-transparency 降级守则 */
+  @media (prefers-reduced-transparency: reduce) {
+    .shell-nav-glass,
+    .dock-glass,
+    .studio-glass-panel {
+      background-color: var(--color-surface) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: none !important;
+    }
   }
 
   /* 每周练习页把手机空间让给 TAB：外壳更窄，正文说明收进折叠区。 */
