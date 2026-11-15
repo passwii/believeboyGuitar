@@ -43,6 +43,7 @@
 | `--color-surface-muted` | `#E8EDF5` | `#1E293B` | 次级底：搜索框、未选芯片、分段轨道 |
 | `--color-surface-glass` | `rgba(255,255,255,0.78)` | `rgba(16,22,34,0.65)` | 悬浮亚克力磨砂玻璃（导航栏、移动 Dock、卡片） |
 | `--color-surface-elevated`| `rgba(255,255,255,0.95)` | `rgba(26,34,52,0.82)` | 激活项底色、悬浮卡片高光抬升 |
+| `--color-dock-glass` | `rgba(255,255,255,0.94)` | `rgba(16,22,34,0.90)` | 移动端底部 Dock 近实底玻璃：压住正文透出，保证导航可读 |
 | `--color-ink-950` | `#0F172A` | `#F8FAFC` | 核心标题、读数、TAB 品位 |
 | `--color-ink-700` | `#334155` | `#CBD5E1` | 摘要、次级正文 |
 | `--color-ink-500` | `#52637A` | `#94A3B8` | 元信息、说明标签 |
@@ -110,8 +111,10 @@
 
 - **粘性导航**：`position: sticky` + `backdrop-filter: blur(24px) saturate(160%)` + 磨砂玻璃（`shell-nav-glass`）；
   顶部 1px 镜面发丝受光（`inset 0 -1px 0`）；不支持 `backdrop-filter` 时退化为实底。右侧搭载明暗双模切换开关。
-- **移动端底部 dock**：窄屏导航整体下沉为固定 dock（首页 / 练习 / 资料库 / 节拍器），采用 `dock-glass` 磨砂玻璃材质，
-  `sm:` 以上不渲染；`pb-[env(safe-area-inset-bottom)]` 避让 home indicator；
+- **移动端底部 dock**：窄屏导航整体下沉为固定 dock（首页 / 练习 / 资料库 / 节拍器），采用 `dock-glass` 近实底磨砂玻璃材质
+  （专用 `--color-dock-glass`，不跟随悬浮卡片的透明度），只保留一层浅模糊与顶部受光；
+  正文滚动经过时不会透到导航标签下面，浅深双模都保持可读。`sm:` 以上不渲染；
+  `pb-[env(safe-area-inset-bottom)]` 避让 home indicator；
   页脚底部留白用 `--dock-h` 为它让位。
 - **单屏节拍器例外**：`/metronome` 在窄屏进入专注模式，隐藏站点顶部栏、
   底部 dock 与页脚；页面本身固定在 `100svh` 内，不产生滚动。桌面仍保留正常站点外壳。
@@ -121,6 +124,8 @@
   `-webkit-tap-highlight-color: transparent` 与 `touch-action: manipulation`。
 - **安全区**：`viewport-fit=cover`；外壳左右 `env(safe-area-inset-left/right)`，页脚底部
   `env(safe-area-inset-bottom)`。
+- **玻璃前缀**：CSS 只写标准 `backdrop-filter`，`-webkit-` 前缀由 Lightning CSS 生成。
+  手写前缀会被压缩器当作重复声明合并，生产构建只剩 `-webkit-`，Chrome / Android 上模糊失效（BLF-1551）。
 - **视口单位**：粘性目录与移动端目录用 `svh`，不用 `vh`。
 - **元信息**：`themeColor` 与清单的 `theme_color` 都取 `--color-canvas`（`tests/pwa.test.ts` 核对），
   `colorScheme: light`。

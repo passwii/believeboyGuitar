@@ -202,6 +202,23 @@ describe("Neo-Studio 磨砂玻璃材质与双模降级守护", () => {
     expect(css).toMatch(/\.dock-glass\s*\{[^}]*box-shadow:[^}]*var\(--color-glass-specular\)/);
   });
 
+  it("底部 Dock 使用近实底玻璃令牌，正文不会透到导航标签下面", () => {
+    const alpha = (block: string) => {
+      const value = block.match(/--color-dock-glass:\s*rgba\([^)]*?,\s*([\d.]+)\s*\)/)?.[1];
+      if (!value) throw new Error("缺少 --color-dock-glass");
+      return Number(value);
+    };
+    const darkBlock = css.match(/\[data-theme="dark"\]\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+
+    expect(alpha(css)).toBeGreaterThanOrEqual(0.9);
+    expect(alpha(darkBlock)).toBeGreaterThanOrEqual(0.9);
+    expect(css).toMatch(/\.dock-glass\s*\{[^}]*background-color:\s*var\(--color-dock-glass\)/);
+  });
+
+  it("不手写 -webkit-backdrop-filter，前缀交给 Lightning CSS 生成", () => {
+    expect(css).not.toMatch(/^\s*-webkit-backdrop-filter:/m);
+  });
+
   it("磨砂玻璃卡片 studio-glass-panel 包含 24px 模糊、发丝受光与弹簧回弹", () => {
     expect(css).toMatch(/\.studio-glass-panel\s*\{[^}]*backdrop-filter:\s*blur\(24px\)\s+saturate\(160%\)/);
     expect(css).toMatch(/\.studio-glass-panel\s*\{[^}]*box-shadow:[^}]*var\(--color-glass-specular\)/);

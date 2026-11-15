@@ -1,4 +1,4 @@
-import { access, readdir } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
@@ -54,6 +54,24 @@ try {
 }
 if (!astroAssets.some((file) => file.endsWith(".css"))) failures.push("missing Astro CSS assets");
 if (!astroAssets.some((file) => file.endsWith(".js"))) failures.push("missing Astro JavaScript assets");
+
+const css = (
+  await Promise.all(
+    astroAssets
+      .filter((file) => file.endsWith(".css"))
+      .map((file) => readFile(path.join(root, "dist", "_astro", file), "utf8")),
+  )
+).join("\n");
+const dockRule = css.match(/\.dock-glass\{[^}]*\}/)?.[0] ?? "";
+if (!dockRule) failures.push("missing .dock-glass rule in compiled CSS");
+else {
+  if (!/(?:^|[;{])backdrop-filter:blur\(24px\)/.test(dockRule)) {
+    failures.push(".dock-glass lost unprefixed backdrop-filter in compiled CSS");
+  }
+  if (!/(?:^|[;{])-webkit-backdrop-filter:blur\(24px\)/.test(dockRule)) {
+    failures.push(".dock-glass lost -webkit-backdrop-filter in compiled CSS");
+  }
+}
 
 if (failures.length) {
   throw new Error("Astro build output verification failed:\n- " + failures.join("\n- "));

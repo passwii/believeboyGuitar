@@ -19,6 +19,7 @@
   --color-surface-muted: #e8edf5;
   --color-surface-glass: rgba(255, 255, 255, 0.78);
   --color-surface-elevated: rgba(255, 255, 255, 0.95);
+  --color-dock-glass: rgba(255, 255, 255, 0.94);
 
   /* ---- 墨色：文字三级 + 状态与图形三级 ---- */
   --color-ink-950: #0f172a;
@@ -123,6 +124,7 @@
   --color-surface-muted: #1e293b;
   --color-surface-glass: rgba(16, 22, 34, 0.65);
   --color-surface-elevated: rgba(26, 34, 52, 0.82);
+  --color-dock-glass: rgba(16, 22, 34, 0.9);
   --color-ink-950: #f8fafc;
   --color-ink-700: #cbd5e1;
   --color-ink-500: #94a3b8;
@@ -152,6 +154,7 @@
     --color-surface-muted: #1e293b;
     --color-surface-glass: rgba(16, 22, 34, 0.65);
     --color-surface-elevated: rgba(26, 34, 52, 0.82);
+    --color-dock-glass: rgba(16, 22, 34, 0.9);
     --color-ink-950: #f8fafc;
     --color-ink-700: #cbd5e1;
     --color-ink-500: #94a3b8;
@@ -278,13 +281,14 @@
     gap: 1rem;
   }
 
-  /* Neo-Studio 亚克力磨砂玻璃卡片 */
+  /* Neo-Studio 亚克力磨砂玻璃卡片。
+     只写标准 backdrop-filter：手写 -webkit- 会被 Lightning CSS 当成重复声明合并，
+     生产构建只剩前缀版本，Chrome / Android 上模糊直接失效。 */
   .studio-glass-panel {
     position: relative;
     isolation: isolate;
     background-color: var(--color-surface-glass);
     backdrop-filter: blur(24px) saturate(160%) contrast(1.02);
-    -webkit-backdrop-filter: blur(24px) saturate(160%) contrast(1.02);
     border: 1px solid var(--color-glass-border);
     box-shadow:
       inset 0 1px 0 var(--color-glass-specular),
@@ -313,22 +317,25 @@
     z-index: 30;
     background-color: var(--color-surface-glass);
     backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
     border-bottom: 1px solid var(--color-glass-border);
     box-shadow: inset 0 -1px 0 var(--color-glass-specular);
   }
 
-  /* 移动端底部 Dock 磨砂玻璃 */
+  /* 移动端底部 Dock：近实底磨砂玻璃。
+     Dock 固定悬浮在正文之上，如果沿用卡片的透明度，滚动时正文和深色卡片会
+     直接透到导航标签下面，浅深双模都显脏。这里用专用高不透明度令牌压住正文，
+     只保留一层很浅的模糊与顶部受光，保证导航始终是可读的稳定表面。 */
   .dock-glass {
     position: fixed;
     inset-inline: 0;
     bottom: 0;
     z-index: 40;
-    background-color: var(--color-surface-glass);
+    background-color: var(--color-dock-glass);
     backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
     border-top: 1px solid var(--color-glass-border);
-    box-shadow: inset 0 1px 0 var(--color-glass-specular);
+    box-shadow:
+      inset 0 1px 0 var(--color-glass-specular),
+      0 -10px 28px -20px rgba(15, 23, 42, 0.4);
   }
 
   @supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
@@ -349,7 +356,6 @@
     .scale-board-viewport {
       background-color: var(--color-surface) !important;
       backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
       box-shadow: none !important;
     }
   }
@@ -1012,7 +1018,6 @@
     border-radius: var(--radius-card);
     background-color: var(--color-surface-glass);
     backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
     box-shadow:
       inset 0 1px 0 var(--color-glass-specular),
       var(--color-glass-shadow);
